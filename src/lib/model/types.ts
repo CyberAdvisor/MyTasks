@@ -31,7 +31,10 @@ export type ProjectStart = 'unscheduled' | 'deferred';
 /** Priority 1 (highest) to 5. */
 export type Priority = 1 | 2 | 3 | 4 | 5;
 
-/** Who set a to-do's priority (FR-14.1). */
+/**
+ * Who set a to-do's priority (FR-14.1). `user` with no priority means the
+ * user chose "None", which the automatic rules respect.
+ */
 export type PrioritySource = 'user' | 'auto';
 
 /** Fields shared by every stored entity. */

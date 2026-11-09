@@ -9,6 +9,7 @@
   import ListView from './views/ListView.svelte';
   import ProjectView from './views/ProjectView.svelte';
   import AreaView from './views/AreaView.svelte';
+  import SettingsView from './views/SettingsView.svelte';
   import { route, go } from './lib/state/route';
   import { todayDate } from './lib/state/live';
   import { ui } from './lib/state/ui.svelte';
@@ -28,10 +29,11 @@
     if (!isPhone && $route.kind === 'home') go({ kind: 'list', list: 'today' });
   });
 
-  // Close any open card when the view changes.
+  // Close any open card and clear the tag filter when the view changes.
   $effect(() => {
     void $route;
     ui.close();
+    ui.tagFilter = null;
   });
 
   let showSidebar = $derived(!isPhone || $route.kind === 'home');
@@ -52,6 +54,8 @@
           {#key $route.id}<ProjectView id={$route.id} />{/key}
         {:else if $route.kind === 'area'}
           {#key $route.id}<AreaView id={$route.id} />{/key}
+        {:else if $route.kind === 'settings'}
+          <SettingsView />
         {/if}
       </div>
 

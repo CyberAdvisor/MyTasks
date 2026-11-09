@@ -5,16 +5,18 @@
  * list each item appears in and how lists are grouped. No storage access here,
  * so the rules are easy to unit-test.
  */
-import type { Area, Heading, ID, LocalDate, Project, Todo } from './types';
+import type { Area, ChecklistItem, Heading, ID, LocalDate, Project, Tag, Todo } from './types';
 import { bySortKey, compareKeys } from './order';
 import { addDays, formatMonth, formatRelative } from './dates';
 
-/** Everything the list rules need, as loaded from the database. */
+/** Everything the list rules need, as loaded from the database (deleted records removed). */
 export interface Snapshot {
   areas: Area[];
   projects: Project[];
   headings: Heading[];
   todos: Todo[];
+  tags: Tag[];
+  checklistItems: ChecklistItem[];
 }
 
 /** The seven built-in sidebar lists. */

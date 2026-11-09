@@ -9,24 +9,8 @@ import {
   todayTodos,
   trashTodos,
   unscheduledGroups,
-  type Snapshot,
 } from '../src/lib/model/lists';
-
-/** Load the current database contents the way the app does. */
-async function snap(): Promise<Snapshot> {
-  const [areas, projects, headings, todos] = await Promise.all([
-    db.areas.toArray(),
-    db.projects.toArray(),
-    db.headings.toArray(),
-    db.todos.toArray(),
-  ]);
-  return {
-    areas: areas.filter((a) => !a.deletedAt),
-    projects: projects.filter((p) => !p.deletedAt),
-    headings: headings.filter((h) => !h.deletedAt),
-    todos: todos.filter((t) => !t.deletedAt),
-  };
-}
+import { snap } from './helpers';
 
 beforeEach(async () => {
   await db.delete();

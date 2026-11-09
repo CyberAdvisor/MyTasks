@@ -6,7 +6,8 @@
   type Name =
     | 'inbox' | 'star' | 'calendar' | 'layers' | 'archive' | 'logbook' | 'trash'
     | 'search' | 'chevron-down' | 'chevron-right' | 'chevron-left' | 'area' | 'plus'
-    | 'settings' | 'flag' | 'notes' | 'move' | 'more' | 'x' | 'check' | 'heading';
+    | 'settings' | 'flag' | 'notes' | 'move' | 'more' | 'x' | 'check' | 'heading'
+    | 'tag' | 'checklist' | 'priority' | 'arrow-up' | 'arrow-down';
 
   let { name, size = 18, color = 'currentColor', label = '' }: {
     name: Name; size?: number; color?: string; label?: string;
@@ -34,6 +35,11 @@
     x: 'M6 6l12 12 M18 6 6 18',
     check: 'm5 12 5 5 9-10',
     heading: 'M4 6h16 M4 12h10',
+    tag: 'M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z M7 7h.01',
+    checklist: 'M10 6h11 M10 12h11 M10 18h11 M3 6l1.5 1.5L7 5 M3 12l1.5 1.5L7 11 M3 18l1.5 1.5L7 17',
+    priority: 'M12 4v10 M12 19.5h.01',
+    'arrow-up': 'M12 19V5 M5 12l7-7 7 7',
+    'arrow-down': 'M12 5v14 M19 12l-7 7-7-7',
   };
 </script>
 

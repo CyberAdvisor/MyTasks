@@ -14,58 +14,9 @@ import {
   visibleTodos,
   type Snapshot,
 } from '../src/lib/model/lists';
-import type { Project, Todo } from '../src/lib/model/types';
+import { project, todo } from './helpers';
 
 const REF = '2026-11-09';
-
-/** Build a to-do with sensible defaults for list-rule tests. */
-function todo(over: Partial<Todo> = {}): Todo {
-  return {
-    id: uuidv7(),
-    createdAt: '',
-    modifiedAt: '',
-    deletedAt: null,
-    sortKey: 'a0',
-    title: 't',
-    notes: '',
-    status: 'open',
-    start: 'unscheduled',
-    startDate: null,
-    todaySortKey: null,
-    deadline: null,
-    priority: null,
-    prioritySource: null,
-    priorityBeforeAuto: null,
-    tagIds: [],
-    areaId: null,
-    projectId: null,
-    headingId: null,
-    completedAt: null,
-    trashedAt: null,
-    ...over,
-  };
-}
-
-function project(over: Partial<Project> = {}): Project {
-  return {
-    id: uuidv7(),
-    createdAt: '',
-    modifiedAt: '',
-    deletedAt: null,
-    sortKey: 'a0',
-    title: 'p',
-    notes: '',
-    status: 'open',
-    start: 'unscheduled',
-    startDate: null,
-    deadline: null,
-    tagIds: [],
-    areaId: null,
-    completedAt: null,
-    trashedAt: null,
-    ...over,
-  };
-}
 
 describe('dates', () => {
   it('adds days across month ends', () => {
@@ -147,7 +98,7 @@ describe('list membership', () => {
 
   it('hides to-dos of a trashed project', () => {
     const p = project({ trashedAt: '2026-11-09T00:00:00Z' });
-    const s: Snapshot = { areas: [], headings: [], projects: [p], todos: [todo({ projectId: p.id, startDate: REF })] };
+    const s: Snapshot = { areas: [], headings: [], tags: [], checklistItems: [], projects: [p], todos: [todo({ projectId: p.id, startDate: REF })] };
     expect(visibleTodos(s)).toHaveLength(0);
     expect(sidebarCounts(s, REF).today).toBe(0);
   });
@@ -164,7 +115,7 @@ describe('list membership', () => {
   it('groups Scheduled by day for a week, then by month', () => {
     const s: Snapshot = {
       areas: [],
-      headings: [],
+      headings: [], tags: [], checklistItems: [],
       projects: [],
       todos: [todo({ startDate: '2026-11-10' }), todo({ startDate: '2026-11-10' }), todo({ startDate: '2026-12-20' })],
     };
@@ -176,7 +127,7 @@ describe('list membership', () => {
   it('counts Today and due items for the sidebar', () => {
     const s: Snapshot = {
       areas: [],
-      headings: [],
+      headings: [], tags: [], checklistItems: [],
       projects: [],
       todos: [todo({ start: 'inbox' }), todo({ startDate: REF }), todo({ deadline: REF })],
     };

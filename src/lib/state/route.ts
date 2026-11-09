@@ -2,7 +2,7 @@
  * Hash-based routing.
  *
  * Routes: `#/inbox`, `#/today`, `#/scheduled`, `#/unscheduled`, `#/deferred`,
- * `#/logbook`, `#/trash`, `#/area/<id>`, `#/project/<id>`, and `#/` (the
+ * `#/logbook`, `#/trash`, `#/area/<id>`, `#/project/<id>`, `#/settings`, and `#/` (the
  * phone Home screen of lists). Hash routes work on any static host.
  */
 import { readable, type Readable } from 'svelte/store';
@@ -13,7 +13,8 @@ export type Route =
   | { kind: 'home' }
   | { kind: 'list'; list: BuiltInList }
   | { kind: 'area'; id: ID }
-  | { kind: 'project'; id: ID };
+  | { kind: 'project'; id: ID }
+  | { kind: 'settings' };
 
 const LISTS: BuiltInList[] = ['inbox', 'today', 'scheduled', 'unscheduled', 'deferred', 'logbook', 'trash'];
 
@@ -23,6 +24,7 @@ export function parseHash(hash: string): Route {
   if (parts.length === 0) return { kind: 'home' };
   if (parts[0] === 'area' && parts[1]) return { kind: 'area', id: parts[1] };
   if (parts[0] === 'project' && parts[1]) return { kind: 'project', id: parts[1] };
+  if (parts[0] === 'settings') return { kind: 'settings' };
   if ((LISTS as string[]).includes(parts[0])) return { kind: 'list', list: parts[0] as BuiltInList };
   return { kind: 'home' };
 }
@@ -38,6 +40,8 @@ export function hrefFor(r: Route): string {
       return `#/area/${r.id}`;
     case 'project':
       return `#/project/${r.id}`;
+    case 'settings':
+      return '#/settings';
   }
 }
 

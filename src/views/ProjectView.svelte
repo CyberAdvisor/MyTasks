@@ -8,6 +8,13 @@
   import EditableTitle from '../components/EditableTitle.svelte';
   import ViewHeader from '../components/ViewHeader.svelte';
   import ChoiceDialog from '../components/ChoiceDialog.svelte';
+  import Popover from '../components/Popover.svelte';
+  import WhenPicker from '../components/WhenPicker.svelte';
+  import DeadlinePicker from '../components/DeadlinePicker.svelte';
+  import TagPicker from '../components/TagPicker.svelte';
+  import { deadlineLabel, formatRelative } from '../lib/model/dates';
+  import TagBar from '../components/TagBar.svelte';
+  import { activeTag, filterByTag, tagTitles, tagsInUse } from '../lib/model/tags';
   import { snapshot, todayDate } from '../lib/state/live';
   import { go } from '../lib/state/route';
   import { ui } from '../lib/state/ui.svelte';
@@ -21,14 +28,39 @@
   let s = $derived($snapshot);
   let ref = $derived($todayDate);
   let project = $derived(s.projects.find((p) => p.id === id));
-  let sections = $derived(projectSections(s, id));
+  let allSections = $derived(projectSections(s, id));
+  // Tag filter (FR-6.3) over the project's open to-dos.
+  let offered = $derived(
+    tagsInUse([...allSections.loose, ...allSections.headings.flatMap((h) => h.todos)], s),
+  );
+  let tag = $derived(activeTag(ui.tagFilter, offered));
+  let sections = $derived({
+    loose: filterByTag(allSections.loose, tag, s),
+    headings: allSections.headings.map((h) => ({ ...h, todos: filterByTag(h.todos, tag, s) })),
+  });
   let closedTodos = $derived(bySortKey(s.todos.filter((t) => t.projectId === id && isClosed(t))));
-  let openCount = $derived(sections.loose.length + sections.headings.reduce((n, h) => n + h.todos.length, 0));
+  let openCount = $derived(allSections.loose.length + allSections.headings.reduce((n, h) => n + h.todos.length, 0));
   let showLogged = $state(false);
   let askClose = $state(false);
   let moreOpen = $state(false);
   let headingMenu = $state<ID | null>(null);
   let newHeadingId = $state<ID | null>(null);
+  let whenOpen = $state(false);
+  let deadlineOpen = $state(false);
+  let tagsOpen = $state(false);
+
+  let whenText = $derived(
+    !project
+      ? ''
+      : project.start === 'deferred'
+        ? 'Deferred'
+        : project.startDate === null
+          ? 'Unscheduled'
+          : project.startDate <= ref
+            ? 'Today'
+            : formatRelative(project.startDate, ref),
+  );
+  let projectTags = $derived(project ? tagTitles(project.tagIds, s) : []);
 
   function complete() {
     if (openCount > 0) askClose = true;
@@ -121,23 +153,50 @@
         {#each bySortKey(s.areas) as a (a.id)}<option value={a.id}>{a.title || 'New Area'}</option>{/each}
       </select>
     </label>
-    <label>
+    <span class="field">
       <span>When</span>
-      <input
-        type="date"
-        value={project.startDate ?? ''}
-        onchange={(e) => repo.updateProject(id, { startDate: (e.currentTarget as HTMLInputElement).value || null, start: 'unscheduled' })}
-      />
-    </label>
-    <label>
+      <Popover bind:open={whenOpen} label="When" align="left">
+        {#snippet trigger(toggle)}
+          <button type="button" class="value" onclick={toggle}>{whenText}</button>
+        {/snippet}
+        <WhenPicker
+          startDate={project.startDate}
+          deferred={project.start === 'deferred'}
+          {ref}
+          onchoose={(c) => {
+            whenOpen = false;
+            void repo.setProjectWhen(id, c);
+          }}
+        />
+      </Popover>
+    </span>
+    <span class="field">
       <span>Deadline</span>
-      <input
-        type="date"
-        value={project.deadline ?? ''}
-        onchange={(e) => repo.updateProject(id, { deadline: (e.currentTarget as HTMLInputElement).value || null })}
-      />
-    </label>
-    {#if project.start === 'deferred'}<span class="tag">Deferred</span>{/if}
+      <Popover bind:open={deadlineOpen} label="Deadline" align="left">
+        {#snippet trigger(toggle)}
+          <button type="button" class="value" class:due={project!.deadline !== null && project!.deadline <= ref} onclick={toggle}>
+            {project!.deadline ? deadlineLabel(project!.deadline, ref) : 'None'}
+          </button>
+        {/snippet}
+        <DeadlinePicker
+          deadline={project.deadline}
+          {ref}
+          onchoose={(d) => {
+            deadlineOpen = false;
+            void repo.updateProject(id, { deadline: d });
+          }}
+        />
+      </Popover>
+    </span>
+    <span class="field">
+      <span>Tags</span>
+      <Popover bind:open={tagsOpen} label="Tags" align="left">
+        {#snippet trigger(toggle)}
+          <button type="button" class="value" onclick={toggle}>{projectTags.length ? projectTags.join(', ') : 'None'}</button>
+        {/snippet}
+        <TagPicker entity="projects" {id} tagIds={project.tagIds} />
+      </Popover>
+    </span>
   </div>
 
   <textarea
@@ -148,6 +207,8 @@
     value={project.notes}
     onchange={(e) => repo.updateProject(id, { notes: (e.currentTarget as HTMLTextAreaElement).value })}
   ></textarea>
+
+  <TagBar tags={offered} />
 
   <TodoList todos={sections.loose} {ref} />
 
@@ -219,22 +280,23 @@
     font-size: 13px;
     color: var(--text-2);
   }
-  .fields label {
+  .fields label,
+  .field {
     display: flex;
     align-items: center;
     gap: 6px;
   }
   .fields select,
-  .fields input {
+  .value {
     border: 1px solid #d6d6da;
     border-radius: 4px;
-    padding: 3px 6px;
+    padding: 3px 8px;
     background: #fff;
     font-size: 13px;
+    color: var(--text);
   }
-  .tag {
-    font-size: 12px;
-    color: var(--c-deferred);
+  .value.due {
+    color: var(--danger);
     font-weight: 600;
   }
   .notes {

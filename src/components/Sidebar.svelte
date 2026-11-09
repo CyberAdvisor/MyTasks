@@ -147,9 +147,16 @@
         </div>
       {/if}
     </div>
-    <button type="button" class="btn-plain" aria-label="Settings (coming soon)" title="Settings — coming soon" disabled>
+    <a
+      href={hrefFor({ kind: 'settings' })}
+      class="btn-plain"
+      class:active={isActive({ kind: 'settings' })}
+      aria-label="Settings"
+      title="Settings"
+      aria-current={isActive({ kind: 'settings' }) ? 'page' : undefined}
+    >
       <Icon name="settings" size={16} />
-    </button>
+    </a>
   </div>
 </nav>
 
@@ -294,8 +301,7 @@
   .menu button:hover {
     background: var(--hover-bg);
   }
-  button:disabled {
-    opacity: 0.5;
-    cursor: default;
+  .footer a.btn-plain.active {
+    background: var(--selected-bg);
   }
 </style>

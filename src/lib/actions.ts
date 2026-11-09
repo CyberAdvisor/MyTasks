@@ -23,7 +23,8 @@ export async function newTodoHere(r: Route, ref: LocalDate): Promise<void> {
   ui.open(id);
 }
 
-/** Whether the current view accepts new to-dos (Logbook and Trash do not). */
+/** Whether the current view accepts new to-dos (Logbook, Trash and Settings do not). */
 export function canAddHere(r: Route): boolean {
+  if (r.kind === 'settings') return false;
   return !(r.kind === 'list' && (r.list === 'logbook' || r.list === 'trash'));
 }
