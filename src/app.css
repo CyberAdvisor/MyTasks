@@ -83,6 +83,7 @@ textarea {
 }
 
 /* Plain icon-and-text button used across views. */
+/* Plain text buttons (Group, Empty Trash, Restore…), at the sidebar's 13 px. */
 .btn-plain {
   display: inline-flex;
   align-items: center;
@@ -92,6 +93,11 @@ textarea {
   padding: 6px 8px;
   border-radius: var(--radius);
   color: var(--text-2);
+  font-size: 13px;
+}
+/* In dialogs, Cancel and Done match the coloured button beside them. */
+dialog .btn-plain {
+  font-size: inherit;
 }
 .btn-plain:hover {
   background: var(--hover-bg);
