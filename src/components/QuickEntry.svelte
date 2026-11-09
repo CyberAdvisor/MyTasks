@@ -127,7 +127,7 @@
   <DeadlinePicker deadline={draft.deadline} {ref} onchoose={chooseDeadline} />
 {/snippet}
 {#snippet tagsPanel()}
-  <TagPicker tagIds={draft.tagIds} ontoggle={(tagId, on) => draft.toggleTag(tagId, on)} />
+  <TagPicker tagIds={draft.tagIds} ontoggle={(tagId, on) => draft.toggleTag(tagId, on)} ondone={() => (tagsOpen = false)} />
 {/snippet}
 {#snippet prioPanel()}
   <PriorityMenu priority={draft.priority ?? null} onchoose={choosePriority} />

@@ -79,7 +79,11 @@
       {#snippet trigger(toggle)}
         <button type="button" class="value" onclick={toggle}>{areaTags.length ? areaTags.join(', ') : 'None'}</button>
       {/snippet}
-      <TagPicker tagIds={area.tagIds} ontoggle={(tagId, on) => repo.toggleTag('areas', id, tagId, on)} />
+      <TagPicker
+        tagIds={area.tagIds}
+        ontoggle={(tagId, on) => repo.toggleTag('areas', id, tagId, on)}
+        ondone={() => (tagsOpen = false)}
+      />
     </Popover>
   </div>
 

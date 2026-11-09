@@ -30,9 +30,17 @@
   let timer: ReturnType<typeof setTimeout> | undefined;
   let input: HTMLInputElement;
 
+  /** Text sent to `onsave` that `value` has not caught up with yet. */
+  let saved: string | null = null;
+
   // Follow outside changes (e.g. another view renamed it) while not editing.
+  // Until our own save comes back, keep showing the saved text: falling back
+  // to the old value would flash it, and move anything placed after the title.
   $effect(() => {
-    if (!focused) text = value;
+    const current = value;
+    if (focused || (saved !== null && current !== saved)) return;
+    saved = null;
+    text = current;
   });
 
   $effect(() => {
@@ -42,7 +50,10 @@
   function flush() {
     clearTimeout(timer);
     timer = undefined;
-    if (text !== value) onsave(text);
+    if (text !== value) {
+      saved = text;
+      onsave(text);
+    }
   }
 
   onDestroy(flush);
@@ -99,6 +110,12 @@
   }
   .fit > * {
     grid-area: 1 / 1;
+  }
+  /* Size from the text copy only: browsers give even a one-character field
+     room for their widest character, which left a gap after short titles. */
+  .fit > input {
+    width: 0;
+    min-width: 100%;
   }
   .mirror {
     visibility: hidden;

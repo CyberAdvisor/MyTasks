@@ -156,7 +156,11 @@
     <DeadlinePicker deadline={project!.deadline} {ref} onchoose={chooseDeadline} />
   {/snippet}
   {#snippet tagsPanel()}
-    <TagPicker tagIds={project!.tagIds} ontoggle={(tagId, on) => repo.toggleTag('projects', id, tagId, on)} />
+    <TagPicker
+      tagIds={project!.tagIds}
+      ontoggle={(tagId, on) => repo.toggleTag('projects', id, tagId, on)}
+      ondone={() => (menuOpen = tagsOpen = false)}
+    />
   {/snippet}
 
   <ViewHeader>
@@ -173,7 +177,7 @@
       <Popover bind:open={menuOpen} label="Project actions" align="left">
         {#snippet trigger(toggle, open)}
           <button type="button" class="more" aria-label="More project actions" aria-expanded={open} onclick={toggle}>
-            <Icon name="more" size={18} />
+            <Icon name="more" size={22} weight={3.5} />
           </button>
         {/snippet}
         {#if menuPanel === 'when'}
@@ -320,7 +324,7 @@
   .more {
     border: 0;
     background: transparent;
-    color: var(--text-3);
+    color: var(--text);
     padding: 4px 6px;
     border-radius: var(--radius);
     display: inline-flex;

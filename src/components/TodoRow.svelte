@@ -1,6 +1,8 @@
 <!--
-  One to-do row (design doc, Section 6, Components: Row). Shows the expanded
-  card in place when this to-do is open.
+  One to-do row (design doc, Section 6, Components: Row), laid out as in
+  Things: the title, then the note and checklist icons and the tags; the
+  project or area underneath; the deadline and priority on the right.
+  Shows the expanded card in place when this to-do is open.
 -->
 <script lang="ts">
   import Icon from './Icon.svelte';
@@ -103,9 +105,16 @@
       onclick={onRowClick}
       onkeydown={onKey}
     >
-      <span class="title" class:placeholder={!todo.title}>
+      <span class="line">
         {#if starred}<Icon name="star" size={13} color="var(--c-today)" />{/if}
-        {todo.title || 'New To-Do'}
+        <span class="title" class:placeholder={!todo.title}>{todo.title || 'New To-Do'}</span>
+        {#if todo.notes}<Icon name="note" size={11} color="var(--text-3)" label="Has notes" />{/if}
+        {#if checklist.total}
+          <span class="progress" title="Checklist">
+            <Icon name="checklist" size={11} />{checklist.done}/{checklist.total}
+          </span>
+        {/if}
+        {#each tags as name, i (i)}<span class="tag-pill">{name}</span>{/each}
       </span>
       {#if containerLabel || futureDate}
         <span class="meta">
@@ -116,20 +125,13 @@
     </div>
 
     <div class="aside">
-      {#each tags as name, i (i)}<span class="tag-pill">{name}</span>{/each}
-      {#if todo.priority && showPriority}
-        <span class="prio prio-{todo.priority}">{priorityLabel(todo.priority, $settings)}</span>
-      {/if}
-      {#if checklist.total}
-        <span class="progress" title="Checklist">
-          <Icon name="checklist" size={12} />{checklist.done}/{checklist.total}
-        </span>
-      {/if}
-      {#if todo.notes}<Icon name="notes" size={14} color="var(--text-done)" label="Has notes" />{/if}
       {#if todo.deadline}
         <span class="deadline" class:due>
           <Icon name="flag" size={12} />{deadlineLabel(todo.deadline, ref)}
         </span>
+      {/if}
+      {#if todo.priority && showPriority}
+        <span class="prio prio-{todo.priority}">{priorityLabel(todo.priority, $settings)}</span>
       {/if}
       {#if mode === 'trash'}
         <button type="button" class="btn-plain" onclick={() => repo.setTodoTrashed(todo.id, false)}>Restore</button>
@@ -184,14 +186,24 @@
     cursor: default;
     outline-offset: 0;
   }
-  .title {
+  /* Title, then its indicators; only the title shrinks when space is short. */
+  .line {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
+    min-width: 0;
+  }
+  .title {
     font-size: 15px;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .line > :global(svg),
+  .line > .progress,
+  .line > .tag-pill {
+    flex: none;
   }
   .placeholder {
     color: var(--text-3);
@@ -223,8 +235,8 @@
   .progress {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-    font-size: 12px;
+    gap: 2px;
+    font-size: 11px;
     color: var(--text-3);
   }
   .deadline {

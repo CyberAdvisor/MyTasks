@@ -43,14 +43,6 @@
   let tagsOpen = $state(false);
   let prioOpen = $state(false);
   let moreOpen = $state(false);
-  /**
-   * The tag picker was opened from the button bar. It stays there while open,
-   * even after the first tag appears in the tag row, so typing is not interrupted.
-   */
-  let tagsFromBar = $state(false);
-  $effect(() => {
-    if (!tagsOpen) tagsFromBar = false;
-  });
   /** Checklist item to focus once it renders. */
   let checklistFocus = $state<ID | null>(null);
 
@@ -172,7 +164,11 @@
   <DeadlinePicker deadline={todo.deadline} {ref} onchoose={chooseDeadline} />
 {/snippet}
 {#snippet tagsPanel()}
-  <TagPicker tagIds={todo.tagIds} ontoggle={(tagId, on) => repo.toggleTag('todos', todo.id, tagId, on)} />
+  <TagPicker
+    tagIds={todo.tagIds}
+    ontoggle={(tagId, on) => repo.toggleTag('todos', todo.id, tagId, on)}
+    ondone={() => (tagsOpen = false)}
+  />
 {/snippet}
 {#snippet prioPanel()}
   <PriorityMenu priority={todo.priority} onchoose={choosePriority} />
@@ -220,16 +216,12 @@
   {/snippet}
   {#if tagNames.length}
     <div class="tags">
-      {#if tagsFromBar}
-        <div class="tag-list">{@render tagChips()}</div>
-      {:else}
-        <Popover bind:open={tagsOpen} label="Tags" align="left">
-          {#snippet trigger(toggle)}
-            <button type="button" class="tag-list" aria-label="Edit tags" onclick={toggle}>{@render tagChips()}</button>
-          {/snippet}
-          {@render tagsPanel()}
-        </Popover>
-      {/if}
+      <Popover bind:open={tagsOpen} label="Tags" align="left">
+        {#snippet trigger(toggle)}
+          <button type="button" class="tag-list" aria-label="Edit tags" onclick={toggle}>{@render tagChips()}</button>
+        {/snippet}
+        {@render tagsPanel()}
+      </Popover>
     </div>
   {/if}
 
@@ -278,20 +270,10 @@
           {@render whenPanel()}
         </Popover>
       {/if}
-      {#if !tagNames.length || tagsFromBar}
+      {#if !tagNames.length}
         <Popover bind:open={tagsOpen} label="Tags">
           {#snippet trigger(toggle, open)}
-            <button
-              type="button"
-              class="icon-btn"
-              aria-label="Tags"
-              title="Tags"
-              aria-expanded={open}
-              onclick={() => {
-                tagsFromBar = !open;
-                toggle();
-              }}
-            >
+            <button type="button" class="icon-btn" aria-label="Tags" title="Tags" aria-expanded={open} onclick={toggle}>
               <Icon name="tag" size={16} />
             </button>
           {/snippet}
