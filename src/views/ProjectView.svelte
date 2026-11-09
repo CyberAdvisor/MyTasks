@@ -1,5 +1,8 @@
 <!--
-  Project page (FR-2.1 to FR-2.4): title, notes, dates, to-dos and headings.
+  Project page (FR-2.1 to FR-2.4), laid out as in Things: the ⋯ menu right
+  after the title holds the project actions (complete, When, tags, deadline,
+  move, duplicate, delete). Values that are set show as chips under the title;
+  clicking a chip reopens its picker.
 -->
 <script lang="ts">
   import Icon from '../components/Icon.svelte';
@@ -12,6 +15,7 @@
   import WhenPicker from '../components/WhenPicker.svelte';
   import DeadlinePicker from '../components/DeadlinePicker.svelte';
   import TagPicker from '../components/TagPicker.svelte';
+  import AreaPickerDialog from '../components/AreaPickerDialog.svelte';
   import { deadlineLabel, formatRelative } from '../lib/model/dates';
   import TagBar from '../components/TagBar.svelte';
   import { newHeading } from '../lib/actions';
@@ -43,19 +47,29 @@
   let openCount = $derived(allSections.loose.length + allSections.headings.reduce((n, h) => n + h.todos.length, 0));
   let showLogged = $state(false);
   let askClose = $state(false);
-  let moreOpen = $state(false);
   let headingMenu = $state<ID | null>(null);
+  let moving = $state(false);
+
+  // The ⋯ menu shows either its item list or one of the pickers.
+  let menuOpen = $state(false);
+  let menuPanel = $state<'menu' | 'when' | 'tags' | 'deadline'>('menu');
+  $effect(() => {
+    if (!menuOpen) menuPanel = 'menu';
+  });
+
+  // Chips under the title each open their own picker.
   let whenOpen = $state(false);
   let deadlineOpen = $state(false);
   let tagsOpen = $state(false);
 
+  let hasWhen = $derived(!!project && (project.start === 'deferred' || project.startDate !== null));
   let whenText = $derived(
     !project
       ? ''
       : project.start === 'deferred'
         ? 'Deferred'
         : project.startDate === null
-          ? 'Unscheduled'
+          ? ''
           : project.startDate <= ref
             ? 'Today'
             : formatRelative(project.startDate, ref),
@@ -63,6 +77,7 @@
   let projectTags = $derived(project ? tagTitles(project.tagIds, s) : []);
 
   function complete() {
+    menuOpen = false;
     if (openCount > 0) askClose = true;
     else void repo.closeProject(id, 'completed', 'completed');
   }
@@ -79,8 +94,39 @@
   }
 
   function addHeading() {
-    moreOpen = false;
+    menuOpen = false;
     void newHeading(id);
+  }
+
+  function reopen() {
+    menuOpen = false;
+    void repo.reopenProject(id);
+  }
+
+  function chooseWhen(choice: repo.WhenChoice) {
+    menuOpen = whenOpen = false;
+    void repo.setProjectWhen(id, choice);
+  }
+
+  function chooseDeadline(deadline: string | null) {
+    menuOpen = deadlineOpen = false;
+    void repo.updateProject(id, { deadline });
+  }
+
+  function startMove() {
+    menuOpen = false;
+    moving = true;
+  }
+
+  function onMoveChoice(areaId: ID | null | undefined) {
+    moving = false;
+    if (areaId !== undefined) void repo.updateProject(id, { areaId });
+  }
+
+  async function duplicate() {
+    menuOpen = false;
+    const copyId = await repo.duplicateProject(id);
+    if (copyId) go({ kind: 'project', id: copyId });
   }
 
   async function headingAction(hid: ID, action: 'archive' | 'convert' | 'delete') {
@@ -93,13 +139,8 @@
     }
   }
 
-  function toggleDeferred() {
-    moreOpen = false;
-    if (project) void repo.updateProject(id, { start: project.start === 'deferred' ? 'unscheduled' : 'deferred' });
-  }
-
   async function trashProject() {
-    moreOpen = false;
+    menuOpen = false;
     await repo.setProjectTrashed(id, true);
     go({ kind: 'list', list: 'today' });
   }
@@ -108,100 +149,104 @@
 {#if !project}
   <p class="missing">This project no longer exists.</p>
 {:else}
+  {#snippet whenPanel()}
+    <WhenPicker startDate={project!.startDate} deferred={project!.start === 'deferred'} {ref} onchoose={chooseWhen} />
+  {/snippet}
+  {#snippet deadlinePanel()}
+    <DeadlinePicker deadline={project!.deadline} {ref} onchoose={chooseDeadline} />
+  {/snippet}
+  {#snippet tagsPanel()}
+    <TagPicker entity="projects" {id} tagIds={project!.tagIds} />
+  {/snippet}
+
   <ViewHeader>
     {#snippet icon()}<ProgressPie fraction={projectProgress(s, id)} size={26} />{/snippet}
     {#snippet heading()}
       <EditableTitle
+        fit
         value={project!.title}
         placeholder="New Project"
         label="Project title"
         autofocus={!project!.title}
         onsave={(v) => repo.updateProject(id, { title: v })}
       />
-    {/snippet}
-    {#snippet actions()}
-      {#if project!.status === 'open'}
-        <button type="button" class="btn-plain" onclick={complete}>
-          <Icon name="check" size={14} /> Complete
-        </button>
-      {:else}
-        <button type="button" class="btn-plain" onclick={() => repo.reopenProject(id)}>Reopen</button>
-      {/if}
-      <div class="pop-wrap">
-        <button type="button" class="btn-plain" aria-label="More project actions" aria-expanded={moreOpen} onclick={() => (moreOpen = !moreOpen)}>
-          <Icon name="more" size={16} />
-        </button>
-        {#if moreOpen}
-          <div class="pop" role="menu">
+      <Popover bind:open={menuOpen} label="Project actions" align="left">
+        {#snippet trigger(toggle, open)}
+          <button type="button" class="more" aria-label="More project actions" aria-expanded={open} onclick={toggle}>
+            <Icon name="more" size={18} />
+          </button>
+        {/snippet}
+        {#if menuPanel === 'when'}
+          {@render whenPanel()}
+        {:else if menuPanel === 'deadline'}
+          {@render deadlinePanel()}
+        {:else if menuPanel === 'tags'}
+          {@render tagsPanel()}
+        {:else}
+          <div role="menu" aria-label="Project actions">
             {#if project!.status === 'open'}
-              <button type="button" role="menuitem" onclick={addHeading}>Add Heading</button>
+              <button type="button" class="menu-item" role="menuitem" onclick={complete}><Icon name="check" size={15} /> Complete Project</button>
+            {:else}
+              <button type="button" class="menu-item" role="menuitem" onclick={reopen}><Icon name="check" size={15} /> Reopen Project</button>
             {/if}
-            <button type="button" role="menuitem" onclick={toggleDeferred}>
-              {project!.start === 'deferred' ? 'Make Unscheduled' : 'Defer Project'}
+            <button type="button" class="menu-item" role="menuitem" onclick={() => (menuPanel = 'when')}><Icon name="calendar" size={15} /> When</button>
+            <button type="button" class="menu-item" role="menuitem" onclick={() => (menuPanel = 'tags')}>
+              <Icon name="tag" size={15} /> {project!.tagIds.length ? 'Edit Tags' : 'Add Tags'}
             </button>
-            <button type="button" role="menuitem" class="danger" onclick={trashProject}>Delete Project</button>
+            <button type="button" class="menu-item" role="menuitem" onclick={() => (menuPanel = 'deadline')}>
+              <Icon name="flag" size={15} /> {project!.deadline ? 'Change Deadline' : 'Add Deadline'}
+            </button>
+            <hr class="menu-sep" />
+            <button type="button" class="menu-item" role="menuitem" onclick={startMove}><Icon name="move" size={15} /> Move</button>
+            <button type="button" class="menu-item" role="menuitem" onclick={duplicate}><Icon name="copy" size={15} /> Duplicate Project</button>
+            <button type="button" class="menu-item danger" role="menuitem" onclick={trashProject}><Icon name="trash" size={15} /> Delete Project</button>
+            {#if project!.status === 'open'}
+              <!-- Desktop adds headings from the bottom toolbar. -->
+              <button type="button" class="menu-item phone-only" role="menuitem" onclick={addHeading}><Icon name="heading-add" size={15} /> Add Heading</button>
+            {/if}
           </div>
         {/if}
-      </div>
+      </Popover>
     {/snippet}
   </ViewHeader>
 
-  <div class="fields">
-    <label>
-      <span>Area</span>
-      <select
-        value={project.areaId ?? ''}
-        onchange={(e) => repo.updateProject(id, { areaId: (e.currentTarget as HTMLSelectElement).value || null })}
-      >
-        <option value="">No area</option>
-        {#each bySortKey(s.areas) as a (a.id)}<option value={a.id}>{a.title || 'New Area'}</option>{/each}
-      </select>
-    </label>
-    <span class="field">
-      <span>When</span>
-      <Popover bind:open={whenOpen} label="When" align="left">
-        {#snippet trigger(toggle)}
-          <button type="button" class="value" onclick={toggle}>{whenText}</button>
-        {/snippet}
-        <WhenPicker
-          startDate={project.startDate}
-          deferred={project.start === 'deferred'}
-          {ref}
-          onchoose={(c) => {
-            whenOpen = false;
-            void repo.setProjectWhen(id, c);
-          }}
-        />
-      </Popover>
-    </span>
-    <span class="field">
-      <span>Deadline</span>
-      <Popover bind:open={deadlineOpen} label="Deadline" align="left">
-        {#snippet trigger(toggle)}
-          <button type="button" class="value" class:due={project!.deadline !== null && project!.deadline <= ref} onclick={toggle}>
-            {project!.deadline ? deadlineLabel(project!.deadline, ref) : 'None'}
-          </button>
-        {/snippet}
-        <DeadlinePicker
-          deadline={project.deadline}
-          {ref}
-          onchoose={(d) => {
-            deadlineOpen = false;
-            void repo.updateProject(id, { deadline: d });
-          }}
-        />
-      </Popover>
-    </span>
-    <span class="field">
-      <span>Tags</span>
-      <Popover bind:open={tagsOpen} label="Tags" align="left">
-        {#snippet trigger(toggle)}
-          <button type="button" class="value" onclick={toggle}>{projectTags.length ? projectTags.join(', ') : 'None'}</button>
-        {/snippet}
-        <TagPicker entity="projects" {id} tagIds={project.tagIds} />
-      </Popover>
-    </span>
-  </div>
+  {#if project.status !== 'open' || hasWhen || project.deadline || projectTags.length}
+    <div class="chips">
+      {#if project.status !== 'open'}
+        <span class="chip status"><Icon name="check" size={12} /> {project.status === 'completed' ? 'Completed' : 'Canceled'}</span>
+      {/if}
+      {#if hasWhen}
+        <Popover bind:open={whenOpen} label="When" align="left">
+          {#snippet trigger(toggle)}
+            <button type="button" class="chip" aria-label="When: {whenText}" onclick={toggle}>
+              <Icon name={project!.start === 'deferred' ? 'archive' : whenText === 'Today' ? 'star' : 'calendar'} size={12} />{whenText}
+            </button>
+          {/snippet}
+          {@render whenPanel()}
+        </Popover>
+      {/if}
+      {#if project.deadline}
+        <Popover bind:open={deadlineOpen} label="Deadline" align="left">
+          {#snippet trigger(toggle)}
+            <button type="button" class="chip" class:due={project!.deadline! <= ref} onclick={toggle}>
+              <Icon name="flag" size={12} />Deadline: {deadlineLabel(project!.deadline!, ref)}
+            </button>
+          {/snippet}
+          {@render deadlinePanel()}
+        </Popover>
+      {/if}
+      {#if projectTags.length}
+        <Popover bind:open={tagsOpen} label="Tags" align="left">
+          {#snippet trigger(toggle)}
+            <button type="button" class="tags" aria-label="Edit tags" onclick={toggle}>
+              {#each projectTags as name, i (i)}<span class="tag-pill">{name}</span>{/each}
+            </button>
+          {/snippet}
+          {@render tagsPanel()}
+        </Popover>
+      {/if}
+    </div>
+  {/if}
 
   <textarea
     class="notes"
@@ -254,6 +299,10 @@
     {#if showLogged}<TodoList todos={closedTodos} {ref} mode="logbook" />{/if}
   {/if}
 
+  {#if moving}
+    <AreaPickerDialog current={project.areaId} onchoose={onMoveChoice} />
+  {/if}
+
   {#if askClose}
     <ChoiceDialog
       title="Complete this project?"
@@ -268,33 +317,49 @@
 {/if}
 
 <style>
-  .fields {
+  .more {
+    border: 0;
+    background: transparent;
+    color: var(--text-3);
+    padding: 4px 6px;
+    border-radius: var(--radius);
+    display: inline-flex;
+    flex: none;
+  }
+  .more:hover,
+  .more[aria-expanded='true'] {
+    background: var(--hover-bg);
+    color: var(--text);
+  }
+  .chips {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 14px;
-    margin: 0 0 8px 38px;
-    font-size: 13px;
-    color: var(--text-2);
-  }
-  .fields label,
-  .field {
-    display: flex;
-    align-items: center;
     gap: 6px;
+    margin: -8px 0 10px 38px;
   }
-  .fields select,
-  .value {
-    border: 1px solid #d6d6da;
-    border-radius: 4px;
-    padding: 3px 8px;
-    background: #fff;
-    font-size: 13px;
-    color: var(--text);
-  }
-  .value.due {
+  .chip.due {
     color: var(--danger);
     font-weight: 600;
+  }
+  .chip.status {
+    color: var(--c-logbook);
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+  .phone-only {
+    display: none;
+  }
+  @media (max-width: 767px) {
+    .phone-only {
+      display: flex;
+    }
   }
   .notes {
     width: 100%;

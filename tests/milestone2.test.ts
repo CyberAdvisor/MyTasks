@@ -250,3 +250,35 @@ describe('checklist operations', () => {
     expect((await snap()).checklistItems).toHaveLength(0);
   });
 });
+
+describe('project duplication', () => {
+  beforeEach(async () => {
+    await db.delete();
+    await db.open();
+  });
+
+  it('copies headings, open to-dos and checklists, right after the original', async () => {
+    const tag = await repo.createTag('Home');
+    const p = await repo.createProject({ title: 'Garden', tagIds: [tag] });
+    const later = await repo.createProject({ title: 'Later' });
+    const h = await repo.createHeading(p, 'Spring');
+    const a = await repo.createTodo({ title: 'Seeds', projectId: p, headingId: h });
+    await repo.addChecklistItems(a, ['Tomato', 'Basil']);
+    const done = await repo.createTodo({ title: 'Old', projectId: p });
+    await repo.setTodoStatus(done, 'completed');
+
+    const copyId = (await repo.duplicateProject(p))!;
+    const s = await snap();
+    const order = [...s.projects].sort((x, y) => (x.sortKey < y.sortKey ? -1 : 1)).map((x) => x.id);
+    expect(order).toEqual([p, copyId, later]);
+    const copy = s.projects.find((x) => x.id === copyId)!;
+    expect([copy.title, copy.tagIds]).toEqual(['Garden', [tag]]);
+
+    const newHeading = s.headings.find((x) => x.projectId === copyId)!;
+    expect(newHeading.title).toBe('Spring');
+    const copied = s.todos.filter((t) => t.projectId === copyId);
+    expect(copied.map((t) => [t.title, t.headingId])).toEqual([['Seeds', newHeading.id]]);
+    expect(checklistFor(copied[0].id, s).map((c) => c.title)).toEqual(['Tomato', 'Basil']);
+    expect(s.todos.filter((t) => t.projectId === p)).toHaveLength(2); // original untouched
+  });
+});

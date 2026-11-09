@@ -214,7 +214,7 @@
   <Checklist todoId={todo.id} bind:focusId={checklistFocus} />
 
   {#snippet tagChips()}
-    {#each tagNames as name, i (i)}<span class="tag">{name}</span>{/each}
+    {#each tagNames as name, i (i)}<span class="tag-pill">{name}</span>{/each}
   {/snippet}
   {#if tagNames.length}
     <div class="tags">
@@ -405,13 +405,6 @@
     border: 0;
     background: transparent;
     padding: 0;
-  }
-  .tag {
-    font-size: 12px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: #e9eef8;
-    color: var(--accent-text);
   }
   .bar {
     display: flex;

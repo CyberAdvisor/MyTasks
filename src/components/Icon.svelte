@@ -7,7 +7,7 @@
     | 'inbox' | 'star' | 'calendar' | 'layers' | 'archive' | 'logbook' | 'trash'
     | 'search' | 'chevron-down' | 'chevron-right' | 'chevron-left' | 'area' | 'plus'
     | 'settings' | 'flag' | 'notes' | 'move' | 'more' | 'x' | 'check' | 'heading'
-    | 'tag' | 'checklist' | 'priority' | 'arrow-up' | 'arrow-down' | 'heading-add';
+    | 'tag' | 'checklist' | 'priority' | 'arrow-up' | 'arrow-down' | 'heading-add' | 'copy';
 
   let { name, size = 18, color = 'currentColor', label = '' }: {
     name: Name; size?: number; color?: string; label?: string;
@@ -40,6 +40,7 @@
     priority: 'M12 4v10 M12 19.5h.01',
     'arrow-up': 'M12 19V5 M5 12l7-7 7 7',
     'arrow-down': 'M12 5v14 M19 12l-7 7-7-7',
+    copy: 'M9 9h11v11H9z M5 15H4V4h11v1',
     'heading-add': 'M3 6h12.5l5 6-5 6H3z M7.5 12h6 M10.5 9v6',
   };
 </script>

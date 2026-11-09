@@ -287,11 +287,7 @@ export async function duplicateTodo(id: ID): Promise<ID | undefined> {
     };
     await db.todos.add(copy);
     await log('todos', copy.id, ['*']);
-    for (const item of await liveChecklist(id)) {
-      const c: ChecklistItem = { ...item, ...base(item.sortKey), todoId: copy.id };
-      await db.checklistItems.add(c);
-      await log('checklistItems', c.id, ['*']);
-    }
+    await copyChecklist(id, copy.id);
     return copy.id;
   });
 }
@@ -440,6 +436,57 @@ export function closeProject(id: ID, status: 'completed' | 'canceled', openTodos
       await patch<Todo>('todos', t.id, { status: openTodos, completedAt: at });
     }
     await patch<Project>('projects', id, { status, completedAt: at });
+  });
+}
+
+/**
+ * Duplicate a project with its headings, open to-dos and their checklists.
+ * The copy is placed right after the original. Returns the new project's id.
+ */
+export function duplicateProject(id: ID): Promise<ID | undefined> {
+  return tx(async () => {
+    const p = await db.projects.get(id);
+    if (!p) return undefined;
+    const siblings = bySortKey(
+      (await db.projects.toArray()).filter((x) => x.deletedAt === null && (x.areaId ?? null) === (p.areaId ?? null)),
+    );
+    const next = siblings[siblings.findIndex((x) => x.id === id) + 1];
+    const copy: Project = {
+      ...p,
+      ...base(keyBetween(p.sortKey, next?.sortKey ?? null)),
+      tagIds: [...p.tagIds],
+      status: 'open',
+      completedAt: null,
+      trashedAt: null,
+    };
+    await db.projects.add(copy);
+    await log('projects', copy.id, ['*']);
+
+    const headingIds = new Map<ID, ID>();
+    for (const h of (await db.headings.where('projectId').equals(id).toArray()).filter((x) => x.deletedAt === null)) {
+      const hc: Heading = { ...h, ...base(h.sortKey), projectId: copy.id };
+      headingIds.set(h.id, hc.id);
+      await db.headings.add(hc);
+      await log('headings', hc.id, ['*']);
+    }
+
+    const todos = (await db.todos.where('projectId').equals(id).toArray()).filter(
+      (t) => t.deletedAt === null && t.trashedAt === null && t.status === 'open',
+    );
+    for (const t of todos) {
+      const tc: Todo = {
+        ...t,
+        ...base(t.sortKey),
+        tagIds: [...t.tagIds],
+        projectId: copy.id,
+        headingId: t.headingId ? (headingIds.get(t.headingId) ?? null) : null,
+        todaySortKey: null,
+      };
+      await db.todos.add(tc);
+      await log('todos', tc.id, ['*']);
+      await copyChecklist(t.id, tc.id);
+    }
+    return copy.id;
   });
 }
 
@@ -626,6 +673,15 @@ export function toggleTag(entity: 'todos' | 'projects' | 'areas', id: ID, tagId:
 // ---------------------------------------------------------------------------
 // Checklists (FR-7.1, FR-7.2)
 // ---------------------------------------------------------------------------
+
+/** Copy a to-do's checklist onto another to-do; caller is inside a transaction. */
+async function copyChecklist(fromTodoId: ID, toTodoId: ID): Promise<void> {
+  for (const item of await liveChecklist(fromTodoId)) {
+    const c: ChecklistItem = { ...item, ...base(item.sortKey), todoId: toTodoId };
+    await db.checklistItems.add(c);
+    await log('checklistItems', c.id, ['*']);
+  }
+}
 
 /** A to-do's live checklist items in order. */
 async function liveChecklist(todoId: ID): Promise<ChecklistItem[]> {

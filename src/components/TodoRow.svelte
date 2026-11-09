@@ -104,7 +104,7 @@
     </div>
 
     <div class="aside">
-      {#each tags as name, i (i)}<span class="tag">{name}</span>{/each}
+      {#each tags as name, i (i)}<span class="tag-pill">{name}</span>{/each}
       {#if todo.priority}
         <span class="prio prio-{todo.priority}">{priorityLabel(todo.priority, $settings)}</span>
       {/if}
@@ -204,13 +204,9 @@
     gap: 8px;
     flex: none;
   }
-  .tag {
+  .tag-pill {
     font-size: 11px;
     padding: 2px 7px;
-    border-radius: 999px;
-    background: #e9eef8;
-    color: var(--accent-text);
-    white-space: nowrap;
   }
   .progress {
     display: inline-flex;
@@ -231,7 +227,7 @@
     font-weight: 600;
   }
   @media (max-width: 480px) {
-    .tag {
+    .tag-pill {
       display: none;
     }
   }
