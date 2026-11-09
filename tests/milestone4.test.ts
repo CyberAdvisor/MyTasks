@@ -287,6 +287,28 @@ describe('keyboard bindings (Section 7)', async () => {
     expect(r.resolve(key('t'), { ...tab, now: 9000 })).toEqual(cmd('today'));
   });
 
+  it('reads the key after G as part of the sequence, even when it is a command itself', () => {
+    const pairs: [string, string][] = [
+      ['i', 'go-inbox'],
+      ['t', 'go-today'],
+      ['s', 'go-scheduled'],
+      ['u', 'go-unscheduled'],
+      ['d', 'go-deferred'],
+      ['l', 'go-logbook'],
+      ['g', 'cycle-grouping'],
+    ];
+    const r = new KeyResolver();
+    let now = 0;
+    for (const [second, command] of pairs) {
+      expect(r.resolve(key('g'), { ...tab, now: (now += 2000) })).toEqual({ pending: true });
+      expect(r.resolve(key(second), { ...tab, now: now + 300 })).toEqual(cmd(command));
+    }
+    // Without G first, T, U and D are still the item commands.
+    expect(run(key('t'), tab)).toEqual(cmd('today'));
+    expect(run(key('u'), tab)).toEqual(cmd('unscheduled'));
+    expect(run(key('d'), tab)).toEqual(cmd('deadline'));
+  });
+
   it('starts Quick Find by typing in the installed app only', () => {
     expect(run(key('a'), app)).toEqual({ find: 'a' });
     expect(run(key('T', { shiftKey: true }), { ...app, focus: 'row' })).toEqual({ find: 'T' });
