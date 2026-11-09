@@ -7,6 +7,9 @@
   import TodoList from '../components/TodoList.svelte';
   import ViewHeader from '../components/ViewHeader.svelte';
   import ChoiceDialog from '../components/ChoiceDialog.svelte';
+  import TagBar from '../components/TagBar.svelte';
+  import { ui } from '../lib/state/ui.svelte';
+  import { activeTag, filterByTag, projectTagIds, tagsInUse } from '../lib/model/tags';
   import { snapshot, todayDate } from '../lib/state/live';
   import { hrefFor } from '../lib/state/route';
   import { LIST_META } from '../lib/listMeta';
@@ -23,14 +26,14 @@
   let label = $derived((t: Todo) => containerLabel(t, s));
   let confirmEmpty = $state(false);
 
-  let flat = $derived.by((): Todo[] => {
+  let allFlat = $derived.by((): Todo[] => {
     if (list === 'inbox') return L.inboxTodos(s);
     if (list === 'today') return L.todayTodos(s, ref);
     if (list === 'trash') return L.trashTodos(s);
     return [];
   });
 
-  let groups = $derived.by((): L.TodoGroup[] => {
+  let allGroups = $derived.by((): L.TodoGroup[] => {
     if (list === 'scheduled') return L.scheduledGroups(s, ref);
     if (list === 'unscheduled') return L.unscheduledGroups(s, ref);
     if (list === 'deferred') return L.deferredGroups(s, ref);
@@ -38,12 +41,21 @@
     return [];
   });
 
-  let projects = $derived(
+  let allProjects = $derived(
     list === 'deferred' ? L.deferredProjects(s) : list === 'logbook' ? L.loggedProjects(s) : list === 'trash' ? L.trashProjects(s) : [],
   );
 
+  // Tag filter (FR-6.3): offer the tags used here, then narrow every part of the list.
+  let offered = $derived(tagsInUse([...allFlat, ...allGroups.flatMap((g) => g.todos)], s));
+  let tag = $derived(activeTag(ui.tagFilter, offered));
+  let flat = $derived(filterByTag(allFlat, tag, s));
+  let groups = $derived(
+    allGroups.map((g) => ({ ...g, todos: filterByTag(g.todos, tag, s) })).filter((g) => g.todos.length),
+  );
+  let projects = $derived(tag ? allProjects.filter((p) => projectTagIds(p, s).has(tag!)) : allProjects);
+
   let mode = $derived<'open' | 'logbook' | 'trash'>(list === 'logbook' ? 'logbook' : list === 'trash' ? 'trash' : 'open');
-  let isEmpty = $derived(!flat.length && !groups.length && !projects.length);
+  let isEmpty = $derived(!allFlat.length && !allGroups.length && !allProjects.length);
 
   const EMPTY_TEXT: Record<L.BuiltInList, string> = {
     inbox: 'Nothing in your Inbox. New to-dos land here.',
@@ -69,6 +81,8 @@
     {/if}
   {/snippet}
 </ViewHeader>
+
+<TagBar tags={offered} />
 
 {#if projects.length}
   <ul class="projects">

@@ -8,6 +8,11 @@
   import EditableTitle from '../components/EditableTitle.svelte';
   import ViewHeader from '../components/ViewHeader.svelte';
   import ChoiceDialog from '../components/ChoiceDialog.svelte';
+  import Popover from '../components/Popover.svelte';
+  import TagPicker from '../components/TagPicker.svelte';
+  import TagBar from '../components/TagBar.svelte';
+  import { bySortKey } from '../lib/model/order';
+  import { activeTag, filterByTag, projectTagIds, tagTitles, tagsInUse } from '../lib/model/tags';
   import { snapshot, todayDate } from '../lib/state/live';
   import { go, hrefFor } from '../lib/state/route';
   import { ui } from '../lib/state/ui.svelte';
@@ -19,13 +24,22 @@
 
   let s = $derived($snapshot);
   let area = $derived(s.areas.find((a) => a.id === id));
-  let projects = $derived(areaProjects(s, id));
-  let todos = $derived(areaLooseTodos(s, id));
+  let allProjects = $derived(areaProjects(s, id));
+  let allTodos = $derived(areaLooseTodos(s, id));
+  let tagsOpen = $state(false);
+  let areaTags = $derived(area ? tagTitles(area.tagIds, s) : []);
+
+  // Tag filter (FR-6.3) over the area's loose to-dos and projects.
+  let offered = $derived.by(() => {
+    const ids = new Set(tagsInUse(allTodos, s).map((t) => t.id));
+    allProjects.forEach((p) => projectTagIds(p, s).forEach((t) => ids.add(t)));
+    return bySortKey(s.tags.filter((t) => ids.has(t.id)));
+  });
+  let tag = $derived(activeTag(ui.tagFilter, offered));
+  let projects = $derived(tag ? allProjects.filter((p) => projectTagIds(p, s).has(tag!)) : allProjects);
+  let todos = $derived(filterByTag(allTodos, tag, s));
   let askDelete = $state(false);
 
-  async function addTodo() {
-    ui.open(await repo.createTodo({ areaId: id }));
-  }
 
   async function addProject() {
     go({ kind: 'project', id: await repo.createProject({ areaId: id }) });
@@ -59,6 +73,18 @@
     {/snippet}
   </ViewHeader>
 
+  <div class="fields">
+    <span>Tags</span>
+    <Popover bind:open={tagsOpen} label="Tags" align="left">
+      {#snippet trigger(toggle)}
+        <button type="button" class="value" onclick={toggle}>{areaTags.length ? areaTags.join(', ') : 'None'}</button>
+      {/snippet}
+      <TagPicker entity="areas" {id} tagIds={area.tagIds} />
+    </Popover>
+  </div>
+
+  <TagBar tags={offered} />
+
   {#if projects.length}
     <ul class="projects">
       {#each projects as p (p.id)}
@@ -75,7 +101,6 @@
   <TodoList {todos} ref={$todayDate} />
 
   <div class="adders">
-    <button type="button" class="btn-plain" onclick={addTodo}><Icon name="plus" size={14} /> New To-Do</button>
     <button type="button" class="btn-plain" onclick={addProject}><Icon name="plus" size={14} /> New Project</button>
   </div>
 
@@ -93,6 +118,22 @@
 {/if}
 
 <style>
+  .fields {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 14px 38px;
+    font-size: 13px;
+    color: var(--text-2);
+  }
+  .value {
+    border: 1px solid #d6d6da;
+    border-radius: 4px;
+    padding: 3px 8px;
+    background: #fff;
+    font-size: 13px;
+    color: var(--text);
+  }
   .projects {
     list-style: none;
     margin: 0 0 14px;

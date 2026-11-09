@@ -8,15 +8,20 @@
 import { db, type MyTasksDB } from './database';
 import { nowIso, uuidv7 } from '../model/ids';
 import { today } from '../model/dates';
-import { keyAtEnd, keyAtStart, keyBetween } from '../model/order';
+import { bySortKey, keyAtEnd, keyAtStart, keyBetween } from '../model/order';
+import { priorityRules } from '../model/priority';
+import { readSettings, type AppSettings, type SettingKey } from '../model/settings';
 import type {
   Area,
   BaseRecord,
+  ChecklistItem,
   EntityName,
   Heading,
   ID,
   LocalDate,
+  Priority,
   Project,
+  Tag,
   Todo,
   TodoStart,
 } from '../model/types';
@@ -32,9 +37,9 @@ const ENTITY_TABLES: EntityName[] = [
   'savedSearches',
 ];
 
-/** Run `fn` in one read-write transaction over all entity tables plus the log. */
+/** Run `fn` in one read-write transaction over all entity tables, the log and settings. */
 function tx<T>(fn: () => Promise<T>, database: MyTasksDB = db): Promise<T> {
-  const tables = [...ENTITY_TABLES.map((n) => database.table(n)), database.changeLog];
+  const tables = [...ENTITY_TABLES.map((n) => database.table(n)), database.changeLog, database.settings];
   return database.transaction('rw', tables, fn);
 }
 
@@ -61,6 +66,74 @@ async function patch<T extends BaseRecord>(entity: EntityName, id: ID, changes: 
 async function siblingKeys<T extends BaseRecord>(entity: EntityName, filter: (r: T) => boolean): Promise<string[]> {
   const rows = (await db.table(entity).toArray()) as T[];
   return rows.filter((r) => r.deletedAt === null && filter(r)).map((r) => r.sortKey);
+}
+
+/**
+ * Sort key that moves record `id` one place up or down among the siblings
+ * matching `filter`, or `null` when it is already at that end.
+ */
+async function shiftedKey<T extends BaseRecord>(
+  entity: EntityName,
+  id: ID,
+  filter: (r: T) => boolean,
+  direction: 'up' | 'down',
+): Promise<string | null> {
+  const rows = bySortKey(((await db.table(entity).toArray()) as T[]).filter((r) => r.deletedAt === null && filter(r)));
+  const i = rows.findIndex((r) => r.id === id);
+  if (i < 0) return null;
+  const others = rows.filter((r) => r.id !== id);
+  if (direction === 'up') {
+    if (i === 0) return null;
+    return keyBetween(others[i - 2]?.sortKey ?? null, others[i - 1].sortKey);
+  }
+  if (i === rows.length - 1) return null;
+  return keyBetween(others[i].sortKey, others[i + 1]?.sortKey ?? null);
+}
+
+// ---------------------------------------------------------------------------
+// Settings and automatic priority (FR-14.9 to FR-14.14)
+// ---------------------------------------------------------------------------
+
+/** Current settings, read inside the caller's transaction. */
+async function loadSettings(): Promise<AppSettings> {
+  return readSettings(await db.settings.toArray());
+}
+
+/** Apply the automatic priority rules to one to-do after a change. */
+async function applyPriorityRules(id: ID, settings?: AppSettings): Promise<void> {
+  const t = await db.todos.get(id);
+  if (!t) return;
+  const next = priorityRules(t, today(), settings ?? (await loadSettings()));
+  if (next) await patch<Todo>('todos', id, next);
+}
+
+/**
+ * Run the automatic rules over every open to-do (FR-14.9, FR-3.5). Called at
+ * launch, on resume and at midnight, so start dates arriving and deadlines
+ * passing are picked up without background execution.
+ */
+export function sweepPriorities(): Promise<void> {
+  return tx(async () => {
+    const settings = await loadSettings();
+    const todos = await db.todos.where('status').equals('open').toArray();
+    for (const t of todos) await applyPriorityRules(t.id, settings);
+  });
+}
+
+/**
+ * Save one setting. Turning a rule on applies it to existing to-dos; turning
+ * it off leaves the priorities it already set (FR-14.14).
+ */
+export async function setSetting<K extends SettingKey>(key: K, value: AppSettings[K]): Promise<void> {
+  await tx(() => db.settings.put({ key, value }));
+  if (value === true) await sweepPriorities();
+}
+
+/** Set or clear a to-do's priority as the user's own choice (FR-14.2). */
+export function setPriority(id: ID, priority: Priority | null): Promise<void> {
+  return tx(() =>
+    patch<Todo>('todos', id, { priority, prioritySource: 'user', priorityBeforeAuto: null }),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -137,6 +210,7 @@ export async function createTodo(opts: NewTodo = {}): Promise<ID> {
     };
     await db.todos.add(todo);
     await log('todos', todo.id, ['*']);
+    await applyPriorityRules(todo.id);
     return todo.id;
   });
 }
@@ -167,19 +241,25 @@ export function setWhen(id: ID, choice: WhenChoice): Promise<void> {
     else start = t.areaId || t.projectId ? 'unscheduled' : 'inbox';
     start = normalizeStart({ start, startDate, areaId: t.areaId, projectId: t.projectId });
     await patch<Todo>('todos', id, { start, startDate });
+    await applyPriorityRules(id);
   });
 }
 
 /** Set or clear a deadline (FR-3.3). */
 export function setDeadline(id: ID, deadline: LocalDate | null): Promise<void> {
-  return tx(() => patch<Todo>('todos', id, { deadline }));
+  return tx(async () => {
+    await patch<Todo>('todos', id, { deadline });
+    await applyPriorityRules(id);
+  });
 }
 
 /** Complete, cancel or reopen a to-do (FR-1.3, FR-1.4, FR-12.1). */
 export function setTodoStatus(id: ID, status: Todo['status']): Promise<void> {
-  return tx(() =>
-    patch<Todo>('todos', id, { status, completedAt: status === 'open' ? null : nowIso() }),
-  );
+  return tx(async () => {
+    await patch<Todo>('todos', id, { status, completedAt: status === 'open' ? null : nowIso() });
+    // Closed to-dos keep their priority (FR-14.12); a reopened one is checked again.
+    if (status === 'open') await applyPriorityRules(id);
+  });
 }
 
 /** Move a to-do to Trash, or restore it (FR-1.5, FR-12.3). */
@@ -207,6 +287,7 @@ export async function duplicateTodo(id: ID): Promise<ID | undefined> {
     };
     await db.todos.add(copy);
     await log('todos', copy.id, ['*']);
+    await copyChecklist(id, copy.id);
     return copy.id;
   });
 }
@@ -248,8 +329,38 @@ export function convertTodoToProject(id: ID): Promise<ID | undefined> {
       startDate: t.startDate,
       deadline: t.deadline,
       deferred: t.start === 'deferred',
+      tagIds: t.tagIds,
     });
-    await patch<Todo>('todos', id, { deletedAt: nowIso() });
+    // As in Things, checklist items become the new project's to-dos.
+    const at = nowIso();
+    let prev: string | null = null;
+    for (const item of await liveChecklist(id)) {
+      prev = keyBetween(prev, null);
+      const todo: Todo = {
+        ...t,
+        ...base(prev),
+        title: item.title,
+        notes: '',
+        status: item.completed ? 'completed' : 'open',
+        completedAt: item.completed ? at : null,
+        start: 'unscheduled',
+        startDate: null,
+        deadline: null,
+        todaySortKey: null,
+        priority: null,
+        prioritySource: null,
+        priorityBeforeAuto: null,
+        tagIds: [],
+        areaId: null,
+        projectId,
+        headingId: null,
+        trashedAt: null,
+      };
+      await db.todos.add(todo);
+      await log('todos', todo.id, ['*']);
+      await patch<ChecklistItem>('checklistItems', item.id, { deletedAt: at });
+    }
+    await patch<Todo>('todos', id, { deletedAt: at });
     return projectId;
   });
 }
@@ -266,6 +377,7 @@ export interface NewProject {
   startDate?: LocalDate | null;
   deadline?: LocalDate | null;
   deferred?: boolean;
+  tagIds?: ID[];
 }
 
 /** Insert a project; caller must already be inside a transaction. */
@@ -280,7 +392,7 @@ async function insertProject(opts: NewProject): Promise<ID> {
     start: opts.deferred ? 'deferred' : 'unscheduled',
     startDate: opts.deferred ? null : (opts.startDate ?? null),
     deadline: opts.deadline ?? null,
-    tagIds: [],
+    tagIds: opts.tagIds ? [...opts.tagIds] : [],
     areaId,
     completedAt: null,
     trashedAt: null,
@@ -303,6 +415,15 @@ export function updateProject(
   return tx(() => patch<Project>('projects', id, changes));
 }
 
+/** Apply a When choice to a project (FR-2.1), using the same picker as to-dos. */
+export function setProjectWhen(id: ID, choice: WhenChoice): Promise<void> {
+  const changes: Pick<Project, 'start' | 'startDate'> =
+    choice.kind === 'deferred'
+      ? { start: 'deferred', startDate: null }
+      : { start: 'unscheduled', startDate: choice.kind === 'today' ? today() : choice.kind === 'date' ? choice.date : null };
+  return tx(() => patch<Project>('projects', id, changes));
+}
+
 /**
  * Complete or cancel a project (FR-2.3). Open to-dos inside are completed or
  * canceled according to `openTodos`.
@@ -315,6 +436,57 @@ export function closeProject(id: ID, status: 'completed' | 'canceled', openTodos
       await patch<Todo>('todos', t.id, { status: openTodos, completedAt: at });
     }
     await patch<Project>('projects', id, { status, completedAt: at });
+  });
+}
+
+/**
+ * Duplicate a project with its headings, open to-dos and their checklists.
+ * The copy is placed right after the original. Returns the new project's id.
+ */
+export function duplicateProject(id: ID): Promise<ID | undefined> {
+  return tx(async () => {
+    const p = await db.projects.get(id);
+    if (!p) return undefined;
+    const siblings = bySortKey(
+      (await db.projects.toArray()).filter((x) => x.deletedAt === null && (x.areaId ?? null) === (p.areaId ?? null)),
+    );
+    const next = siblings[siblings.findIndex((x) => x.id === id) + 1];
+    const copy: Project = {
+      ...p,
+      ...base(keyBetween(p.sortKey, next?.sortKey ?? null)),
+      tagIds: [...p.tagIds],
+      status: 'open',
+      completedAt: null,
+      trashedAt: null,
+    };
+    await db.projects.add(copy);
+    await log('projects', copy.id, ['*']);
+
+    const headingIds = new Map<ID, ID>();
+    for (const h of (await db.headings.where('projectId').equals(id).toArray()).filter((x) => x.deletedAt === null)) {
+      const hc: Heading = { ...h, ...base(h.sortKey), projectId: copy.id };
+      headingIds.set(h.id, hc.id);
+      await db.headings.add(hc);
+      await log('headings', hc.id, ['*']);
+    }
+
+    const todos = (await db.todos.where('projectId').equals(id).toArray()).filter(
+      (t) => t.deletedAt === null && t.trashedAt === null && t.status === 'open',
+    );
+    for (const t of todos) {
+      const tc: Todo = {
+        ...t,
+        ...base(t.sortKey),
+        tagIds: [...t.tagIds],
+        projectId: copy.id,
+        headingId: t.headingId ? (headingIds.get(t.headingId) ?? null) : null,
+        todaySortKey: null,
+      };
+      await db.todos.add(tc);
+      await log('todos', tc.id, ['*']);
+      await copyChecklist(t.id, tc.id);
+    }
+    return copy.id;
   });
 }
 
@@ -431,12 +603,128 @@ export function emptyTrash(): Promise<void> {
     const at = nowIso();
     const todos = (await db.todos.toArray()).filter((t) => t.trashedAt && !t.deletedAt);
     const projects = (await db.projects.toArray()).filter((p) => p.trashedAt && !p.deletedAt);
+    const removeTodo = async (todoId: ID) => {
+      await patch<Todo>('todos', todoId, { deletedAt: at });
+      for (const c of await liveChecklist(todoId)) await patch<ChecklistItem>('checklistItems', c.id, { deletedAt: at });
+    };
     for (const p of projects) {
       await patch<Project>('projects', p.id, { deletedAt: at });
       const inside = await db.todos.where('projectId').equals(p.id).toArray();
-      for (const t of inside.filter((x) => !x.deletedAt)) await patch<Todo>('todos', t.id, { deletedAt: at });
+      for (const t of inside.filter((x) => !x.deletedAt)) await removeTodo(t.id);
     }
-    for (const t of todos) await patch<Todo>('todos', t.id, { deletedAt: at });
+    for (const t of todos) await removeTodo(t.id);
   });
 }
 
+
+// ---------------------------------------------------------------------------
+// Tags (FR-6.1, FR-6.2)
+// ---------------------------------------------------------------------------
+
+/** Create a tag at the end of the Manage Tags list. */
+export function createTag(title: string): Promise<ID> {
+  return tx(async () => {
+    const keys = await siblingKeys<Tag>('tags', () => true);
+    const tag: Tag = { ...base(keyAtEnd(keys)), title: title.trim(), shortcut: null, parentTagId: null };
+    await db.tags.add(tag);
+    await log('tags', tag.id, ['*']);
+    return tag.id;
+  });
+}
+
+export function renameTag(id: ID, title: string): Promise<void> {
+  return tx(() => patch<Tag>('tags', id, { title: title.trim() }));
+}
+
+/** Move a tag one place up or down in Manage Tags. */
+export function moveTag(id: ID, direction: 'up' | 'down'): Promise<void> {
+  return tx(async () => {
+    const key = await shiftedKey<Tag>('tags', id, () => true, direction);
+    if (key) await patch<Tag>('tags', id, { sortKey: key });
+  });
+}
+
+/** Delete a tag and remove it from every to-do, project and area. */
+export function deleteTag(id: ID): Promise<void> {
+  return tx(async () => {
+    for (const entity of ['todos', 'projects', 'areas'] as const) {
+      const rows = (await db.table(entity).toArray()) as (Todo | Project | Area)[];
+      for (const r of rows.filter((x) => x.tagIds.includes(id))) {
+        await patch<Todo | Project | Area>(entity, r.id, { tagIds: r.tagIds.filter((t) => t !== id) });
+      }
+    }
+    await patch<Tag>('tags', id, { deletedAt: nowIso() });
+  });
+}
+
+/**
+ * Add or remove one tag on a to-do, project or area. Reads the record inside
+ * the transaction, so quick successive changes never overwrite each other.
+ */
+export function toggleTag(entity: 'todos' | 'projects' | 'areas', id: ID, tagId: ID, on: boolean): Promise<void> {
+  return tx(async () => {
+    const r = (await db.table(entity).get(id)) as Todo | Project | Area | undefined;
+    if (!r || r.tagIds.includes(tagId) === on) return;
+    const tagIds = on ? [...r.tagIds, tagId] : r.tagIds.filter((t) => t !== tagId);
+    await patch<Todo | Project | Area>(entity, id, { tagIds });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Checklists (FR-7.1, FR-7.2)
+// ---------------------------------------------------------------------------
+
+/** Copy a to-do's checklist onto another to-do; caller is inside a transaction. */
+async function copyChecklist(fromTodoId: ID, toTodoId: ID): Promise<void> {
+  for (const item of await liveChecklist(fromTodoId)) {
+    const c: ChecklistItem = { ...item, ...base(item.sortKey), todoId: toTodoId };
+    await db.checklistItems.add(c);
+    await log('checklistItems', c.id, ['*']);
+  }
+}
+
+/** A to-do's live checklist items in order. */
+async function liveChecklist(todoId: ID): Promise<ChecklistItem[]> {
+  const rows = await db.checklistItems.where('todoId').equals(todoId).toArray();
+  return bySortKey(rows.filter((c) => c.deletedAt === null));
+}
+
+/**
+ * Add checklist items after `afterId` (or at the end when null), in order.
+ * Returns the new ids. Several titles come from a multi-line paste (FR-7.2).
+ */
+export function addChecklistItems(todoId: ID, titles: string[], afterId: ID | null = null): Promise<ID[]> {
+  return tx(async () => {
+    const items = await liveChecklist(todoId);
+    const i = afterId ? items.findIndex((c) => c.id === afterId) : items.length - 1;
+    let before = i >= 0 ? items[i].sortKey : null;
+    const after = items[i + 1]?.sortKey ?? null;
+    const ids: ID[] = [];
+    for (const title of titles) {
+      before = keyBetween(before, after);
+      const item: ChecklistItem = { ...base(before), todoId, title, completed: false };
+      await db.checklistItems.add(item);
+      await log('checklistItems', item.id, ['*']);
+      ids.push(item.id);
+    }
+    return ids;
+  });
+}
+
+export function updateChecklistItem(id: ID, changes: Partial<Pick<ChecklistItem, 'title' | 'completed'>>): Promise<void> {
+  return tx(() => patch<ChecklistItem>('checklistItems', id, changes));
+}
+
+export function deleteChecklistItem(id: ID): Promise<void> {
+  return tx(() => patch<ChecklistItem>('checklistItems', id, { deletedAt: nowIso() }));
+}
+
+/** Move a checklist item one place up or down. */
+export function moveChecklistItem(id: ID, direction: 'up' | 'down'): Promise<void> {
+  return tx(async () => {
+    const item = await db.checklistItems.get(id);
+    if (!item) return;
+    const key = await shiftedKey<ChecklistItem>('checklistItems', id, (c) => c.todoId === item.todoId, direction);
+    if (key) await patch<ChecklistItem>('checklistItems', id, { sortKey: key });
+  });
+}

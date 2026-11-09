@@ -28,6 +28,13 @@
   --c-logbook: #079455;
   --c-trash: #6b6b70;
 
+  /* Priority chips, P1 (highest) to P5 (FR-14.4). */
+  --p1: #c4271b;
+  --p2: #b35600;
+  --p3: #8a6d00;
+  --p4: #1f5bb8;
+  --p5: #6b6b70;
+
   --radius: 6px;
   --row-h: 36px;
   font-family: var(--font);
@@ -106,6 +113,62 @@ textarea {
 .chip:hover {
   background: var(--hover-bg);
 }
+
+/* Tag pill on rows, the to-do card and the project header. */
+.tag-pill {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e9eef8;
+  color: var(--accent-text);
+  white-space: nowrap;
+}
+
+/* Items inside popover menus (Popover.svelte). */
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 7px 10px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--text);
+}
+.menu-item:hover,
+.menu-item:focus-visible {
+  background: var(--hover-bg);
+}
+.menu-item.active {
+  font-weight: 600;
+}
+.menu-sep {
+  height: 1px;
+  background: var(--rule);
+  margin: 4px 6px;
+  border: 0;
+}
+
+/* Priority chip shown on rows and in the card. */
+.prio {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: #fff;
+  white-space: nowrap;
+}
+.prio-1 { background: var(--p1); }
+.prio-2 { background: var(--p2); }
+.prio-3 { background: var(--p3); }
+.prio-4 { background: var(--p4); }
+.prio-5 { background: var(--p5); }
 
 @media (prefers-reduced-motion: reduce) {
   * {

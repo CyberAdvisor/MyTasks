@@ -1,16 +1,27 @@
 <!--
-  Expanded to-do card (FR-1.2): title, notes, When, deadline, Move and more.
+  Expanded to-do card (FR-1.2): title, notes, checklist, tags, When,
+  deadline and priority. Set fields show as chips on the left of the bottom
+  bar; buttons for the empty ones sit on the right, as in Things.
   Edits save as you type, debounced 300 ms; there is no Save button.
   Escape or a click outside closes it.
 -->
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import Icon from './Icon.svelte';
+  import Popover from './Popover.svelte';
+  import WhenPicker from './WhenPicker.svelte';
+  import DeadlinePicker from './DeadlinePicker.svelte';
+  import TagPicker from './TagPicker.svelte';
+  import PriorityMenu from './PriorityMenu.svelte';
+  import Checklist from './Checklist.svelte';
   import { ui } from '../lib/state/ui.svelte';
   import { go } from '../lib/state/route';
+  import { settings, snapshot } from '../lib/state/live';
   import { deadlineLabel, formatRelative } from '../lib/model/dates';
+  import { priorityLabel } from '../lib/model/settings';
+  import { checklistProgress, tagTitles } from '../lib/model/tags';
   import * as repo from '../lib/db/repo';
-  import type { LocalDate, Todo } from '../lib/model/types';
+  import type { ID, LocalDate, Priority, Todo } from '../lib/model/types';
 
   let { todo, ref }: { todo: Todo; ref: LocalDate } = $props();
 
@@ -24,8 +35,36 @@
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   let card: HTMLDivElement;
   let titleInput: HTMLInputElement;
+
+  // Which popover is open.
   let whenOpen = $state(false);
+  let deadlineOpen = $state(false);
+  let tagsOpen = $state(false);
+  let prioOpen = $state(false);
   let moreOpen = $state(false);
+  /**
+   * The tag picker was opened from the button bar. It stays there while open,
+   * even after the first tag appears in the tag row, so typing is not interrupted.
+   */
+  let tagsFromBar = $state(false);
+  $effect(() => {
+    if (!tagsOpen) tagsFromBar = false;
+  });
+  /** Checklist item to focus once it renders. */
+  let checklistFocus = $state<ID | null>(null);
+
+  let hasWhen = $derived(todo.start === 'deferred' || todo.startDate !== null);
+  let whenLabel = $derived(
+    todo.start === 'deferred'
+      ? 'Deferred'
+      : todo.startDate === null
+        ? ''
+        : todo.startDate <= ref
+          ? 'Today'
+          : formatRelative(todo.startDate, ref),
+  );
+  let tagNames = $derived(tagTitles(todo.tagIds, $snapshot));
+  let hasChecklist = $derived(checklistProgress(todo.id, $snapshot).total > 0);
 
   /** Persist pending text edits now. */
   function flush() {
@@ -63,16 +102,15 @@
     return () => document.removeEventListener('pointerdown', onDown, true);
   });
 
-  // Escape anywhere inside the card closes it.
+  // Escape closes the card, even after a menu choice has moved focus out of it.
+  // Open popovers stop the key first; keys inside dialogs are left to them.
   $effect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        close();
-      }
+      if (e.key !== 'Escape' || (e.target as Element).closest?.('dialog')) return;
+      close();
     };
-    card.addEventListener('keydown', onKey);
-    return () => card.removeEventListener('keydown', onKey);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
   });
 
   onDestroy(flush);
@@ -84,9 +122,23 @@
     }
   }
 
-  async function setWhen(choice: repo.WhenChoice) {
+  function chooseWhen(choice: repo.WhenChoice) {
     whenOpen = false;
-    await repo.setWhen(todo.id, choice);
+    void repo.setWhen(todo.id, choice);
+  }
+
+  function chooseDeadline(deadline: LocalDate | null) {
+    deadlineOpen = false;
+    void repo.setDeadline(todo.id, deadline);
+  }
+
+  function choosePriority(p: Priority | null) {
+    prioOpen = false;
+    void repo.setPriority(todo.id, p);
+  }
+
+  async function addChecklist() {
+    [checklistFocus] = await repo.addChecklistItems(todo.id, ['']);
   }
 
   async function convert() {
@@ -109,11 +161,20 @@
     flush();
     await repo.duplicateTodo(todo.id);
   }
-
-  let whenLabel = $derived(
-    todo.start === 'deferred' ? 'Deferred' : todo.startDate ? formatRelative(todo.startDate, ref) : '',
-  );
 </script>
+
+{#snippet whenPanel()}
+  <WhenPicker startDate={todo.startDate} deferred={todo.start === 'deferred'} {ref} onchoose={chooseWhen} />
+{/snippet}
+{#snippet deadlinePanel()}
+  <DeadlinePicker deadline={todo.deadline} {ref} onchoose={chooseDeadline} />
+{/snippet}
+{#snippet tagsPanel()}
+  <TagPicker entity="todos" id={todo.id} tagIds={todo.tagIds} />
+{/snippet}
+{#snippet prioPanel()}
+  <PriorityMenu priority={todo.priority} onchoose={choosePriority} />
+{/snippet}
 
 <div class="card" bind:this={card} role="group" aria-label="Edit to-do">
   <div class="top">
@@ -150,85 +211,134 @@
     rows="2"
   ></textarea>
 
+  <Checklist todoId={todo.id} bind:focusId={checklistFocus} />
+
+  {#snippet tagChips()}
+    {#each tagNames as name, i (i)}<span class="tag-pill">{name}</span>{/each}
+  {/snippet}
+  {#if tagNames.length}
+    <div class="tags">
+      {#if tagsFromBar}
+        <div class="tag-list">{@render tagChips()}</div>
+      {:else}
+        <Popover bind:open={tagsOpen} label="Tags" align="left">
+          {#snippet trigger(toggle)}
+            <button type="button" class="tag-list" aria-label="Edit tags" onclick={toggle}>{@render tagChips()}</button>
+          {/snippet}
+          {@render tagsPanel()}
+        </Popover>
+      {/if}
+    </div>
+  {/if}
+
   <div class="bar">
     <div class="left">
-      {#if whenLabel}
-        <button type="button" class="chip" onclick={() => (whenOpen = !whenOpen)}>
-          <Icon name={todo.start === 'deferred' ? 'archive' : 'calendar'} size={12} />{whenLabel}
-        </button>
+      {#if hasWhen}
+        <Popover bind:open={whenOpen} label="When" align="left">
+          {#snippet trigger(toggle)}
+            <button type="button" class="chip" onclick={toggle}>
+              <Icon name={todo.start === 'deferred' ? 'archive' : todo.startDate && todo.startDate <= ref ? 'star' : 'calendar'} size={12} />{whenLabel}
+            </button>
+          {/snippet}
+          {@render whenPanel()}
+        </Popover>
       {/if}
       {#if todo.deadline}
-        <span class="chip" class:due={todo.deadline <= ref}>
-          <Icon name="flag" size={12} />Deadline: {deadlineLabel(todo.deadline, ref)}
-          <button type="button" class="clear" aria-label="Clear deadline" onclick={() => repo.setDeadline(todo.id, null)}>
-            <Icon name="x" size={10} />
-          </button>
-        </span>
+        <Popover bind:open={deadlineOpen} label="Deadline" align="left">
+          {#snippet trigger(toggle)}
+            <button type="button" class="chip" class:due={todo.deadline! <= ref} onclick={toggle}>
+              <Icon name="flag" size={12} />Deadline: {deadlineLabel(todo.deadline!, ref)}
+            </button>
+          {/snippet}
+          {@render deadlinePanel()}
+        </Popover>
+      {/if}
+      {#if todo.priority}
+        <Popover bind:open={prioOpen} label="Priority" align="left">
+          {#snippet trigger(toggle)}
+            <button type="button" class="chip" aria-label="Priority: {priorityLabel(todo.priority!, $settings)}" onclick={toggle}>
+              <span class="prio prio-{todo.priority}">{priorityLabel(todo.priority!, $settings)}</span>
+            </button>
+          {/snippet}
+          {@render prioPanel()}
+        </Popover>
       {/if}
     </div>
 
     <div class="right">
-      <div class="pop-wrap">
-        <button type="button" class="icon-btn" aria-label="When" aria-expanded={whenOpen} onclick={() => (whenOpen = !whenOpen)}>
-          <Icon name="calendar" size={16} />
+      {#if !hasWhen}
+        <Popover bind:open={whenOpen} label="When">
+          {#snippet trigger(toggle, open)}
+            <button type="button" class="icon-btn" aria-label="When" title="When" aria-expanded={open} onclick={toggle}>
+              <Icon name="calendar" size={16} />
+            </button>
+          {/snippet}
+          {@render whenPanel()}
+        </Popover>
+      {/if}
+      {#if !tagNames.length || tagsFromBar}
+        <Popover bind:open={tagsOpen} label="Tags">
+          {#snippet trigger(toggle, open)}
+            <button
+              type="button"
+              class="icon-btn"
+              aria-label="Tags"
+              title="Tags"
+              aria-expanded={open}
+              onclick={() => {
+                tagsFromBar = !open;
+                toggle();
+              }}
+            >
+              <Icon name="tag" size={16} />
+            </button>
+          {/snippet}
+          {@render tagsPanel()}
+        </Popover>
+      {/if}
+      {#if !hasChecklist}
+        <button type="button" class="icon-btn" aria-label="Add checklist" title="Checklist" onclick={addChecklist}>
+          <Icon name="checklist" size={16} />
         </button>
-        {#if whenOpen}
-          <div class="pop" role="menu" aria-label="When">
-            <button type="button" role="menuitem" onclick={() => setWhen({ kind: 'today' })}>
-              <Icon name="star" size={14} color="var(--c-today)" /> Today
+      {/if}
+      {#if !todo.deadline}
+        <Popover bind:open={deadlineOpen} label="Deadline">
+          {#snippet trigger(toggle, open)}
+            <button type="button" class="icon-btn" aria-label="Deadline" title="Deadline" aria-expanded={open} onclick={toggle}>
+              <Icon name="flag" size={16} />
             </button>
-            <label class="date-row">
-              <Icon name="calendar" size={14} color="var(--c-scheduled)" />
-              <input
-                type="date"
-                aria-label="Pick a date"
-                value={todo.startDate ?? ''}
-                onchange={(e) => {
-                  const v = (e.currentTarget as HTMLInputElement).value;
-                  if (v) void setWhen({ kind: 'date', date: v });
-                }}
-              />
-            </label>
-            <button type="button" role="menuitem" onclick={() => setWhen({ kind: 'deferred' })}>
-              <Icon name="archive" size={14} color="var(--c-deferred)" /> Deferred
+          {/snippet}
+          {@render deadlinePanel()}
+        </Popover>
+      {/if}
+      {#if !todo.priority}
+        <Popover bind:open={prioOpen} label="Priority">
+          {#snippet trigger(toggle, open)}
+            <button type="button" class="icon-btn" aria-label="Priority" title="Priority" aria-expanded={open} onclick={toggle}>
+              <Icon name="priority" size={16} />
             </button>
-            <button type="button" role="menuitem" onclick={() => setWhen({ kind: 'clear' })}>
-              <Icon name="x" size={14} /> Clear
-            </button>
-          </div>
-        {/if}
-      </div>
+          {/snippet}
+          {@render prioPanel()}
+        </Popover>
+      {/if}
 
-      <label class="icon-btn deadline-btn" title="Deadline">
-        <Icon name="flag" size={16} />
-        <span class="visually-hidden">Deadline</span>
-        <input
-          type="date"
-          value={todo.deadline ?? ''}
-          onchange={(e) => {
-            const v = (e.currentTarget as HTMLInputElement).value;
-            void repo.setDeadline(todo.id, v || null);
-          }}
-        />
-      </label>
-
-      <button type="button" class="icon-btn" aria-label="Move" onclick={() => (ui.movingId = todo.id)}>
+      <button type="button" class="icon-btn" aria-label="Move" title="Move" onclick={() => (ui.movingId = todo.id)}>
         <Icon name="move" size={16} />
       </button>
 
-      <div class="pop-wrap">
-        <button type="button" class="icon-btn" aria-label="More actions" aria-expanded={moreOpen} onclick={() => (moreOpen = !moreOpen)}>
-          <Icon name="more" size={16} />
-        </button>
-        {#if moreOpen}
-          <div class="pop" role="menu" aria-label="More actions">
-            <button type="button" role="menuitem" onclick={duplicate}>Duplicate</button>
-            <button type="button" role="menuitem" onclick={convert}>Convert to Project</button>
-            <button type="button" role="menuitem" onclick={() => { moreOpen = false; ui.toggleDone(todo.id, 'canceled'); }}>Cancel To-Do</button>
-            <button type="button" role="menuitem" class="danger" onclick={remove}>Delete</button>
-          </div>
-        {/if}
-      </div>
+      <Popover bind:open={moreOpen} label="More actions">
+        {#snippet trigger(toggle, open)}
+          <button type="button" class="icon-btn" aria-label="More actions" title="More" aria-expanded={open} onclick={toggle}>
+            <Icon name="more" size={16} />
+          </button>
+        {/snippet}
+        <div role="menu" aria-label="More actions">
+          <button type="button" class="menu-item" role="menuitem" onclick={duplicate}>Duplicate</button>
+          <button type="button" class="menu-item" role="menuitem" onclick={convert}>Convert to Project</button>
+          <button type="button" class="menu-item" role="menuitem" onclick={() => { moreOpen = false; ui.toggleDone(todo.id, 'canceled'); }}>Cancel To-Do</button>
+          <button type="button" class="menu-item danger" role="menuitem" onclick={remove}>Delete</button>
+        </div>
+      </Popover>
     </div>
   </div>
 </div>
@@ -285,6 +395,17 @@
     line-height: 1.45;
     background: transparent;
   }
+  .tags {
+    margin-left: 28px;
+  }
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
   .bar {
     display: flex;
     flex-wrap: wrap;
@@ -306,13 +427,6 @@
     color: var(--danger);
     font-weight: 600;
   }
-  .clear {
-    border: 0;
-    background: transparent;
-    padding: 0 0 0 4px;
-    display: inline-flex;
-    color: inherit;
-  }
   .icon-btn {
     border: 0;
     background: transparent;
@@ -320,52 +434,9 @@
     border-radius: var(--radius);
     display: inline-flex;
     color: var(--text-3);
-    position: relative;
   }
   .icon-btn:hover {
     background: var(--hover-bg);
-  }
-  .deadline-btn input {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    cursor: pointer;
-  }
-  .pop-wrap {
-    position: relative;
-  }
-  .pop {
-    position: absolute;
-    right: 0;
-    top: calc(100% + 4px);
-    min-width: 190px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
-    padding: 4px;
-    display: flex;
-    flex-direction: column;
-    z-index: 20;
-  }
-  .pop button,
-  .date-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    text-align: left;
-    border: 0;
-    background: transparent;
-    padding: 8px 10px;
-    border-radius: var(--radius);
-    font-size: 14px;
-  }
-  .pop button:hover {
-    background: var(--hover-bg);
-  }
-  .date-row input {
-    border: 1px solid #d6d6da;
-    border-radius: 4px;
-    padding: 2px 4px;
   }
   .danger {
     color: var(--danger);

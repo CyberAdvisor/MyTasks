@@ -6,7 +6,10 @@
   import Icon from './Icon.svelte';
   import TodoCard from './TodoCard.svelte';
   import { ui } from '../lib/state/ui.svelte';
+  import { settings, snapshot } from '../lib/state/live';
   import { deadlineLabel, formatRelative } from '../lib/model/dates';
+  import { priorityLabel } from '../lib/model/settings';
+  import { checklistProgress, tagTitles } from '../lib/model/tags';
   import * as repo from '../lib/db/repo';
   import type { LocalDate, Todo } from '../lib/model/types';
 
@@ -33,6 +36,8 @@
   let canceled = $derived(todo.status === 'canceled' || pending === 'canceled');
   let due = $derived(todo.deadline !== null && todo.deadline <= ref);
   let futureDate = $derived(todo.startDate !== null && todo.startDate > ref ? todo.startDate : null);
+  let tags = $derived(tagTitles(todo.tagIds, $snapshot));
+  let checklist = $derived(checklistProgress(todo.id, $snapshot));
 
   /** Checkbox: complete (Alt-click cancels), or reopen from the Logbook. */
   function onCheck(e: MouseEvent) {
@@ -99,6 +104,15 @@
     </div>
 
     <div class="aside">
+      {#each tags as name, i (i)}<span class="tag-pill">{name}</span>{/each}
+      {#if todo.priority}
+        <span class="prio prio-{todo.priority}">{priorityLabel(todo.priority, $settings)}</span>
+      {/if}
+      {#if checklist.total}
+        <span class="progress" title="Checklist">
+          <Icon name="checklist" size={12} />{checklist.done}/{checklist.total}
+        </span>
+      {/if}
       {#if todo.notes}<Icon name="notes" size={14} color="var(--text-done)" label="Has notes" />{/if}
       {#if todo.deadline}
         <span class="deadline" class:due>
@@ -190,6 +204,17 @@
     gap: 8px;
     flex: none;
   }
+  .tag-pill {
+    font-size: 11px;
+    padding: 2px 7px;
+  }
+  .progress {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 12px;
+    color: var(--text-3);
+  }
   .deadline {
     display: inline-flex;
     align-items: center;
@@ -200,6 +225,11 @@
   .deadline.due {
     color: var(--danger);
     font-weight: 600;
+  }
+  @media (max-width: 480px) {
+    .tag-pill {
+      display: none;
+    }
   }
   @media (pointer: coarse) {
     .row {

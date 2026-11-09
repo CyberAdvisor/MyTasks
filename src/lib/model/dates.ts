@@ -45,6 +45,52 @@ export function msUntilMidnight(now: Date = new Date()): number {
   return next.getTime() - now.getTime();
 }
 
+/** Day of week of a local date: 0 Sunday to 6 Saturday. */
+export function weekday(s: LocalDate): number {
+  return parseLocalDate(s).getDay();
+}
+
+/** "This Weekend" in the When picker: the coming Saturday, or today if it is a weekend day. */
+export function thisWeekend(ref: LocalDate): LocalDate {
+  const wd = weekday(ref);
+  if (wd === 6 || wd === 0) return ref;
+  return addDays(ref, 6 - wd);
+}
+
+/** "Next Week" in the When picker: the next Monday after today. */
+export function nextWeek(ref: LocalDate): LocalDate {
+  const wd = weekday(ref);
+  return addDays(ref, wd === 0 ? 1 : 8 - wd);
+}
+
+/** First day (`YYYY-MM-01`) of the month containing `s`. */
+export function monthStart(s: LocalDate): LocalDate {
+  return `${s.slice(0, 7)}-01`;
+}
+
+/** First day of the month `delta` months from the month containing `s`. */
+export function addMonths(s: LocalDate, delta: number): LocalDate {
+  const d = parseLocalDate(monthStart(s));
+  d.setMonth(d.getMonth() + delta);
+  return toLocalDate(d);
+}
+
+/**
+ * Weeks for a month calendar, Monday first. Each week has seven dates; days
+ * outside the month are `null`.
+ */
+export function monthGrid(month: LocalDate): (LocalDate | null)[][] {
+  const first = monthStart(month);
+  const lead = (weekday(first) + 6) % 7; // days before the 1st, Monday-first
+  const nextMonth = addMonths(first, 1);
+  const days: (LocalDate | null)[] = Array(lead).fill(null);
+  for (let d = first; d < nextMonth; d = addDays(d, 1)) days.push(d);
+  while (days.length % 7) days.push(null);
+  const weeks: (LocalDate | null)[][] = [];
+  for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+  return weeks;
+}
+
 const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: 'long' });
 const SHORT = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
 const MONTH = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' });

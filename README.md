@@ -11,8 +11,8 @@ v1 is being built in milestones. Each milestone is a pull request.
 
 | Milestone | Scope | Status |
 | --- | --- | --- |
-| 1 | Data model, sidebar, the seven lists, to-dos, areas, projects and headings | In review |
-| 2 | Tags, When and deadline pickers, checklists and notes, priority and its automatic rules | Planned |
+| 1 | Data model, sidebar, the seven lists, to-dos, areas, projects and headings | Done |
+| 2 | Tags, When and deadline pickers, checklists and notes, priority and its automatic rules, Settings | In review |
 | 3 | Saved searches, Today grouping, search and Quick Find, Quick Entry | Planned |
 | 4 | Drag and drop, keyboard shortcuts, undo | Planned |
 | 5 | Install, export/import and backups, themes, hosting at mytasks.fyi, accessibility | Planned |
