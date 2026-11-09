@@ -1,11 +1,13 @@
 <!--
   App shell: sidebar plus the current view (design doc, Section 6, Layout).
-  Under 768 px it becomes a single pane: the Home screen of lists, or one view.
+  Desktop has a bottom toolbar; under 768 px it becomes a single pane (the
+  Home screen of lists, or one view) with a round + button instead.
 -->
 <script lang="ts">
   import Sidebar from './components/Sidebar.svelte';
   import MoveDialog from './components/MoveDialog.svelte';
   import Icon from './components/Icon.svelte';
+  import Toolbar from './components/Toolbar.svelte';
   import ListView from './views/ListView.svelte';
   import ProjectView from './views/ProjectView.svelte';
   import AreaView from './views/AreaView.svelte';
@@ -29,10 +31,11 @@
     if (!isPhone && $route.kind === 'home') go({ kind: 'list', list: 'today' });
   });
 
-  // Close any open card and clear the tag filter when the view changes.
+  // Close any open card and clear selection and tag filter when the view changes.
   $effect(() => {
     void $route;
     ui.close();
+    ui.selectedId = null;
     ui.tagFilter = null;
   });
 
@@ -47,22 +50,28 @@
 
   {#if showMain}
     <main>
-      <div class="column">
-        {#if $route.kind === 'list'}
-          {#key $route.list}<ListView list={$route.list} />{/key}
-        {:else if $route.kind === 'project'}
-          {#key $route.id}<ProjectView id={$route.id} />{/key}
-        {:else if $route.kind === 'area'}
-          {#key $route.id}<AreaView id={$route.id} />{/key}
-        {:else if $route.kind === 'settings'}
-          <SettingsView />
-        {/if}
+      <div class="scroll">
+        <div class="column">
+          {#if $route.kind === 'list'}
+            {#key $route.list}<ListView list={$route.list} />{/key}
+          {:else if $route.kind === 'project'}
+            {#key $route.id}<ProjectView id={$route.id} />{/key}
+          {:else if $route.kind === 'area'}
+            {#key $route.id}<AreaView id={$route.id} />{/key}
+          {:else if $route.kind === 'settings'}
+            <SettingsView />
+          {/if}
+        </div>
       </div>
 
-      {#if canAddHere($route)}
-        <button type="button" class="plus" aria-label="New To-Do" onclick={() => newTodoHere($route, $todayDate)}>
-          <Icon name="plus" size={22} color="#fff" />
-        </button>
+      {#if isPhone}
+        {#if canAddHere($route)}
+          <button type="button" class="plus" aria-label="New To-Do" onclick={() => newTodoHere($route, $todayDate)}>
+            <Icon name="plus" size={22} color="#fff" />
+          </button>
+        {/if}
+      {:else if $route.kind !== 'settings'}
+        <Toolbar />
       {/if}
     </main>
   {/if}
@@ -86,14 +95,19 @@
     flex: 1;
     min-width: 0;
     height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .scroll {
+    flex: 1;
     overflow-y: auto;
-    position: relative;
-    padding: 40px 48px 120px;
+    padding: 40px 48px 80px;
   }
   .column {
     max-width: 680px;
     margin: 0 auto;
   }
+  /* Phone only: round New To-Do button. */
   .plus {
     position: fixed;
     right: 28px;
@@ -112,7 +126,7 @@
     .side {
       width: 100%;
     }
-    main {
+    .scroll {
       padding: calc(12px + env(safe-area-inset-top)) 18px 120px;
     }
     .plus {

@@ -40,9 +40,6 @@
   let todos = $derived(filterByTag(allTodos, tag, s));
   let askDelete = $state(false);
 
-  async function addTodo() {
-    ui.open(await repo.createTodo({ areaId: id }));
-  }
 
   async function addProject() {
     go({ kind: 'project', id: await repo.createProject({ areaId: id }) });
@@ -104,7 +101,6 @@
   <TodoList {todos} ref={$todayDate} />
 
   <div class="adders">
-    <button type="button" class="btn-plain" onclick={addTodo}><Icon name="plus" size={14} /> New To-Do</button>
     <button type="button" class="btn-plain" onclick={addProject}><Icon name="plus" size={14} /> New Project</button>
   </div>
 

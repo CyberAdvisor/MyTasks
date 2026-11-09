@@ -10,6 +10,7 @@
     open = $bindable(false),
     label,
     align = 'right',
+    above = false,
     trigger,
     children,
   }: {
@@ -18,6 +19,8 @@
     label: string;
     /** Which edge of the trigger the panel lines up with. */
     align?: 'left' | 'right';
+    /** Open the panel above the trigger, e.g. from the bottom toolbar. */
+    above?: boolean;
     /** The trigger; call `toggle` to open or close the panel. */
     trigger: Snippet<[toggle: () => void, open: boolean]>;
     children: Snippet;
@@ -55,7 +58,7 @@
 <div class="wrap" bind:this={wrap}>
   {@render trigger(toggle, open)}
   {#if open}
-    <div class="panel" class:left={align === 'left'} role="dialog" aria-label={label}>
+    <div class="panel" class:left={align === 'left'} class:above role="dialog" aria-label={label}>
       {@render children()}
     </div>
   {/if}
@@ -76,6 +79,10 @@
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
     padding: 4px;
     z-index: 30;
+  }
+  .panel.above {
+    top: auto;
+    bottom: calc(100% + 6px);
   }
   .panel.left {
     right: auto;

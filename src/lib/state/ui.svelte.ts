@@ -14,6 +14,8 @@ class UiState {
   selectedId = $state<ID | null>(null);
   /** The to-do whose Move dialog is open. */
   movingId = $state<ID | null>(null);
+  /** A heading just created, whose title should take focus. */
+  newHeadingId = $state<ID | null>(null);
   /** Tag selected in the current view's tag bar (FR-6.3); reset on navigation. */
   tagFilter = $state<ID | null>(null);
   /** Rows checked off but not yet written, mapped to their pending status. */

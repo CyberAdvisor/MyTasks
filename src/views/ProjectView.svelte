@@ -14,6 +14,7 @@
   import TagPicker from '../components/TagPicker.svelte';
   import { deadlineLabel, formatRelative } from '../lib/model/dates';
   import TagBar from '../components/TagBar.svelte';
+  import { newHeading } from '../lib/actions';
   import { activeTag, filterByTag, tagTitles, tagsInUse } from '../lib/model/tags';
   import { snapshot, todayDate } from '../lib/state/live';
   import { go } from '../lib/state/route';
@@ -44,7 +45,6 @@
   let askClose = $state(false);
   let moreOpen = $state(false);
   let headingMenu = $state<ID | null>(null);
-  let newHeadingId = $state<ID | null>(null);
   let whenOpen = $state(false);
   let deadlineOpen = $state(false);
   let tagsOpen = $state(false);
@@ -78,8 +78,9 @@
     ui.open(todoId);
   }
 
-  async function addHeading() {
-    newHeadingId = await repo.createHeading(id, '');
+  function addHeading() {
+    moreOpen = false;
+    void newHeading(id);
   }
 
   async function headingAction(hid: ID, action: 'archive' | 'convert' | 'delete') {
@@ -132,6 +133,9 @@
         </button>
         {#if moreOpen}
           <div class="pop" role="menu">
+            {#if project!.status === 'open'}
+              <button type="button" role="menuitem" onclick={addHeading}>Add Heading</button>
+            {/if}
             <button type="button" role="menuitem" onclick={toggleDeferred}>
               {project!.start === 'deferred' ? 'Make Unscheduled' : 'Defer Project'}
             </button>
@@ -220,7 +224,7 @@
           placeholder="New Heading"
           label="Heading title"
           size={15}
-          autofocus={heading.id === newHeadingId}
+          autofocus={heading.id === ui.newHeadingId}
           onsave={(v) => repo.renameHeading(heading.id, v)}
         />
         <button type="button" class="btn-plain small" aria-label="Add to-do under heading" onclick={() => addTodo(heading.id)}>
@@ -242,13 +246,6 @@
       <TodoList {todos} {ref} />
     </section>
   {/each}
-
-  {#if project.status === 'open'}
-    <div class="adders">
-      <button type="button" class="btn-plain" onclick={() => addTodo()}><Icon name="plus" size={14} /> New To-Do</button>
-      <button type="button" class="btn-plain" onclick={addHeading}><Icon name="heading" size={14} /> Add Heading</button>
-    </div>
-  {/if}
 
   {#if closedTodos.length}
     <button type="button" class="btn-plain logged" onclick={() => (showLogged = !showLogged)}>
@@ -326,11 +323,6 @@
   }
   .small {
     padding: 4px;
-  }
-  .adders {
-    display: flex;
-    gap: 8px;
-    margin-top: 16px;
   }
   .logged {
     margin-top: 16px;
