@@ -1,0 +1,119 @@
+<!--
+  App shell: sidebar plus the current view (design doc, Section 6, Layout).
+  Under 768 px it becomes a single pane: the Home screen of lists, or one view.
+-->
+<script lang="ts">
+  import Sidebar from './components/Sidebar.svelte';
+  import MoveDialog from './components/MoveDialog.svelte';
+  import Icon from './components/Icon.svelte';
+  import ListView from './views/ListView.svelte';
+  import ProjectView from './views/ProjectView.svelte';
+  import AreaView from './views/AreaView.svelte';
+  import { route, go } from './lib/state/route';
+  import { todayDate } from './lib/state/live';
+  import { ui } from './lib/state/ui.svelte';
+  import { canAddHere, newTodoHere } from './lib/actions';
+
+  const phoneQuery = window.matchMedia('(max-width: 767px)');
+  let isPhone = $state(phoneQuery.matches);
+
+  $effect(() => {
+    const onChange = () => (isPhone = phoneQuery.matches);
+    phoneQuery.addEventListener('change', onChange);
+    return () => phoneQuery.removeEventListener('change', onChange);
+  });
+
+  // On wider screens there is no Home screen: open Today instead.
+  $effect(() => {
+    if (!isPhone && $route.kind === 'home') go({ kind: 'list', list: 'today' });
+  });
+
+  // Close any open card when the view changes.
+  $effect(() => {
+    void $route;
+    ui.close();
+  });
+
+  let showSidebar = $derived(!isPhone || $route.kind === 'home');
+  let showMain = $derived(!isPhone || $route.kind !== 'home');
+</script>
+
+<div class="app">
+  {#if showSidebar}
+    <div class="side"><Sidebar /></div>
+  {/if}
+
+  {#if showMain}
+    <main>
+      <div class="column">
+        {#if $route.kind === 'list'}
+          {#key $route.list}<ListView list={$route.list} />{/key}
+        {:else if $route.kind === 'project'}
+          {#key $route.id}<ProjectView id={$route.id} />{/key}
+        {:else if $route.kind === 'area'}
+          {#key $route.id}<AreaView id={$route.id} />{/key}
+        {/if}
+      </div>
+
+      {#if canAddHere($route)}
+        <button type="button" class="plus" aria-label="New To-Do" onclick={() => newTodoHere($route, $todayDate)}>
+          <Icon name="plus" size={22} color="#fff" />
+        </button>
+      {/if}
+    </main>
+  {/if}
+</div>
+
+{#if ui.movingId}
+  <MoveDialog todoId={ui.movingId} />
+{/if}
+
+<style>
+  .app {
+    display: flex;
+    height: 100%;
+  }
+  .side {
+    width: 260px;
+    flex: none;
+    height: 100%;
+  }
+  main {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    overflow-y: auto;
+    position: relative;
+    padding: 40px 48px 120px;
+  }
+  .column {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+  .plus {
+    position: fixed;
+    right: 28px;
+    bottom: calc(28px + env(safe-area-inset-bottom));
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 0;
+    background: var(--accent);
+    box-shadow: 0 4px 12px rgba(47, 111, 219, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  @media (max-width: 767px) {
+    .side {
+      width: 100%;
+    }
+    main {
+      padding: calc(12px + env(safe-area-inset-top)) 18px 120px;
+    }
+    .plus {
+      width: 56px;
+      height: 56px;
+    }
+  }
+</style>
