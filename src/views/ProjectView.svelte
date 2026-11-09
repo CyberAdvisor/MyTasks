@@ -3,6 +3,9 @@
   after the title holds the project actions (complete, When, tags, deadline,
   move, duplicate, delete). Values that are set show as chips under the title;
   clicking a chip reopens its picker.
+  Drag to-dos to reorder them, to move them under another heading, or above
+  the first heading to take them out of any heading; drag headings to reorder
+  them, their to-dos moving with them (FR-10.3, FR-10.6, FR-10.7).
 -->
 <script lang="ts">
   import Icon from '../components/Icon.svelte';
@@ -26,6 +29,7 @@
   import { bySortKey } from '../lib/model/order';
   import { isClosed, projectProgress, projectSections } from '../lib/model/lists';
   import * as repo from '../lib/db/repo';
+  import { dragItem, dropZone, type DropZone } from '../lib/drag/drag';
   import type { ID } from '../lib/model/types';
 
   let { id }: { id: ID } = $props();
@@ -88,6 +92,15 @@
     if (v === 'cancel') void repo.closeProject(id, 'completed', 'canceled');
   }
 
+  /** To-dos move freely between this project's headings. */
+  const todoZone = (headingId: ID | null): DropZone => ({
+    type: 'todo',
+    group: `project:${id}`,
+    drop: (todoId, order) => repo.placeTodo(todoId, { order, headingId }),
+  });
+  const looseZone = todoZone(null);
+  const headingZone: DropZone = { type: 'heading', drop: (hid, order) => repo.placeHeading(hid, order) };
+
   async function addTodo(headingId: ID | null = null) {
     const todoId = await repo.createTodo({ projectId: id, headingId });
     ui.open(todoId);
@@ -132,7 +145,10 @@
   async function headingAction(hid: ID, action: 'archive' | 'convert' | 'delete') {
     headingMenu = null;
     if (action === 'archive') await repo.archiveHeading(hid);
-    if (action === 'delete') await repo.deleteHeading(hid);
+    if (action === 'delete') {
+      await repo.deleteHeading(hid);
+      ui.offerUndo('Heading deleted');
+    }
     if (action === 'convert') {
       const pid = await repo.convertHeadingToProject(hid);
       if (pid) go({ kind: 'project', id: pid });
@@ -143,6 +159,7 @@
     menuOpen = false;
     await repo.setProjectTrashed(id, true);
     go({ kind: 'list', list: 'today' });
+    ui.offerUndo('Moved to Trash');
   }
 </script>
 
@@ -263,38 +280,40 @@
 
   <TagBar tags={offered} />
 
-  <TodoList todos={sections.loose} {ref} />
+  <TodoList todos={sections.loose} {ref} zone={looseZone} />
 
-  {#each sections.headings as { heading, todos } (heading.id)}
-    <section class="heading">
-      <div class="heading-row">
-        <EditableTitle
-          value={heading.title}
-          placeholder="New Heading"
-          label="Heading title"
-          size={15}
-          autofocus={heading.id === ui.newHeadingId}
-          onsave={(v) => repo.renameHeading(heading.id, v)}
-        />
-        <button type="button" class="btn-plain small" aria-label="Add to-do under heading" onclick={() => addTodo(heading.id)}>
-          <Icon name="plus" size={14} />
-        </button>
-        <div class="pop-wrap">
-          <button type="button" class="btn-plain small" aria-label="Heading actions" onclick={() => (headingMenu = headingMenu === heading.id ? null : heading.id)}>
-            <Icon name="more" size={14} />
+  <div use:dropZone={headingZone}>
+    {#each sections.headings as { heading, todos } (heading.id)}
+      <section class="heading" use:dragItem={{ type: 'heading', id: heading.id }} use:dropZone={todoZone(heading.id)}>
+        <div class="heading-row">
+          <EditableTitle
+            value={heading.title}
+            placeholder="New Heading"
+            label="Heading title"
+            size={15}
+            autofocus={heading.id === ui.newHeadingId}
+            onsave={(v) => repo.renameHeading(heading.id, v)}
+          />
+          <button type="button" class="btn-plain small" aria-label="Add to-do under heading" onclick={() => addTodo(heading.id)}>
+            <Icon name="plus" size={14} />
           </button>
-          {#if headingMenu === heading.id}
-            <div class="pop" role="menu">
-              <button type="button" role="menuitem" onclick={() => headingAction(heading.id, 'archive')}>Archive</button>
-              <button type="button" role="menuitem" onclick={() => headingAction(heading.id, 'convert')}>Convert to Project</button>
-              <button type="button" role="menuitem" class="danger" onclick={() => headingAction(heading.id, 'delete')}>Delete</button>
-            </div>
-          {/if}
+          <div class="pop-wrap">
+            <button type="button" class="btn-plain small" aria-label="Heading actions" onclick={() => (headingMenu = headingMenu === heading.id ? null : heading.id)}>
+              <Icon name="more" size={14} />
+            </button>
+            {#if headingMenu === heading.id}
+              <div class="pop" role="menu">
+                <button type="button" role="menuitem" onclick={() => headingAction(heading.id, 'archive')}>Archive</button>
+                <button type="button" role="menuitem" onclick={() => headingAction(heading.id, 'convert')}>Convert to Project</button>
+                <button type="button" role="menuitem" class="danger" onclick={() => headingAction(heading.id, 'delete')}>Delete</button>
+              </div>
+            {/if}
+          </div>
         </div>
-      </div>
-      <TodoList {todos} {ref} />
-    </section>
-  {/each}
+        <TodoList {todos} {ref} />
+      </section>
+    {/each}
+  </div>
 
   {#if closedTodos.length}
     <button type="button" class="btn-plain logged" onclick={() => (showLogged = !showLogged)}>

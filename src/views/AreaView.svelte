@@ -1,5 +1,6 @@
 <!--
-  Area page (FR-2.5, FR-2.6): projects first, then loose to-dos.
+  Area page (FR-2.5, FR-2.6): projects first, then loose to-dos. Both can be
+  reordered by dragging, as in Things.
 -->
 <script lang="ts">
   import Icon from '../components/Icon.svelte';
@@ -18,6 +19,7 @@
   import { ui } from '../lib/state/ui.svelte';
   import { areaLooseTodos, areaProjects, projectProgress } from '../lib/model/lists';
   import * as repo from '../lib/db/repo';
+  import { dragItem, dropZone, type DropZone } from '../lib/drag/drag';
   import type { ID } from '../lib/model/types';
 
   let { id }: { id: ID } = $props();
@@ -40,6 +42,14 @@
   let todos = $derived(filterByTag(allTodos, tag, s));
   let askDelete = $state(false);
 
+  // Projects here belong with the sidebar's project lists (same group), so the
+  // drop code is shared; loose to-dos reorder among themselves.
+  const projectZone: DropZone = {
+    type: 'project',
+    group: 'projects',
+    drop: (pid, order) => repo.placeProject(pid, { order, areaId: id }),
+  };
+  const todoZone: DropZone = { type: 'todo', drop: (tid, order) => repo.placeTodo(tid, { order }) };
 
   async function addProject() {
     go({ kind: 'project', id: await repo.createProject({ areaId: id }) });
@@ -50,6 +60,7 @@
     if (v === 'keep' || v === 'trash') {
       await repo.deleteArea(id, v);
       go({ kind: 'list', list: 'today' });
+      ui.offerUndo('Area deleted');
     }
   }
 </script>
@@ -90,9 +101,9 @@
   <TagBar tags={offered} />
 
   {#if projects.length}
-    <ul class="projects">
+    <ul class="projects" use:dropZone={projectZone}>
       {#each projects as p (p.id)}
-        <li>
+        <li use:dragItem={{ type: 'project', id: p.id }}>
           <a href={hrefFor({ kind: 'project', id: p.id })}>
             <ProgressPie fraction={projectProgress(s, p.id)} />
             {p.title || 'New Project'}
@@ -102,7 +113,7 @@
     </ul>
   {/if}
 
-  <TodoList {todos} ref={$todayDate} />
+  <TodoList {todos} ref={$todayDate} zone={todoZone} />
 
   <div class="adders">
     <button type="button" class="btn-plain" onclick={addProject}><Icon name="plus" size={14} /> New Project</button>

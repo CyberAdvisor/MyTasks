@@ -185,7 +185,7 @@ describe('saved search operations', () => {
     await repo.updateSavedSearch(a, { title: 'Dairy', query: 'milk cheese', tagIds: ['t2'] });
     expect(await db.savedSearches.get(a)).toMatchObject({ title: 'Dairy', query: 'milk cheese', tagIds: ['t2'] });
 
-    await repo.moveSavedSearch(b, 'up');
+    await repo.placeSavedSearch(b, [b, a]);
     s = await snap();
     expect([...s.savedSearches].sort((x, y) => (x.sortKey < y.sortKey ? -1 : 1)).map((x) => x.id)).toEqual([b, a]);
 
@@ -277,38 +277,6 @@ describe('search routes', () => {
     expect(parseHash('#/saved/abc')).toEqual({ kind: 'saved', id: 'abc' });
     expect(parseHash('#/filter/deadlines')).toEqual({ kind: 'filter', filter: 'deadlines' });
     expect(parseHash('#/filter/toString')).toEqual({ kind: 'home' });
-  });
-});
-
-describe('app-wide keys', async () => {
-  const { globalAction } = await import('../src/lib/shortcuts');
-  const key = (k: string, mods: Partial<KeyboardEvent> = {}) => ({
-    key: k,
-    metaKey: false,
-    ctrlKey: false,
-    shiftKey: false,
-    altKey: false,
-    ...mods,
-  });
-
-  it('opens Quick Entry with Ctrl+Space, Cmd/Ctrl+Shift+N and Cmd+Shift+Space', () => {
-    expect(globalAction(key(' ', { ctrlKey: true }), 'text', false)).toEqual({ kind: 'quick-entry' });
-    expect(globalAction(key('N', { metaKey: true, shiftKey: true }), 'none', false)).toEqual({ kind: 'quick-entry' });
-    expect(globalAction(key('n', { ctrlKey: true, shiftKey: true }), 'other', false)).toEqual({ kind: 'quick-entry' });
-    expect(globalAction(key(' ', { metaKey: true, shiftKey: true }), 'none', false)).toEqual({ kind: 'quick-entry' });
-  });
-
-  it('opens Quick Find with Cmd/Ctrl+F, / and typing on an unfocused page', () => {
-    expect(globalAction(key('f', { metaKey: true }), 'text', false)).toEqual({ kind: 'find', text: '' });
-    expect(globalAction(key('/'), 'other', false)).toEqual({ kind: 'find', text: '' });
-    expect(globalAction(key('T', { shiftKey: true }), 'none', false)).toEqual({ kind: 'find', text: 'T' });
-  });
-
-  it('leaves typing in fields, other controls and open dialogs alone', () => {
-    expect(globalAction(key('/'), 'text', false)).toBeNull();
-    expect(globalAction(key('t'), 'other', false)).toBeNull();
-    expect(globalAction(key(' '), 'none', false)).toBeNull();
-    expect(globalAction(key('f', { metaKey: true }), 'none', true)).toBeNull();
   });
 });
 

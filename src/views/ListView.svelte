@@ -1,6 +1,9 @@
 <!--
   The seven built-in lists (design doc, Section 3, List membership rules).
   Today can be grouped by Project or Priority (FR-16).
+  Rows can be reordered (FR-10.3) in the Inbox, in Today (also within a
+  Today group), within a day in Scheduled, and within each group of
+  Unscheduled and Deferred, as in Things. Logbook and Trash have no manual order.
 -->
 <script lang="ts">
   import Icon from '../components/Icon.svelte';
@@ -18,6 +21,7 @@
   import { containerLabel } from '../lib/labels';
   import * as L from '../lib/model/lists';
   import * as repo from '../lib/db/repo';
+  import type { DropZone } from '../lib/drag/drag';
   import type { Todo } from '../lib/model/types';
 
   let { list }: { list: L.BuiltInList } = $props();
@@ -84,6 +88,22 @@
     trash: 'Trash is empty.',
   };
 
+  /** Reordering rows: Today keeps its own order; other lists use container order. */
+  const zoneFor = (field: 'sortKey' | 'todaySortKey'): DropZone => ({
+    type: 'todo',
+    drop: (id, order) => repo.placeTodo(id, { order, field }),
+  });
+  const todayZone = zoneFor('todaySortKey');
+  const containerZone = zoneFor('sortKey');
+  let flatZone = $derived(list === 'today' ? todayZone : list === 'inbox' ? containerZone : null);
+
+  /** Groups with a manual order: each day of Scheduled (not months), and Unscheduled and Deferred groups. */
+  function groupZone(g: L.TodoGroup): DropZone | null {
+    if (list === 'unscheduled' || list === 'deferred') return containerZone;
+    if (list === 'scheduled' && /^\d{4}-\d{2}-\d{2}$/.test(g.key)) return containerZone;
+    return null;
+  }
+
   function onEmptyChoice(v: string | null) {
     confirmEmpty = false;
     if (v === 'empty') void repo.emptyTrash();
@@ -146,10 +166,11 @@
       subtitle={g.subtitle}
       label={grouping === 'project' ? () => '' : label}
       showPriority={grouping !== 'priority'}
+      zone={todayZone}
     />
   {/each}
 {:else if flat.length}
-  <TodoList todos={flat} {ref} {mode} label={list === 'inbox' ? () => '' : label} />
+  <TodoList todos={flat} {ref} {mode} label={list === 'inbox' ? () => '' : label} zone={flatZone} />
 {/if}
 
 {#each groups as g (g.key)}
@@ -161,6 +182,7 @@
     subtitle={g.subtitle}
     label={list === 'scheduled' || list === 'logbook' ? label : () => ''}
     starred={list === 'unscheduled' ? (t) => L.isStarred(t, ref) : () => false}
+    zone={groupZone(g)}
   />
 {/each}
 

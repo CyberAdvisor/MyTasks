@@ -176,3 +176,50 @@ textarea {
     animation-duration: 0.01ms !important;
   }
 }
+
+/*
+ * Drag and drop (FR-10.10). The floating copy follows the pointer, the
+ * original stays in place faded, a line shows where the item will land, and a
+ * zone receiving an item from elsewhere is highlighted.
+ */
+[data-drag-type] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.drag-ghost {
+  position: fixed;
+  z-index: 100;
+  margin: 0;
+  pointer-events: none;
+  list-style: none;
+  background: var(--bg);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  opacity: 0.95;
+}
+.drag-source {
+  opacity: 0.35;
+}
+.drop-line {
+  position: fixed;
+  z-index: 99;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+  pointer-events: none;
+}
+.drop-target {
+  border-radius: var(--radius);
+  background: rgba(47, 111, 219, 0.1);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+body.is-dragging,
+body.is-dragging * {
+  cursor: grabbing !important;
+}
+/* Give empty zones of the dragged type some room to drop into. */
+body.dragging-todo .drop-zone-todo,
+body.dragging-project .drop-zone-project {
+  min-height: 12px;
+}

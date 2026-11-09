@@ -1,6 +1,12 @@
-<!-- A list of to-do rows, with an optional group heading. -->
+<!--
+  A list of to-do rows, with an optional group heading. With `zone`, its
+  rows can be reordered by dragging or with Cmd/Ctrl+Up and Down (FR-10.3).
+  The whole section, heading and bottom padding included, takes drops, so a
+  row can be dropped on a group's title or in the gap below its last row.
+-->
 <script lang="ts">
   import TodoRow from './TodoRow.svelte';
+  import { dropZone, type DropZone } from '../lib/drag/drag';
   import type { LocalDate, Todo } from '../lib/model/types';
 
   let {
@@ -12,6 +18,7 @@
     starred = () => false,
     mode = 'open',
     showPriority = true,
+    zone = null,
   }: {
     todos: Todo[];
     ref: LocalDate;
@@ -25,10 +32,12 @@
     mode?: 'open' | 'logbook' | 'trash';
     /** Show priority chips on rows. */
     showPriority?: boolean;
+    /** How the rows are reordered; none for lists without a manual order. */
+    zone?: DropZone | null;
   } = $props();
 </script>
 
-<section class="group">
+<section class="group" use:dropZone={zone}>
   {#if title}
     <h2>{title}{#if subtitle}<span class="sub">{subtitle}</span>{/if}</h2>
   {/if}
@@ -41,7 +50,7 @@
 
 <style>
   .group {
-    margin-bottom: 18px;
+    padding-bottom: 18px;
   }
   h2 {
     display: flex;

@@ -3,8 +3,9 @@
 
   Without `savedId`, shows the results for the search text and tags in the
   route, with a field to refine the text and a Save Search button.
-  With `savedId`, runs that saved search live, with a menu to edit, move or
-  delete it. Either way, open matches are grouped by Area and Project, and
+  With `savedId`, runs that saved search live, with a menu to edit or delete
+  it (saved searches are reordered by dragging them in the sidebar). Either
+  way, open matches are grouped by Area and Project, and
   completed matches come last in a collapsed Logbook group.
 -->
 <script lang="ts">
@@ -106,8 +107,6 @@
           {/snippet}
           <div role="menu" aria-label="Saved search actions">
             <button type="button" class="menu-item" role="menuitem" onclick={() => menuAction(() => (dialog = 'edit'))}>Edit Search…</button>
-            <button type="button" class="menu-item" role="menuitem" onclick={() => menuAction(() => repo.moveSavedSearch(saved!.id, 'up'))}>Move Up</button>
-            <button type="button" class="menu-item" role="menuitem" onclick={() => menuAction(() => repo.moveSavedSearch(saved!.id, 'down'))}>Move Down</button>
             <hr class="menu-sep" />
             <button type="button" class="menu-item danger" role="menuitem" onclick={() => menuAction(() => (askDelete = true))}>Delete</button>
           </div>

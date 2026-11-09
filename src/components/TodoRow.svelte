@@ -2,7 +2,8 @@
   One to-do row (design doc, Section 6, Components: Row), laid out as in
   Things: the title, then the note and checklist icons and the tags; the
   project or area underneath; the deadline and priority on the right.
-  Shows the expanded card in place when this to-do is open.
+  Shows the expanded card in place when this to-do is open. Open rows can be
+  selected with the arrow keys and dragged within their list (FR-10.3).
 -->
 <script lang="ts">
   import Icon from './Icon.svelte';
@@ -13,6 +14,7 @@
   import { priorityLabel } from '../lib/model/settings';
   import { checklistProgress, tagTitles } from '../lib/model/tags';
   import * as repo from '../lib/db/repo';
+  import { dragItem } from '../lib/drag/drag';
   import type { LocalDate, Todo } from '../lib/model/types';
 
   let {
@@ -82,9 +84,17 @@
 {#if ui.expandedId === todo.id && mode === 'open'}
   <li class="card-slot" bind:this={item}><TodoCard {todo} {ref} /></li>
 {:else}
-  <li class="row" bind:this={item} class:selected={ui.selectedId === todo.id} class:done>
+  <li
+    class="row"
+    bind:this={item}
+    class:selected={ui.selectedId === todo.id}
+    class:done
+    data-row-id={mode === 'open' ? todo.id : undefined}
+    use:dragItem={mode === 'open' ? { type: 'todo', id: todo.id } : null}
+  >
     <button
       type="button"
+      data-no-drag
       class="check"
       class:checked={done}
       class:canceled
