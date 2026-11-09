@@ -2,7 +2,7 @@
  * Tests for Milestone 4: placing items after a drag or keyboard move, undo,
  * the drop calculation and the keyboard bindings.
  */
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '../src/lib/db/database';
 import * as repo from '../src/lib/db/repo';
 import { clearUndo, undo, undoGroup } from '../src/lib/db/history';
@@ -354,5 +354,33 @@ describe('inline New To-Do (FR-1.1)', async () => {
     const sel = todo({ projectId: 'p', headingId: 'h', startDate: '2026-11-12' });
     expect(inlineStart({ kind: 'list', list: 'today' }, ref, sel)).toMatchObject({ projectId: 'p', headingId: 'h', startDate: ref });
     expect(inlineStart({ kind: 'list', list: 'scheduled' }, ref, sel)).toMatchObject({ projectId: 'p', startDate: '2026-11-12' });
+  });
+});
+
+describe('dropping a to-do onto a project or area (FR-10.11)', async () => {
+  const { dropTarget, targetAt } = await import('../src/lib/drag/drag');
+
+  /** A sidebar-like link that takes to-dos except `refused`. */
+  function link(refused: string) {
+    const a = document.createElement('a');
+    const label = document.createElement('span');
+    a.append(label);
+    document.body.append(a);
+    const drop = vi.fn();
+    dropTarget(a, { type: 'todo', accepts: (id) => id !== refused, drop });
+    return { a, label, drop };
+  }
+
+  it('finds the target under the pointer, from any element inside it', () => {
+    const { a, label } = link('x');
+    expect(targetAt(label, 'todo', 't1')).toBe(a);
+    expect(targetAt(a, 'todo', 't1')).toBe(a);
+  });
+
+  it('ignores other drag types, to-dos already there, and plain elements', () => {
+    const { label } = link('t1');
+    expect(targetAt(label, 'project', 't2')).toBeNull();
+    expect(targetAt(label, 'todo', 't1')).toBeNull();
+    expect(targetAt(document.body, 'todo', 't2')).toBeNull();
   });
 });

@@ -3,7 +3,8 @@
   lists with counts, collapsible Saved Searches, then areas and projects.
   Drag saved searches, areas and projects to reorder them; drag a project
   onto another area to move it there, or below the last area to take it out
-  of any area (FR-10.8, FR-10.9, FR-15.5).
+  of any area (FR-10.8, FR-10.9, FR-15.5). Drop a to-do onto a project or an
+  area to move it there (FR-10.11).
 -->
 <script lang="ts">
   import Icon from './Icon.svelte';
@@ -17,7 +18,7 @@
   import { ui } from '../lib/state/ui.svelte';
   import { readFlag, writeFlag } from '../lib/state/flags';
   import * as repo from '../lib/db/repo';
-  import { dragItem, dropZone, type DropZone } from '../lib/drag/drag';
+  import { dragItem, dropTarget, dropZone, type DropTarget, type DropZone } from '../lib/drag/drag';
   import type { ID } from '../lib/model/types';
 
   const SAVED_KEY = 'mytasks.savedSearchesCollapsed';
@@ -58,6 +59,20 @@
     type: 'project',
     group: 'projects',
     drop: (id, order) => repo.placeProject(id, { order, areaId }),
+  });
+
+  /**
+   * A to-do dropped on a project or area moves there, at the end of its to-dos
+   * with no heading, as the Move dialog does. Not offered where it already is.
+   */
+  const moveHere = (to: { projectId: ID } | { areaId: ID }): DropTarget => ({
+    type: 'todo',
+    accepts: (id) => {
+      const t = $snapshot.todos.find((x) => x.id === id);
+      if (!t) return false;
+      return 'projectId' in to ? t.projectId !== to.projectId : t.projectId !== null || t.areaId !== to.areaId;
+    },
+    drop: (id) => repo.moveTodo(id, to),
   });
 
   const groups: BuiltInList[][] = [['inbox'], ['today', 'scheduled', 'unscheduled', 'deferred'], ['logbook', 'trash']];
@@ -130,7 +145,7 @@
       {#each areas as area (area.id)}
         {@const r = { kind: 'area', id: area.id } as Route}
         <div use:dragItem={{ type: 'area', id: area.id }} use:dropZone={projectZone(area.id)}>
-          <a href={hrefFor(r)} class="item area" class:active={isActive(r)}>
+          <a href={hrefFor(r)} class="item area" class:active={isActive(r)} use:dropTarget={moveHere({ areaId: area.id })}>
             <Icon name="area" color="var(--text-2)" />
             <span class="label">{area.title || 'New Area'}</span>
           </a>
@@ -138,7 +153,7 @@
             {#each areaProjects($snapshot, area.id) as project (project.id)}
               {@const pr = { kind: 'project', id: project.id } as Route}
               <li use:dragItem={{ type: 'project', id: project.id }}>
-                <a href={hrefFor(pr)} class="item project" class:active={isActive(pr)}>
+                <a href={hrefFor(pr)} class="item project" class:active={isActive(pr)} use:dropTarget={moveHere({ projectId: project.id })}>
                   <ProgressPie fraction={projectProgress($snapshot, project.id)} />
                   <span class="label">{project.title || 'New Project'}</span>
                 </a>
@@ -154,7 +169,7 @@
       {#each looseProjects as project (project.id)}
         {@const pr = { kind: 'project', id: project.id } as Route}
         <li use:dragItem={{ type: 'project', id: project.id }}>
-          <a href={hrefFor(pr)} class="item" class:active={isActive(pr)}>
+          <a href={hrefFor(pr)} class="item" class:active={isActive(pr)} use:dropTarget={moveHere({ projectId: project.id })}>
             <ProgressPie fraction={projectProgress($snapshot, project.id)} />
             <span class="label">{project.title || 'New Project'}</span>
           </a>

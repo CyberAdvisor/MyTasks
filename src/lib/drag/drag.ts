@@ -10,6 +10,9 @@
  *   project, area or saved search).
  * - `dropZone` on each container that orders things of one type. Its `drop`
  *   callback receives the new order of the zone's items and writes it.
+ * - `dropTarget` on a single thing an item can be dropped onto, rather than
+ *   into a position: a sidebar project or area takes a to-do (FR-10.11).
+ *   A target under the pointer wins over any zone.
  *
  * Zones of the same type with the same `group` accept each other's items (a
  * to-do dragged under another heading, a project dragged to another area);
@@ -40,6 +43,15 @@ export interface DropZone {
   drop(id: ID, order: ID[]): Promise<void> | void;
 }
 
+/** A single thing an item can be dropped onto (a sidebar project or area). */
+export interface DropTarget {
+  type: DragType;
+  /** Whether item `id` may be dropped here (not where it already is). */
+  accepts(id: ID): boolean;
+  /** Move item `id` here. */
+  drop(id: ID): Promise<void> | void;
+}
+
 const LONG_PRESS_MS = 400;
 /** Movement that starts a pointer drag, or cancels a touch long press (px). */
 const START_DISTANCE = { mouse: 4, touch: 8 };
@@ -50,6 +62,7 @@ const SCROLL_SPEED = 12;
 const SNAP_DISTANCE = 28;
 
 const zones = new WeakMap<Element, DropZone>();
+const targets = new WeakMap<Element, DropTarget>();
 
 /** Mark an element as a drop zone. Passing null leaves it inert. */
 export const dropZone: Action<HTMLElement, DropZone | null> = (node, zone) => {
@@ -65,6 +78,28 @@ export const dropZone: Action<HTMLElement, DropZone | null> = (node, zone) => {
   set(zone);
   return { update: set, destroy: () => zones.delete(node) };
 };
+
+/** Mark an element as something to drop onto. Passing null leaves it inert. */
+export const dropTarget: Action<HTMLElement, DropTarget | null> = (node, target) => {
+  const set = (t: DropTarget | null) => {
+    if (t) targets.set(node, t);
+    else targets.delete(node);
+  };
+  set(target);
+  return { update: set, destroy: () => targets.delete(node) };
+};
+
+/**
+ * The drop target at or above `el` that takes item `id` of `type`, if any.
+ * Exported for tests.
+ */
+export function targetAt(el: Element | null, type: DragType, id: ID): Element | null {
+  for (let n = el; n; n = n.parentElement) {
+    const t = targets.get(n);
+    if (t?.type === type) return t.accepts(id) ? n : null;
+  }
+  return null;
+}
 
 /** Mark an element as draggable. Passing null leaves it inert. */
 export const dragItem: Action<HTMLElement, DragItem | null> = (node, initial) => {
@@ -165,7 +200,8 @@ interface Session {
   timer?: ReturnType<typeof setTimeout>;
   ghost?: HTMLElement;
   line?: HTMLElement;
-  target: { zone: Element; order: ID[] } | null;
+  /** Where a drop would go: a position in a zone, or onto a target. */
+  target: { zone: Element; order: ID[] } | { onto: Element } | null;
   highlighted?: Element;
   frame?: number;
 }
@@ -239,8 +275,9 @@ function track(): void {
   const s = session!;
   s.ghost!.style.transform = `translate(${s.x - s.startX}px, ${s.y - s.startY}px)`;
 
-  const zone = zoneAt(s.x, s.y, s.item.type, s.origin);
-  s.target = null;
+  const onto = targetAt(document.elementFromPoint(s.x, s.y), s.item.type, s.item.id);
+  const zone = onto ? null : zoneAt(s.x, s.y, s.item.type, s.origin);
+  s.target = onto ? { onto } : null;
   if (zone) {
     const items = itemsOf(zone, s.item.type).filter((el) => el !== s.node);
     const rects = items.map((el) => el.getBoundingClientRect());
@@ -250,7 +287,8 @@ function track(): void {
   } else {
     s.line!.hidden = true;
   }
-  const highlight = s.target && (s.target.zone !== s.origin || !itemsOf(s.target.zone, s.item.type).length) ? s.target.zone : undefined;
+  const into = zone && (zone !== s.origin || !itemsOf(zone, s.item.type).length);
+  const highlight = onto ?? (into ? zone : undefined);
   if (highlight !== s.highlighted) {
     s.highlighted?.classList.remove('drop-target');
     highlight?.classList.add('drop-target');
@@ -323,6 +361,10 @@ function onUp(): void {
   if (s.active) suppressNextClick();
   end();
   if (!target) return;
+  if ('onto' in target) {
+    void Promise.resolve(targets.get(target.onto)?.drop(s.item.id)).then(() => ui.offerUndo('Moved'));
+    return;
+  }
   const zone = zones.get(target.zone)!;
   const before = target.zone === s.origin ? idsOf(s.origin, s.item.type) : null;
   if (before && sameOrder(before, target.order)) return;
