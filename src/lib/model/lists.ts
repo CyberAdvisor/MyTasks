@@ -5,7 +5,7 @@
  * list each item appears in and how lists are grouped. No storage access here,
  * so the rules are easy to unit-test.
  */
-import type { Area, ChecklistItem, Heading, ID, LocalDate, Project, Tag, Todo } from './types';
+import type { Area, ChecklistItem, Heading, ID, LocalDate, Priority, Project, SavedSearch, Tag, Todo } from './types';
 import { bySortKey, compareKeys } from './order';
 import { addDays, formatMonth, formatRelative } from './dates';
 
@@ -17,6 +17,7 @@ export interface Snapshot {
   todos: Todo[];
   tags: Tag[];
   checklistItems: ChecklistItem[];
+  savedSearches: SavedSearch[];
 }
 
 /** The seven built-in sidebar lists. */
@@ -147,6 +148,34 @@ export function todayTodos(s: Snapshot, ref: LocalDate): Todo[] {
   return visibleTodos(s).filter((t) => inToday(t, ref)).sort(todayOrder);
 }
 
+/** How the Today list is grouped (FR-16.1). */
+export type TodayGrouping = 'none' | 'project' | 'priority';
+
+/**
+ * Group Today's to-dos (FR-16.2 to FR-16.5). `todos` must already be in
+ * Today's manual order and tag-filtered (FR-16.6); every group keeps that
+ * order. `None` returns one untitled group. Empty groups are left out.
+ */
+export function todayGroups(
+  todos: Todo[],
+  grouping: TodayGrouping,
+  s: Snapshot,
+  priorityLabels: string[],
+): TodoGroup[] {
+  if (grouping === 'project') return groupByContainer(todos, s, { order: todayOrder, noneLast: true });
+  if (grouping === 'priority') {
+    const levels: (Priority | null)[] = [1, 2, 3, 4, 5, null];
+    return levels
+      .map((p) => ({
+        key: `priority:${p ?? 'none'}`,
+        title: p === null ? 'No priority' : (priorityLabels[p - 1] ?? `P${p}`),
+        todos: todos.filter((t) => t.priority === p),
+      }))
+      .filter((g) => g.todos.length);
+  }
+  return todos.length ? [{ key: 'all', title: '', todos }] : [];
+}
+
 /** Scheduled: one group per day for the next 7 days, then one per month. */
 export function scheduledGroups(s: Snapshot, ref: LocalDate): TodoGroup[] {
   const items = visibleTodos(s)
@@ -168,31 +197,42 @@ export function scheduledGroups(s: Snapshot, ref: LocalDate): TodoGroup[] {
   return [...groups.values()];
 }
 
+/** Options for `groupByContainer`. */
+interface ContainerGrouping {
+  /** Order inside each group; defaults to manual container order (`sortKey`). */
+  order?: (a: Todo, b: Todo) => number;
+  /** Put the "No project" group last instead of first (Today, FR-16.3). */
+  noneLast?: boolean;
+}
+
 /**
  * Group to-dos by Area, then Project, following sidebar order: loose to-dos
- * with no container first, then each area's loose to-dos and projects, then
- * projects with no area.
+ * with no container first (or last), then each area's loose to-dos and
+ * projects, then projects with no area. Empty groups are left out.
  */
-export function groupByContainer(todos: Todo[], s: Snapshot): TodoGroup[] {
+export function groupByContainer(todos: Todo[], s: Snapshot, opts: ContainerGrouping = {}): TodoGroup[] {
+  const order = opts.order ?? ((a: Todo, b: Todo) => compareKeys(a.sortKey, b.sortKey));
   const groups: TodoGroup[] = [];
   const areas = bySortKey(s.areas.filter((a) => a.deletedAt === null));
   const projects = bySortKey(s.projects.filter((pr) => pr.deletedAt === null));
   const areaName = new Map(areas.map((a) => [a.id, a.title]));
 
   const push = (key: string, title: string, list: Todo[], subtitle?: string) => {
-    if (list.length) groups.push({ key, title, subtitle, todos: bySortKey(list) });
+    if (list.length) groups.push({ key, title, subtitle, todos: [...list].sort(order) });
   };
+  const pushNone = () => push('none', 'No project', todos.filter((t) => !t.projectId && !t.areaId));
 
-  push('none', 'No project', todos.filter((t) => !t.projectId && !t.areaId));
+  if (!opts.noneLast) pushNone();
   for (const a of areas) {
-    push(`area:${a.id}`, a.title, todos.filter((t) => !t.projectId && t.areaId === a.id));
+    push(`area:${a.id}`, a.title || 'New Area', todos.filter((t) => !t.projectId && t.areaId === a.id));
     for (const pr of projects.filter((x) => x.areaId === a.id)) {
-      push(`project:${pr.id}`, pr.title, todos.filter((t) => t.projectId === pr.id), a.title);
+      push(`project:${pr.id}`, pr.title || 'New Project', todos.filter((t) => t.projectId === pr.id), a.title || 'New Area');
     }
   }
   for (const pr of projects.filter((x) => !x.areaId || !areaName.has(x.areaId))) {
-    push(`project:${pr.id}`, pr.title, todos.filter((t) => t.projectId === pr.id));
+    push(`project:${pr.id}`, pr.title || 'New Project', todos.filter((t) => t.projectId === pr.id));
   }
+  if (opts.noneLast) pushNone();
   return groups;
 }
 

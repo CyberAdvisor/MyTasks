@@ -1,5 +1,6 @@
 <!--
-  Checklist inside the to-do card (FR-7.1, FR-7.2).
+  Checklist editor (FR-7.1, FR-7.2), used by the to-do card (stored
+  checklist) and Quick Entry (draft checklist); `ops` decides which.
   Keys in an item: Enter adds the next item; Backspace in an empty item
   deletes it; Alt+Up/Down moves it. Pasting several lines adds one item per
   line. Empty items are removed when the card closes.
@@ -7,22 +8,34 @@
 <script lang="ts">
   import { onDestroy, tick } from 'svelte';
   import Icon from './Icon.svelte';
-  import { snapshot } from '../lib/state/live';
-  import { checklistFor, splitLines } from '../lib/model/tags';
-  import * as repo from '../lib/db/repo';
-  import type { ChecklistItem, ID } from '../lib/model/types';
+  import { splitLines } from '../lib/model/tags';
+  import type { ChecklistOps, ChecklistRow } from '../lib/state/checklist.svelte';
+  import type { ID } from '../lib/model/types';
 
-  let { todoId, focusId = $bindable(null) }: { todoId: ID; focusId?: ID | null } = $props();
+  let {
+    items,
+    ops,
+    focusId = $bindable(null),
+  }: {
+    /** The checklist in order. */
+    items: ChecklistRow[];
+    /** Where changes are written. */
+    ops: ChecklistOps;
+    /** Item to focus once it renders. */
+    focusId?: ID | null;
+  } = $props();
 
   const SAVE_DELAY_MS = 300;
 
-  let items = $derived(checklistFor(todoId, $snapshot));
   let list = $state<HTMLUListElement>();
-  /** Unsaved titles being typed, by item id, so live refreshes never interrupt typing. */
+  /**
+   * Titles typed but not yet shown back by `items`, by item id. They stay
+   * until the stored title matches, so a save never flashes the old text.
+   */
   let drafts = $state<Record<ID, string>>({});
   let timers = new Map<ID, ReturnType<typeof setTimeout>>();
 
-  const titleOf = (item: ChecklistItem) => drafts[item.id] ?? item.title;
+  const titleOf = (item: ChecklistRow) => drafts[item.id] ?? item.title;
 
   // Move focus to a newly added item once it renders.
   $effect(() => {
@@ -34,13 +47,21 @@
     });
   });
 
+  // Drop typed text once the stored title has caught up with it.
+  $effect(() => {
+    for (const item of items) {
+      if (drafts[item.id] === item.title && !timers.has(item.id)) delete drafts[item.id];
+    }
+  });
+
   function save(id: ID) {
     clearTimeout(timers.get(id));
     timers.delete(id);
     const title = drafts[id];
-    if (title === undefined) return;
-    delete drafts[id];
-    void repo.updateChecklistItem(id, { title });
+    const item = items.find((c) => c.id === id);
+    if (title === undefined || !item) return;
+    if (title === item.title) delete drafts[id];
+    else void ops.update(id, { title });
   }
 
   function onInput(id: ID, value: string) {
@@ -49,26 +70,26 @@
     timers.set(id, setTimeout(() => save(id), SAVE_DELAY_MS));
   }
 
-  async function onKey(e: KeyboardEvent, item: ChecklistItem, index: number) {
+  async function onKey(e: KeyboardEvent, item: ChecklistRow, index: number) {
     if (e.key === 'Enter') {
       e.preventDefault();
       save(item.id);
-      [focusId] = await repo.addChecklistItems(todoId, [''], item.id);
+      [focusId] = await ops.add([''], item.id);
     } else if (e.key === 'Backspace' && titleOf(item) === '') {
       e.preventDefault();
       const prev = items[index - 1];
-      await repo.deleteChecklistItem(item.id);
+      await ops.remove(item.id);
       if (prev) focusId = prev.id;
     } else if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
       e.preventDefault();
       save(item.id);
-      await repo.moveChecklistItem(item.id, e.key === 'ArrowUp' ? 'up' : 'down');
+      await ops.move(item.id, e.key === 'ArrowUp' ? 'up' : 'down');
       focusId = item.id;
     }
   }
 
   /** Multi-line paste: the first line fills this item if it is empty, the rest follow it. */
-  async function onPaste(e: ClipboardEvent, item: ChecklistItem) {
+  async function onPaste(e: ClipboardEvent, item: ChecklistRow) {
     const lines = splitLines(e.clipboardData?.getData('text') ?? '');
     if (lines.length < 2) return;
     e.preventDefault();
@@ -78,14 +99,14 @@
       save(item.id);
       rest = lines.slice(1);
     }
-    const ids = await repo.addChecklistItems(todoId, rest, item.id);
+    const ids = await ops.add(rest, item.id);
     focusId = ids[ids.length - 1];
   }
 
-  // Save anything still typed, and drop empty items, when the card closes.
+  // Save anything still typed, and drop empty items, when the editor closes.
   onDestroy(() => {
     for (const id of timers.keys()) save(id);
-    for (const item of items) if (!titleOf(item).trim()) void repo.deleteChecklistItem(item.id);
+    for (const item of items) if (!titleOf(item).trim()) void ops.remove(item.id);
   });
 </script>
 
@@ -99,7 +120,7 @@
           role="checkbox"
           aria-checked={item.completed}
           aria-label={`Check ${titleOf(item) || 'item'}`}
-          onclick={() => repo.updateChecklistItem(item.id, { completed: !item.completed })}
+          onclick={() => ops.update(item.id, { completed: !item.completed })}
         >
           {#if item.completed}<Icon name="check" size={10} color="#fff" />{/if}
         </button>
@@ -114,7 +135,7 @@
           aria-label="Checklist item"
           autocomplete="off"
         />
-        <button type="button" class="remove" aria-label="Delete item" onclick={() => repo.deleteChecklistItem(item.id)}>
+        <button type="button" class="remove" aria-label="Delete item" onclick={() => ops.remove(item.id)}>
           <Icon name="x" size={11} />
         </button>
       </li>

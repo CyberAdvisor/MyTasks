@@ -6,11 +6,13 @@
   type Name =
     | 'inbox' | 'star' | 'calendar' | 'layers' | 'archive' | 'logbook' | 'trash'
     | 'search' | 'chevron-down' | 'chevron-right' | 'chevron-left' | 'area' | 'plus'
-    | 'settings' | 'flag' | 'notes' | 'move' | 'more' | 'x' | 'check' | 'heading'
+    | 'settings' | 'flag' | 'note' | 'move' | 'more' | 'x' | 'check' | 'heading'
     | 'tag' | 'checklist' | 'priority' | 'arrow-up' | 'arrow-down' | 'heading-add' | 'copy';
 
-  let { name, size = 18, color = 'currentColor', label = '' }: {
+  let { name, size = 18, color = 'currentColor', label = '', weight = 2 }: {
     name: Name; size?: number; color?: string; label?: string;
+    /** Stroke width; higher is bolder (e.g. the project title's ⋯). */
+    weight?: number;
   } = $props();
 
   const PATHS: Record<Name, string> = {
@@ -29,7 +31,7 @@
     plus: 'M12 5v14 M5 12h14',
     settings: 'M4 21v-7 M4 10V3 M12 21v-9 M12 8V3 M20 21v-5 M20 12V3 M1 14h6 M9 8h6 M17 16h6',
     flag: 'M5 22V3h12l-2 4 2 4H5',
-    notes: 'M4 6h16 M4 12h16 M4 18h10',
+    note: 'M6 2h9l5 5v15H6z M15 2v5h5 M9.5 12.5h7 M9.5 17h7',
     move: 'M5 12h14 M13 6l6 6-6 6',
     more: 'M5 12h.01 M12 12h.01 M19 12h.01',
     x: 'M6 6l12 12 M18 6 6 18',
@@ -51,7 +53,7 @@
   viewBox="0 0 24 24"
   fill="none"
   stroke={color}
-  stroke-width="2"
+  stroke-width={weight}
   stroke-linecap="round"
   stroke-linejoin="round"
   role={label ? 'img' : undefined}

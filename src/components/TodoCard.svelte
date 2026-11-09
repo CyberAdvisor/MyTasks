@@ -19,7 +19,8 @@
   import { settings, snapshot } from '../lib/state/live';
   import { deadlineLabel, formatRelative } from '../lib/model/dates';
   import { priorityLabel } from '../lib/model/settings';
-  import { checklistProgress, tagTitles } from '../lib/model/tags';
+  import { checklistFor, tagTitles } from '../lib/model/tags';
+  import { storedChecklist } from '../lib/state/checklist.svelte';
   import * as repo from '../lib/db/repo';
   import type { ID, LocalDate, Priority, Todo } from '../lib/model/types';
 
@@ -42,14 +43,6 @@
   let tagsOpen = $state(false);
   let prioOpen = $state(false);
   let moreOpen = $state(false);
-  /**
-   * The tag picker was opened from the button bar. It stays there while open,
-   * even after the first tag appears in the tag row, so typing is not interrupted.
-   */
-  let tagsFromBar = $state(false);
-  $effect(() => {
-    if (!tagsOpen) tagsFromBar = false;
-  });
   /** Checklist item to focus once it renders. */
   let checklistFocus = $state<ID | null>(null);
 
@@ -64,7 +57,8 @@
           : formatRelative(todo.startDate, ref),
   );
   let tagNames = $derived(tagTitles(todo.tagIds, $snapshot));
-  let hasChecklist = $derived(checklistProgress(todo.id, $snapshot).total > 0);
+  let checklistItems = $derived(checklistFor(todo.id, $snapshot));
+  let checklistOps = $derived(storedChecklist(todo.id));
 
   /** Persist pending text edits now. */
   function flush() {
@@ -138,7 +132,7 @@
   }
 
   async function addChecklist() {
-    [checklistFocus] = await repo.addChecklistItems(todo.id, ['']);
+    [checklistFocus] = await checklistOps.add([''], null);
   }
 
   async function convert() {
@@ -170,7 +164,11 @@
   <DeadlinePicker deadline={todo.deadline} {ref} onchoose={chooseDeadline} />
 {/snippet}
 {#snippet tagsPanel()}
-  <TagPicker entity="todos" id={todo.id} tagIds={todo.tagIds} />
+  <TagPicker
+    tagIds={todo.tagIds}
+    ontoggle={(tagId, on) => repo.toggleTag('todos', todo.id, tagId, on)}
+    ondone={() => (tagsOpen = false)}
+  />
 {/snippet}
 {#snippet prioPanel()}
   <PriorityMenu priority={todo.priority} onchoose={choosePriority} />
@@ -211,23 +209,19 @@
     rows="2"
   ></textarea>
 
-  <Checklist todoId={todo.id} bind:focusId={checklistFocus} />
+  <Checklist items={checklistItems} ops={checklistOps} bind:focusId={checklistFocus} />
 
   {#snippet tagChips()}
     {#each tagNames as name, i (i)}<span class="tag-pill">{name}</span>{/each}
   {/snippet}
   {#if tagNames.length}
     <div class="tags">
-      {#if tagsFromBar}
-        <div class="tag-list">{@render tagChips()}</div>
-      {:else}
-        <Popover bind:open={tagsOpen} label="Tags" align="left">
-          {#snippet trigger(toggle)}
-            <button type="button" class="tag-list" aria-label="Edit tags" onclick={toggle}>{@render tagChips()}</button>
-          {/snippet}
-          {@render tagsPanel()}
-        </Popover>
-      {/if}
+      <Popover bind:open={tagsOpen} label="Tags" align="left">
+        {#snippet trigger(toggle)}
+          <button type="button" class="tag-list" aria-label="Edit tags" onclick={toggle}>{@render tagChips()}</button>
+        {/snippet}
+        {@render tagsPanel()}
+      </Popover>
     </div>
   {/if}
 
@@ -276,27 +270,17 @@
           {@render whenPanel()}
         </Popover>
       {/if}
-      {#if !tagNames.length || tagsFromBar}
+      {#if !tagNames.length}
         <Popover bind:open={tagsOpen} label="Tags">
           {#snippet trigger(toggle, open)}
-            <button
-              type="button"
-              class="icon-btn"
-              aria-label="Tags"
-              title="Tags"
-              aria-expanded={open}
-              onclick={() => {
-                tagsFromBar = !open;
-                toggle();
-              }}
-            >
+            <button type="button" class="icon-btn" aria-label="Tags" title="Tags" aria-expanded={open} onclick={toggle}>
               <Icon name="tag" size={16} />
             </button>
           {/snippet}
           {@render tagsPanel()}
         </Popover>
       {/if}
-      {#if !hasChecklist}
+      {#if !checklistItems.length}
         <button type="button" class="icon-btn" aria-label="Add checklist" title="Checklist" onclick={addChecklist}>
           <Icon name="checklist" size={16} />
         </button>

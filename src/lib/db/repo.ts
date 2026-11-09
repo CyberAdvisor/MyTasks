@@ -21,6 +21,7 @@ import type {
   LocalDate,
   Priority,
   Project,
+  SavedSearch,
   Tag,
   Todo,
   TodoStart,
@@ -171,9 +172,19 @@ export interface NewTodo extends TodoPlacement {
   deferred?: boolean;
   /** Put the new to-do at the top of its container instead of the bottom. */
   atStart?: boolean;
+  /** Fields filled in Quick Entry (FR-8.1). */
+  notes?: string;
+  deadline?: LocalDate | null;
+  tagIds?: ID[];
+  /** A priority the user chose; `null` means they chose None. Omit for no choice. */
+  priority?: Priority | null;
+  checklist?: { title: string; completed: boolean }[];
 }
 
-/** Create a to-do and return its id (FR-1.1). */
+/**
+ * Create a to-do with everything set in one transaction and return its id
+ * (FR-1.1, FR-8.1). The automatic priority rules then run as for any change.
+ */
 export async function createTodo(opts: NewTodo = {}): Promise<ID> {
   return tx(async () => {
     const projectId = opts.projectId ?? null;
@@ -187,7 +198,7 @@ export async function createTodo(opts: NewTodo = {}): Promise<ID> {
     const todo: Todo = {
       ...base(opts.atStart ? keyAtStart(keys) : keyAtEnd(keys)),
       title: opts.title ?? '',
-      notes: '',
+      notes: opts.notes ?? '',
       status: 'open',
       start: normalizeStart({
         start: opts.deferred ? 'deferred' : (opts.start ?? 'inbox'),
@@ -197,11 +208,11 @@ export async function createTodo(opts: NewTodo = {}): Promise<ID> {
       }),
       startDate,
       todaySortKey: null,
-      deadline: null,
-      priority: null,
-      prioritySource: null,
+      deadline: opts.deadline ?? null,
+      priority: opts.priority ?? null,
+      prioritySource: opts.priority === undefined ? null : 'user',
       priorityBeforeAuto: null,
-      tagIds: [],
+      tagIds: opts.tagIds ?? [],
       areaId,
       projectId: project ? projectId : null,
       headingId,
@@ -210,6 +221,13 @@ export async function createTodo(opts: NewTodo = {}): Promise<ID> {
     };
     await db.todos.add(todo);
     await log('todos', todo.id, ['*']);
+    let key: string | null = null;
+    for (const c of opts.checklist ?? []) {
+      key = keyBetween(key, null);
+      const item: ChecklistItem = { ...base(key), todoId: todo.id, title: c.title, completed: c.completed };
+      await db.checklistItems.add(item);
+      await log('checklistItems', item.id, ['*']);
+    }
     await applyPriorityRules(todo.id);
     return todo.id;
   });
@@ -644,13 +662,13 @@ export function moveTag(id: ID, direction: 'up' | 'down'): Promise<void> {
   });
 }
 
-/** Delete a tag and remove it from every to-do, project and area. */
+/** Delete a tag and remove it from every to-do, project, area and saved search. */
 export function deleteTag(id: ID): Promise<void> {
   return tx(async () => {
-    for (const entity of ['todos', 'projects', 'areas'] as const) {
-      const rows = (await db.table(entity).toArray()) as (Todo | Project | Area)[];
+    for (const entity of ['todos', 'projects', 'areas', 'savedSearches'] as const) {
+      const rows = (await db.table(entity).toArray()) as (Todo | Project | Area | SavedSearch)[];
       for (const r of rows.filter((x) => x.tagIds.includes(id))) {
-        await patch<Todo | Project | Area>(entity, r.id, { tagIds: r.tagIds.filter((t) => t !== id) });
+        await patch<Todo | Project | Area | SavedSearch>(entity, r.id, { tagIds: r.tagIds.filter((t) => t !== id) });
       }
     }
     await patch<Tag>('tags', id, { deletedAt: nowIso() });
@@ -727,4 +745,50 @@ export function moveChecklistItem(id: ID, direction: 'up' | 'down'): Promise<voi
     const key = await shiftedKey<ChecklistItem>('checklistItems', id, (c) => c.todoId === item.todoId, direction);
     if (key) await patch<ChecklistItem>('checklistItems', id, { sortKey: key });
   });
+}
+
+// ---------------------------------------------------------------------------
+// Saved searches (FR-15)
+// ---------------------------------------------------------------------------
+
+/** The editable fields of a saved search. */
+export type SavedSearchFields = Pick<SavedSearch, 'title' | 'query' | 'tagIds'>;
+
+/** Save a search at the end of the sidebar section and return its id (FR-15.1). */
+export function createSavedSearch(fields: SavedSearchFields): Promise<ID> {
+  return tx(async () => {
+    const keys = await siblingKeys<SavedSearch>('savedSearches', () => true);
+    const saved: SavedSearch = {
+      ...base(keyAtEnd(keys)),
+      title: fields.title.trim(),
+      query: fields.query.trim(),
+      tagIds: [...fields.tagIds],
+    };
+    await db.savedSearches.add(saved);
+    await log('savedSearches', saved.id, ['*']);
+    return saved.id;
+  });
+}
+
+/** Rename a saved search or change its search text or tags (FR-15.5). */
+export function updateSavedSearch(id: ID, fields: Partial<SavedSearchFields>): Promise<void> {
+  const changes: Partial<SavedSearch> = { ...fields };
+  if (fields.title !== undefined) changes.title = fields.title.trim();
+  if (fields.query !== undefined) changes.query = fields.query.trim();
+  // A plain copy: IndexedDB cannot store reactive proxies.
+  if (fields.tagIds !== undefined) changes.tagIds = [...fields.tagIds];
+  return tx(() => patch<SavedSearch>('savedSearches', id, changes));
+}
+
+/** Move a saved search one place up or down in the sidebar. */
+export function moveSavedSearch(id: ID, direction: 'up' | 'down'): Promise<void> {
+  return tx(async () => {
+    const key = await shiftedKey<SavedSearch>('savedSearches', id, () => true, direction);
+    if (key) await patch<SavedSearch>('savedSearches', id, { sortKey: key });
+  });
+}
+
+/** Delete a saved search. To-dos are never affected (FR-15.5). */
+export function deleteSavedSearch(id: ID): Promise<void> {
+  return tx(() => patch<SavedSearch>('savedSearches', id, { deletedAt: nowIso() }));
 }

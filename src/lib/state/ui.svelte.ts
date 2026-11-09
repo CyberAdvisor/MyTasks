@@ -3,6 +3,7 @@
  */
 import * as repo from '../db/repo';
 import type { ID } from '../model/types';
+import type { TodoDraft } from './draft.svelte';
 
 /** How long a completed row stays visible before it leaves the list (FR-1.3). */
 export const COMPLETE_DELAY_MS = 2000;
@@ -20,6 +21,15 @@ class UiState {
   tagFilter = $state<ID | null>(null);
   /** Rows checked off but not yet written, mapped to their pending status. */
   pending = $state<Record<ID, 'completed' | 'canceled'>>({});
+  /** Quick Find is open (FR-9.1), starting with `findText`. */
+  findOpen = $state(false);
+  findText = $state('');
+  /** The to-do being written in Quick Entry (FR-8.1), if it is open. */
+  draft = $state<TodoDraft | null>(null);
+  /** A row to scroll into view once it renders (after Quick Find opens it). */
+  scrollId = $state<ID | null>(null);
+  /** A to-do to select, and maybe open, once the next view has loaded. */
+  private reveal: { id: ID; open: boolean } | null = null;
 
   private timers = new Map<ID, ReturnType<typeof setTimeout>>();
 
@@ -32,6 +42,33 @@ class UiState {
   /** Close any open card. */
   close(): void {
     this.expandedId = null;
+  }
+
+  /** Open Quick Find, optionally with text already typed. */
+  openFind(text = ''): void {
+    this.findText = text;
+    this.findOpen = true;
+  }
+
+  /** Ask for a to-do to be selected (and its card opened) when the next view shows. */
+  revealNext(id: ID, open: boolean): void {
+    this.reveal = { id, open };
+  }
+
+  /**
+   * Reset per-view state after navigation, then select and scroll to any
+   * to-do waiting to be revealed.
+   */
+  enterView(): void {
+    this.close();
+    this.selectedId = null;
+    this.tagFilter = null;
+    const r = this.reveal;
+    this.reveal = null;
+    if (!r) return;
+    this.selectedId = r.id;
+    this.scrollId = r.id;
+    if (r.open) this.expandedId = r.id;
   }
 
   /**

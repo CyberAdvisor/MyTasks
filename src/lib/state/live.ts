@@ -19,7 +19,15 @@ import type { Snapshot } from '../model/lists';
 import { DEFAULT_SETTINGS, readSettings, type AppSettings } from '../model/settings';
 import type { LocalDate } from '../model/types';
 
-const EMPTY: Snapshot = { areas: [], projects: [], headings: [], todos: [], tags: [], checklistItems: [] };
+const EMPTY: Snapshot = {
+  areas: [],
+  projects: [],
+  headings: [],
+  todos: [],
+  tags: [],
+  checklistItems: [],
+  savedSearches: [],
+};
 
 /** Drop tombstoned records. */
 const live = <T extends { deletedAt: string | null }>(rows: T[]) => rows.filter((r) => r.deletedAt === null);
@@ -27,13 +35,14 @@ const live = <T extends { deletedAt: string | null }>(rows: T[]) => rows.filter(
 /** Live view of all records the lists need. */
 export const snapshot: Readable<Snapshot> = readable<Snapshot>(EMPTY, (set) => {
   const sub = liveQuery(async () => {
-    const [areas, projects, headings, todos, tags, checklistItems] = await Promise.all([
+    const [areas, projects, headings, todos, tags, checklistItems, savedSearches] = await Promise.all([
       db.areas.toArray(),
       db.projects.toArray(),
       db.headings.toArray(),
       db.todos.toArray(),
       db.tags.toArray(),
       db.checklistItems.toArray(),
+      db.savedSearches.toArray(),
     ]);
     return {
       areas: live(areas),
@@ -42,6 +51,7 @@ export const snapshot: Readable<Snapshot> = readable<Snapshot>(EMPTY, (set) => {
       todos: live(todos),
       tags: live(tags),
       checklistItems: live(checklistItems),
+      savedSearches: live(savedSearches),
     } satisfies Snapshot;
   }).subscribe({ next: set, error: (e) => console.error('Snapshot query failed', e) });
   return () => sub.unsubscribe();

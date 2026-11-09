@@ -10,6 +10,8 @@
   import { areaProjects, projectProgress, sidebarCounts, type BuiltInList } from '../lib/model/lists';
   import { bySortKey } from '../lib/model/order';
   import { LIST_META } from '../lib/listMeta';
+  import { openMatchCount, savedSearchesInOrder } from '../lib/model/search';
+  import { ui } from '../lib/state/ui.svelte';
   import * as repo from '../lib/db/repo';
 
   const SAVED_KEY = 'mytasks.savedSearchesCollapsed';
@@ -17,6 +19,7 @@
   let counts = $derived(sidebarCounts($snapshot, $todayDate));
   let areas = $derived(bySortKey($snapshot.areas));
   let looseProjects = $derived(areaProjects($snapshot, null));
+  let saved = $derived(savedSearchesInOrder($snapshot));
   let savedCollapsed = $state(readFlag(SAVED_KEY));
   let menuOpen = $state(false);
 
@@ -68,6 +71,10 @@
       <span class="brand-name">My Tasks</span>
       <span class="brand-sub">Getting Tasks Done Daily</span>
     </div>
+    <!-- Phones have no toolbar, so Quick Find opens from here. -->
+    <button type="button" class="find" aria-label="Quick Find" title="Quick Find" onclick={() => ui.openFind()}>
+      <Icon name="search" size={20} />
+    </button>
   </div>
 
   <div class="scroll">
@@ -97,7 +104,23 @@
       Saved Searches
     </button>
     {#if !savedCollapsed}
-      <p class="empty">No saved searches</p>
+      {#if saved.length}
+        <ul class="lists">
+          {#each saved as x (x.id)}
+            {@const r = { kind: 'saved', id: x.id } as Route}
+            {@const count = openMatchCount($snapshot, x)}
+            <li>
+              <a href={hrefFor(r)} class="item" class:active={isActive(r)} aria-current={isActive(r) ? 'page' : undefined}>
+                <Icon name="search" color="var(--text-2)" />
+                <span class="label">{x.title || 'Saved Search'}</span>
+                {#if count}<span class="count">{count}</span>{/if}
+              </a>
+            </li>
+          {/each}
+        </ul>
+      {:else}
+        <p class="empty">No saved searches</p>
+      {/if}
     {/if}
     <hr />
 
@@ -177,8 +200,22 @@
   }
   .brand-text {
     display: flex;
+    flex: 1;
     flex-direction: column;
     gap: 1px;
+  }
+  .find {
+    display: none;
+    border: 0;
+    background: transparent;
+    padding: 10px;
+    border-radius: var(--radius);
+    color: var(--text-2);
+  }
+  @media (max-width: 767px) {
+    .find {
+      display: inline-flex;
+    }
   }
   .brand-name {
     font-size: 17px;
