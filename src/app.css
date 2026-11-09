@@ -40,7 +40,6 @@
   font-family: var(--font);
   color: var(--text);
   background: var(--bg);
-  -webkit-font-smoothing: antialiased;
 }
 
 * {
