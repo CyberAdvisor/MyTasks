@@ -19,7 +19,8 @@
   import { settings, snapshot } from '../lib/state/live';
   import { deadlineLabel, formatRelative } from '../lib/model/dates';
   import { priorityLabel } from '../lib/model/settings';
-  import { checklistProgress, tagTitles } from '../lib/model/tags';
+  import { checklistFor, tagTitles } from '../lib/model/tags';
+  import { storedChecklist } from '../lib/state/checklist.svelte';
   import * as repo from '../lib/db/repo';
   import type { ID, LocalDate, Priority, Todo } from '../lib/model/types';
 
@@ -64,7 +65,8 @@
           : formatRelative(todo.startDate, ref),
   );
   let tagNames = $derived(tagTitles(todo.tagIds, $snapshot));
-  let hasChecklist = $derived(checklistProgress(todo.id, $snapshot).total > 0);
+  let checklistItems = $derived(checklistFor(todo.id, $snapshot));
+  let checklistOps = $derived(storedChecklist(todo.id));
 
   /** Persist pending text edits now. */
   function flush() {
@@ -138,7 +140,7 @@
   }
 
   async function addChecklist() {
-    [checklistFocus] = await repo.addChecklistItems(todo.id, ['']);
+    [checklistFocus] = await checklistOps.add([''], null);
   }
 
   async function convert() {
@@ -170,7 +172,7 @@
   <DeadlinePicker deadline={todo.deadline} {ref} onchoose={chooseDeadline} />
 {/snippet}
 {#snippet tagsPanel()}
-  <TagPicker entity="todos" id={todo.id} tagIds={todo.tagIds} />
+  <TagPicker tagIds={todo.tagIds} ontoggle={(tagId, on) => repo.toggleTag('todos', todo.id, tagId, on)} />
 {/snippet}
 {#snippet prioPanel()}
   <PriorityMenu priority={todo.priority} onchoose={choosePriority} />
@@ -211,7 +213,7 @@
     rows="2"
   ></textarea>
 
-  <Checklist todoId={todo.id} bind:focusId={checklistFocus} />
+  <Checklist items={checklistItems} ops={checklistOps} bind:focusId={checklistFocus} />
 
   {#snippet tagChips()}
     {#each tagNames as name, i (i)}<span class="tag-pill">{name}</span>{/each}
@@ -296,7 +298,7 @@
           {@render tagsPanel()}
         </Popover>
       {/if}
-      {#if !hasChecklist}
+      {#if !checklistItems.length}
         <button type="button" class="icon-btn" aria-label="Add checklist" title="Checklist" onclick={addChecklist}>
           <Icon name="checklist" size={16} />
         </button>

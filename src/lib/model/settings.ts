@@ -5,6 +5,7 @@
  * over the defaults and ignores invalid values, so a damaged or missing row
  * never breaks the app.
  */
+import type { TodayGrouping } from './lists';
 import type { Priority, SettingEntry } from './types';
 
 export interface AppSettings {
@@ -14,6 +15,8 @@ export interface AppSettings {
   autoP1: boolean;
   /** FR-14.10: set P2 by default for to-dos added to Today. */
   defaultP2: boolean;
+  /** FR-16.1: how the Today list is grouped. */
+  todayGrouping: TodayGrouping;
 }
 
 /** Stored setting keys. */
@@ -25,7 +28,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   priorityLabels: DEFAULT_PRIORITY_LABELS,
   autoP1: true,
   defaultP2: true,
+  todayGrouping: 'none',
 };
+
+const GROUPINGS: TodayGrouping[] = ['none', 'project', 'priority'];
 
 /** All priorities, highest first. */
 export const PRIORITIES: Priority[] = [1, 2, 3, 4, 5];
@@ -42,6 +48,7 @@ export function readSettings(rows: SettingEntry[]): AppSettings {
     priorityLabels: cleanLabels(labels),
     autoP1: bool('autoP1', DEFAULT_SETTINGS.autoP1),
     defaultP2: bool('defaultP2', DEFAULT_SETTINGS.defaultP2),
+    todayGrouping: GROUPINGS.find((g) => g === stored.get('todayGrouping')) ?? DEFAULT_SETTINGS.todayGrouping,
   };
 }
 

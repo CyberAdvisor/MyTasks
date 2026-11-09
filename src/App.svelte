@@ -2,20 +2,26 @@
   App shell: sidebar plus the current view (design doc, Section 6, Layout).
   Desktop has a bottom toolbar; under 768 px it becomes a single pane (the
   Home screen of lists, or one view) with a round + button instead.
+  Also hosts Quick Find and Quick Entry and their app-wide keys.
 -->
 <script lang="ts">
   import Sidebar from './components/Sidebar.svelte';
   import MoveDialog from './components/MoveDialog.svelte';
   import Icon from './components/Icon.svelte';
   import Toolbar from './components/Toolbar.svelte';
+  import QuickFind from './components/QuickFind.svelte';
+  import QuickEntry from './components/QuickEntry.svelte';
   import ListView from './views/ListView.svelte';
   import ProjectView from './views/ProjectView.svelte';
   import AreaView from './views/AreaView.svelte';
   import SettingsView from './views/SettingsView.svelte';
-  import { route, go } from './lib/state/route';
+  import SearchView from './views/SearchView.svelte';
+  import FilterView from './views/FilterView.svelte';
+  import { route, go, hrefFor } from './lib/state/route';
   import { todayDate } from './lib/state/live';
   import { ui } from './lib/state/ui.svelte';
-  import { canAddHere, newTodoHere } from './lib/actions';
+  import { canAddHere, draftStartFor, openQuickEntry } from './lib/actions';
+  import { focusKind, globalAction } from './lib/shortcuts';
 
   const phoneQuery = window.matchMedia('(max-width: 767px)');
   let isPhone = $state(phoneQuery.matches);
@@ -31,12 +37,25 @@
     if (!isPhone && $route.kind === 'home') go({ kind: 'list', list: 'today' });
   });
 
-  // Close any open card and clear selection and tag filter when the view changes.
+  // Reset the card, selection and tag filter when the view changes, then
+  // select any to-do Quick Find asked to show.
   $effect(() => {
     void $route;
-    ui.close();
-    ui.selectedId = null;
-    ui.tagFilter = null;
+    ui.enterView();
+  });
+
+  // App-wide keys for Quick Find and Quick Entry.
+  $effect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const busy = ui.findOpen || ui.draft !== null || document.querySelector('dialog[open]') !== null;
+      const action = globalAction(e, focusKind(document.activeElement), busy);
+      if (!action) return;
+      e.preventDefault();
+      if (action.kind === 'quick-entry') openQuickEntry();
+      else ui.openFind(action.text);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
   });
 
   let showSidebar = $derived(!isPhone || $route.kind === 'home');
@@ -60,13 +79,19 @@
             {#key $route.id}<AreaView id={$route.id} />{/key}
           {:else if $route.kind === 'settings'}
             <SettingsView />
+          {:else if $route.kind === 'search'}
+            {#key hrefFor($route)}<SearchView query={$route.query} tagIds={$route.tagIds} />{/key}
+          {:else if $route.kind === 'saved'}
+            {#key $route.id}<SearchView savedId={$route.id} />{/key}
+          {:else if $route.kind === 'filter'}
+            {#key $route.filter}<FilterView filter={$route.filter} />{/key}
           {/if}
         </div>
       </div>
 
       {#if isPhone}
         {#if canAddHere($route)}
-          <button type="button" class="plus" aria-label="New To-Do" onclick={() => newTodoHere($route, $todayDate)}>
+          <button type="button" class="plus" aria-label="New To-Do" onclick={() => openQuickEntry(draftStartFor($route, $todayDate))}>
             <Icon name="plus" size={22} color="#fff" />
           </button>
         {/if}
@@ -79,6 +104,14 @@
 
 {#if ui.movingId}
   <MoveDialog todoId={ui.movingId} />
+{/if}
+
+{#if ui.findOpen}
+  <QuickFind />
+{/if}
+
+{#if ui.draft}
+  {#key ui.draft}<QuickEntry draft={ui.draft} />{/key}
 {/if}
 
 <style>

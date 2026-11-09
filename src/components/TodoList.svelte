@@ -11,6 +11,7 @@
     label = () => '',
     starred = () => false,
     mode = 'open',
+    showPriority = true,
   }: {
     todos: Todo[];
     ref: LocalDate;
@@ -22,6 +23,8 @@
     /** Whether a row shows the Today star. */
     starred?: (t: Todo) => boolean;
     mode?: 'open' | 'logbook' | 'trash';
+    /** Show priority chips on rows. */
+    showPriority?: boolean;
   } = $props();
 </script>
 
@@ -31,7 +34,7 @@
   {/if}
   <ul>
     {#each todos as todo (todo.id)}
-      <TodoRow {todo} {ref} {mode} containerLabel={label(todo)} starred={starred(todo)} />
+      <TodoRow {todo} {ref} {mode} {showPriority} containerLabel={label(todo)} starred={starred(todo)} />
     {/each}
   </ul>
 </section>

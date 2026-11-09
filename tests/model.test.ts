@@ -98,7 +98,7 @@ describe('list membership', () => {
 
   it('hides to-dos of a trashed project', () => {
     const p = project({ trashedAt: '2026-11-09T00:00:00Z' });
-    const s: Snapshot = { areas: [], headings: [], tags: [], checklistItems: [], projects: [p], todos: [todo({ projectId: p.id, startDate: REF })] };
+    const s: Snapshot = { areas: [], headings: [], tags: [], checklistItems: [], savedSearches: [], projects: [p], todos: [todo({ projectId: p.id, startDate: REF })] };
     expect(visibleTodos(s)).toHaveLength(0);
     expect(sidebarCounts(s, REF).today).toBe(0);
   });
@@ -115,7 +115,7 @@ describe('list membership', () => {
   it('groups Scheduled by day for a week, then by month', () => {
     const s: Snapshot = {
       areas: [],
-      headings: [], tags: [], checklistItems: [],
+      headings: [], tags: [], checklistItems: [], savedSearches: [],
       projects: [],
       todos: [todo({ startDate: '2026-11-10' }), todo({ startDate: '2026-11-10' }), todo({ startDate: '2026-12-20' })],
     };
@@ -127,7 +127,7 @@ describe('list membership', () => {
   it('counts Today and due items for the sidebar', () => {
     const s: Snapshot = {
       areas: [],
-      headings: [], tags: [], checklistItems: [],
+      headings: [], tags: [], checklistItems: [], savedSearches: [],
       projects: [],
       todos: [todo({ start: 'inbox' }), todo({ startDate: REF }), todo({ deadline: REF })],
     };

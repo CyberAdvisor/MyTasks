@@ -1,5 +1,6 @@
 <!--
   The seven built-in lists (design doc, Section 3, List membership rules).
+  Today can be grouped by Project or Priority (FR-16).
 -->
 <script lang="ts">
   import Icon from '../components/Icon.svelte';
@@ -8,9 +9,10 @@
   import ViewHeader from '../components/ViewHeader.svelte';
   import ChoiceDialog from '../components/ChoiceDialog.svelte';
   import TagBar from '../components/TagBar.svelte';
+  import Popover from '../components/Popover.svelte';
   import { ui } from '../lib/state/ui.svelte';
   import { activeTag, filterByTag, projectTagIds, tagsInUse } from '../lib/model/tags';
-  import { snapshot, todayDate } from '../lib/state/live';
+  import { settings, snapshot, todayDate } from '../lib/state/live';
   import { hrefFor } from '../lib/state/route';
   import { LIST_META } from '../lib/listMeta';
   import { containerLabel } from '../lib/labels';
@@ -54,6 +56,21 @@
   );
   let projects = $derived(tag ? allProjects.filter((p) => projectTagIds(p, s).has(tag!)) : allProjects);
 
+  // Today grouping (FR-16): applied after the tag filter.
+  const GROUPINGS: { value: L.TodayGrouping; label: string }[] = [
+    { value: 'none', label: 'None' },
+    { value: 'project', label: 'Project' },
+    { value: 'priority', label: 'Priority' },
+  ];
+  let grouping = $derived(list === 'today' ? $settings.todayGrouping : 'none');
+  let groupOpen = $state(false);
+  let todayGroups = $derived(grouping === 'none' ? [] : L.todayGroups(flat, grouping, s, $settings.priorityLabels));
+
+  function chooseGrouping(value: L.TodayGrouping) {
+    groupOpen = false;
+    void repo.setSetting('todayGrouping', value);
+  }
+
   let mode = $derived<'open' | 'logbook' | 'trash'>(list === 'logbook' ? 'logbook' : list === 'trash' ? 'trash' : 'open');
   let isEmpty = $derived(!allFlat.length && !allGroups.length && !allProjects.length);
 
@@ -79,6 +96,23 @@
     {#if list === 'trash' && !isEmpty}
       <button type="button" class="btn-plain" onclick={() => (confirmEmpty = true)}>Empty Trash</button>
     {/if}
+    {#if list === 'today'}
+      <Popover bind:open={groupOpen} label="Group Today">
+        {#snippet trigger(toggle, open)}
+          <button type="button" class="btn-plain" aria-haspopup="menu" aria-expanded={open} onclick={toggle}>
+            Group: {GROUPINGS.find((g) => g.value === grouping)?.label}
+          </button>
+        {/snippet}
+        <div role="menu" aria-label="Group Today by">
+          {#each GROUPINGS as g (g.value)}
+            <button type="button" class="menu-item" role="menuitemradio" aria-checked={grouping === g.value} onclick={() => chooseGrouping(g.value)}>
+              <span class="grow">{g.label}</span>
+              {#if grouping === g.value}<Icon name="check" size={13} color="var(--accent)" />{/if}
+            </button>
+          {/each}
+        </div>
+      </Popover>
+    {/if}
   {/snippet}
 </ViewHeader>
 
@@ -103,7 +137,18 @@
   </ul>
 {/if}
 
-{#if flat.length}
+{#if grouping !== 'none'}
+  {#each todayGroups as g (g.key)}
+    <TodoList
+      todos={g.todos}
+      {ref}
+      title={g.title}
+      subtitle={g.subtitle}
+      label={grouping === 'project' ? () => '' : label}
+      showPriority={grouping !== 'priority'}
+    />
+  {/each}
+{:else if flat.length}
   <TodoList todos={flat} {ref} {mode} label={list === 'inbox' ? () => '' : label} />
 {/if}
 
@@ -162,6 +207,9 @@
     font-size: 11px;
     font-weight: 400;
     color: var(--text-3);
+  }
+  .grow {
+    flex: 1;
   }
   .empty {
     color: var(--text-3);

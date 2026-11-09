@@ -19,6 +19,7 @@
     containerLabel = '',
     starred = false,
     mode = 'open',
+    showPriority = true,
   }: {
     todo: Todo;
     /** Today's date, for deadline and date labels. */
@@ -29,7 +30,18 @@
     starred?: boolean;
     /** `open` lists, `logbook` (checked rows) or `trash` (restore button). */
     mode?: 'open' | 'logbook' | 'trash';
+    /** Show the priority chip (hidden when Today is grouped by priority, FR-14.4). */
+    showPriority?: boolean;
   } = $props();
+
+  let item = $state<HTMLLIElement>();
+
+  // Bring the row into view when Quick Find opens it.
+  $effect(() => {
+    if (ui.scrollId !== todo.id || !item) return;
+    item.scrollIntoView({ block: 'center' });
+    ui.scrollId = null;
+  });
 
   let pending = $derived(ui.pending[todo.id]);
   let done = $derived(mode === 'logbook' || pending !== undefined);
@@ -66,9 +78,9 @@
 </script>
 
 {#if ui.expandedId === todo.id && mode === 'open'}
-  <li class="card-slot"><TodoCard {todo} {ref} /></li>
+  <li class="card-slot" bind:this={item}><TodoCard {todo} {ref} /></li>
 {:else}
-  <li class="row" class:selected={ui.selectedId === todo.id} class:done>
+  <li class="row" bind:this={item} class:selected={ui.selectedId === todo.id} class:done>
     <button
       type="button"
       class="check"
@@ -105,7 +117,7 @@
 
     <div class="aside">
       {#each tags as name, i (i)}<span class="tag-pill">{name}</span>{/each}
-      {#if todo.priority}
+      {#if todo.priority && showPriority}
         <span class="prio prio-{todo.priority}">{priorityLabel(todo.priority, $settings)}</span>
       {/if}
       {#if checklist.total}

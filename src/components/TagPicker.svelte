@@ -1,6 +1,7 @@
 <!--
-  Tag picker contents (FR-6.2): tick tags on or off for a to-do, project or
-  area, or type a new tag name and press Enter to create and add it.
+  Tag picker contents (FR-6.2): tick tags on or off, or type a new tag name
+  and press Enter to create and add it. The owner decides where the choice
+  is written (a stored to-do, project or area, or a Quick Entry draft).
 -->
 <script lang="ts">
   import Icon from './Icon.svelte';
@@ -11,13 +12,13 @@
   import type { ID } from '../lib/model/types';
 
   let {
-    entity,
-    id,
     tagIds,
+    ontoggle,
   }: {
-    entity: 'todos' | 'projects' | 'areas';
-    id: ID;
+    /** The tags currently set. */
     tagIds: ID[];
+    /** Called to add (`on`) or remove a tag. */
+    ontoggle: (tagId: ID, on: boolean) => void;
   } = $props();
 
   let filter = $state('');
@@ -29,7 +30,7 @@
 
   $effect(() => input.focus());
 
-  const toggle = (tagId: ID) => repo.toggleTag(entity, id, tagId, !tagIds.includes(tagId));
+  const toggle = (tagId: ID) => ontoggle(tagId, !tagIds.includes(tagId));
 
   /** Enter adds the matching tag, or creates a new one with the typed name. */
   async function onKey(e: KeyboardEvent) {
@@ -38,7 +39,7 @@
     const name = filter;
     filter = '';
     const tagId = exact?.id ?? (await repo.createTag(name));
-    await repo.toggleTag(entity, id, tagId, true);
+    ontoggle(tagId, true);
   }
 </script>
 

@@ -156,7 +156,7 @@
     <DeadlinePicker deadline={project!.deadline} {ref} onchoose={chooseDeadline} />
   {/snippet}
   {#snippet tagsPanel()}
-    <TagPicker entity="projects" {id} tagIds={project!.tagIds} />
+    <TagPicker tagIds={project!.tagIds} ontoggle={(tagId, on) => repo.toggleTag('projects', id, tagId, on)} />
   {/snippet}
 
   <ViewHeader>

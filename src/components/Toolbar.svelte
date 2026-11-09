@@ -3,7 +3,9 @@
   - New To-Do, in views that accept new to-dos.
   - New Heading, on open project pages.
   - When and Move, for the selected to-do; greyed out until a to-do is selected.
-  Phones use the round + button instead.
+  - Search, which opens Quick Find (FR-9.1).
+  New To-Do opens Quick Entry set to the current view (FR-10.5). Phones use
+  the round + button instead.
 -->
 <script lang="ts">
   import Icon from './Icon.svelte';
@@ -12,7 +14,7 @@
   import { route } from '../lib/state/route';
   import { snapshot, todayDate } from '../lib/state/live';
   import { ui } from '../lib/state/ui.svelte';
-  import { canAddHere, newHeading, newTodoHere } from '../lib/actions';
+  import { canAddHere, draftStartFor, newHeading, openQuickEntry } from '../lib/actions';
   import { isOpen } from '../lib/model/lists';
   import * as repo from '../lib/db/repo';
 
@@ -31,7 +33,7 @@
 
 <div class="toolbar" role="toolbar" aria-label="Actions">
   {#if canAddHere($route)}
-    <button type="button" class="tool" aria-label="New To-Do" title="New To-Do" onclick={() => newTodoHere($route, $todayDate)}>
+    <button type="button" class="tool" aria-label="New To-Do" title="New To-Do" onclick={() => openQuickEntry(draftStartFor($route, $todayDate))}>
       <Icon name="plus" size={20} />
     </button>
   {/if}
@@ -67,6 +69,9 @@
     onclick={() => selected && (ui.movingId = selected.id)}
   >
     <Icon name="move" size={20} />
+  </button>
+  <button type="button" class="tool" aria-label="Quick Find" title="Quick Find" onclick={() => ui.openFind()}>
+    <Icon name="search" size={20} />
   </button>
 </div>
 
