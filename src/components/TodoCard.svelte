@@ -84,6 +84,17 @@
     if (!todo.title) titleInput.focus();
   });
 
+  // Show the picker a keyboard command asked for (Section 7).
+  $effect(() => {
+    const command = ui.cardCommand;
+    if (!command || ui.expandedId !== todo.id) return;
+    ui.cardCommand = null;
+    if (command === 'when') whenOpen = true;
+    else if (command === 'deadline') deadlineOpen = true;
+    else if (command === 'tags') tagsOpen = true;
+    else void addChecklist();
+  });
+
   // Close on a click outside the card, unless it lands in a dialog.
   $effect(() => {
     const onDown = (e: PointerEvent) => {
@@ -148,6 +159,7 @@
     flush();
     ui.close();
     await repo.setTodoTrashed(todo.id, true);
+    ui.offerUndo('Moved to Trash');
   }
 
   async function duplicate() {

@@ -18,6 +18,7 @@
   async function moveTo(to: repo.TodoPlacement) {
     await repo.moveTodo(todoId, to);
     ui.movingId = null;
+    ui.offerUndo('Moved');
   }
 </script>
 

@@ -1,12 +1,23 @@
 /**
- * Transient UI state shared across components (not persisted).
+ * UI state shared across components. None of it is in the database; only
+ * the hidden-sidebar flag is remembered, per device.
  */
 import * as repo from '../db/repo';
+import { undo } from '../db/history';
+import { readFlag, writeFlag } from './flags';
 import type { ID } from '../model/types';
 import type { TodoDraft } from './draft.svelte';
 
 /** How long a completed row stays visible before it leaves the list (FR-1.3). */
 export const COMPLETE_DELAY_MS = 2000;
+
+/** How long the Undo toast stays up. */
+export const TOAST_MS = 5000;
+
+/** A picker or field the open card should show at once (keyboard commands, Section 7). */
+export type CardCommand = 'when' | 'deadline' | 'tags' | 'checklist';
+
+const SIDEBAR_KEY = 'mytasks.sidebarHidden';
 
 class UiState {
   /** The to-do whose card is open, if any. */
@@ -28,6 +39,15 @@ class UiState {
   draft = $state<TodoDraft | null>(null);
   /** A row to scroll into view once it renders (after Quick Find opens it). */
   scrollId = $state<ID | null>(null);
+  /** Picker for the open card to show once it renders. */
+  cardCommand = $state<CardCommand | null>(null);
+  /** Keyboard Help is open (FR-7.1k). */
+  helpOpen = $state(false);
+  /** The sidebar is hidden on wider screens (Cmd/Ctrl+/); remembered. */
+  sidebarHidden = $state(readFlag(SIDEBAR_KEY));
+  /** The Undo toast shown on touch devices after a destructive action (FR-1.6). */
+  toast = $state<{ message: string } | null>(null);
+  private toastTimer: ReturnType<typeof setTimeout> | undefined;
   /** A to-do to select, and maybe open, once the next view has loaded. */
   private reveal: { id: ID; open: boolean } | null = null;
 
@@ -42,6 +62,42 @@ class UiState {
   /** Close any open card. */
   close(): void {
     this.expandedId = null;
+  }
+
+  /** Open a to-do's card showing one of its pickers. */
+  openWith(id: ID, command: CardCommand): void {
+    this.open(id);
+    this.cardCommand = command;
+  }
+
+  /** Show or hide the sidebar and remember the choice. */
+  toggleSidebar(): void {
+    this.sidebarHidden = !this.sidebarHidden;
+    writeFlag(SIDEBAR_KEY, this.sidebarHidden);
+  }
+
+  /**
+   * After a destructive change, offer Undo in a toast on touch devices, which
+   * have no Cmd/Ctrl+Z and where web apps cannot use shake to undo. Desktop
+   * uses the keyboard only, as Things does.
+   */
+  offerUndo(message: string): void {
+    if (typeof matchMedia === 'undefined' || !matchMedia('(pointer: coarse)').matches) return;
+    clearTimeout(this.toastTimer);
+    this.toast = { message };
+    this.toastTimer = setTimeout(() => (this.toast = null), TOAST_MS);
+  }
+
+  /**
+   * Undo the last change (FR-1.6). A check-off still waiting to be written is
+   * the last change, so it is taken back first.
+   */
+  async undoLast(): Promise<void> {
+    clearTimeout(this.toastTimer);
+    this.toast = null;
+    const waiting = Object.keys(this.pending);
+    if (waiting.length) this.toggleDone(waiting[waiting.length - 1]);
+    else await undo();
   }
 
   /** Open Quick Find, optionally with text already typed. */

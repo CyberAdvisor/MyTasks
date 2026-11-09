@@ -2,7 +2,8 @@
   App shell: sidebar plus the current view (design doc, Section 6, Layout).
   Desktop has a bottom toolbar; under 768 px it becomes a single pane (the
   Home screen of lists, or one view) with a round + button instead.
-  Also hosts Quick Find and Quick Entry and their app-wide keys.
+  Also hosts Quick Find, Quick Entry, Keyboard Help, the Undo toast and the
+  app-wide keyboard handler (Section 7).
 -->
 <script lang="ts">
   import Sidebar from './components/Sidebar.svelte';
@@ -11,6 +12,8 @@
   import Toolbar from './components/Toolbar.svelte';
   import QuickFind from './components/QuickFind.svelte';
   import QuickEntry from './components/QuickEntry.svelte';
+  import KeyboardHelp from './components/KeyboardHelp.svelte';
+  import UndoToast from './components/UndoToast.svelte';
   import ListView from './views/ListView.svelte';
   import ProjectView from './views/ProjectView.svelte';
   import AreaView from './views/AreaView.svelte';
@@ -21,7 +24,8 @@
   import { todayDate } from './lib/state/live';
   import { ui } from './lib/state/ui.svelte';
   import { canAddHere, draftStartFor, openQuickEntry } from './lib/actions';
-  import { focusKind, globalAction } from './lib/shortcuts';
+  import { runCommand } from './lib/commands';
+  import { KeyResolver, focusKind, isMac, isStandalone } from './lib/shortcuts';
 
   const phoneQuery = window.matchMedia('(max-width: 767px)');
   let isPhone = $state(phoneQuery.matches);
@@ -44,21 +48,28 @@
     ui.enterView();
   });
 
-  // App-wide keys for Quick Find and Quick Entry.
+  // App-wide keys. Keys a component already handled (defaultPrevented) and
+  // keys pressed while a dialog, Quick Find or Quick Entry is open are left alone.
   $effect(() => {
+    const resolver = new KeyResolver();
+    const mac = isMac();
     const onKey = (e: KeyboardEvent) => {
-      const busy = ui.findOpen || ui.draft !== null || document.querySelector('dialog[open]') !== null;
-      const action = globalAction(e, focusKind(document.activeElement), busy);
-      if (!action) return;
-      e.preventDefault();
-      if (action.kind === 'quick-entry') openQuickEntry();
-      else ui.openFind(action.text);
+      if (e.defaultPrevented || e.isComposing) return;
+      if (ui.findOpen || ui.draft !== null || document.querySelector('dialog[open]')) return;
+      const ctx = { focus: focusKind(document.activeElement), standalone: isStandalone(), mac, now: Date.now() };
+      const result = resolver.resolve(e, ctx);
+      if (!result) return;
+      if ('pending' in result) e.preventDefault();
+      else if ('find' in result) {
+        e.preventDefault();
+        ui.openFind(result.find);
+      } else if (runCommand(result.command)) e.preventDefault();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   });
 
-  let showSidebar = $derived(!isPhone || $route.kind === 'home');
+  let showSidebar = $derived(isPhone ? $route.kind === 'home' : !ui.sidebarHidden);
   let showMain = $derived(!isPhone || $route.kind !== 'home');
 </script>
 
@@ -112,6 +123,14 @@
 
 {#if ui.draft}
   {#key ui.draft}<QuickEntry draft={ui.draft} />{/key}
+{/if}
+
+{#if ui.helpOpen}
+  <KeyboardHelp />
+{/if}
+
+{#if ui.toast}
+  <UndoToast message={ui.toast.message} />
 {/if}
 
 <style>

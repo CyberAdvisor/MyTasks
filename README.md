@@ -13,8 +13,8 @@ v1 is being built in milestones. Each milestone is a pull request.
 | --- | --- | --- |
 | 1 | Data model, sidebar, the seven lists, to-dos, areas, projects and headings | Done |
 | 2 | Tags, When and deadline pickers, checklists and notes, priority and its automatic rules, Settings | Done |
-| 3 | Saved searches, Today grouping, search and Quick Find, Quick Entry | In review |
-| 4 | Drag and drop, keyboard shortcuts (including Cmd/Ctrl+G to cycle Today grouping), undo | Planned |
+| 3 | Saved searches, Today grouping, search and Quick Find, Quick Entry | Done |
+| 4 | Drag and drop, keyboard shortcuts (including Cmd/Ctrl+G to cycle Today grouping), undo | In review |
 | 5 | Install, export/import and backups, themes, hosting at mytasks.fyi, accessibility | Planned |
 
 ## Develop
@@ -34,11 +34,20 @@ npm run build    # production build in dist/
 ```
 src/
   lib/model/    Types, dates, ids, ordering and the list membership rules (pure functions)
-  lib/db/       IndexedDB schema (Dexie) and all data operations (repo.ts)
+  lib/db/       IndexedDB schema (Dexie), all data operations (repo.ts), and
+                transactions, the change log and undo (history.ts)
+  lib/drag/     Pointer-events drag and drop, and its pure calculations
   lib/state/    Live data, routing and transient UI state
+  lib/          shortcuts.ts (key bindings) and commands.ts (what they do)
   components/   Sidebar, rows, the to-do card, dialogs
   views/        Built-in lists, project and area pages
 tests/          Unit tests for the model and data operations
 ```
+
+## Keyboard
+
+Press `?` in the app for the full list. Installed, My Tasks uses the Things shortcuts. In a browser tab, keys the browser keeps for itself (Cmd/Ctrl+N, T, R and others) are replaced by single-letter fallbacks, and `/` opens Quick Find.
+
+## Data
 
 Data rules follow the design document: every change runs in one transaction and is written to a local change log, so sync can be added later without a schema rewrite.

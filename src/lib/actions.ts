@@ -1,11 +1,16 @@
 /**
  * UI-level actions that combine routing, today's date and data operations.
  */
+import { get } from 'svelte/store';
 import * as repo from './db/repo';
+import { undoGroup } from './db/history';
+import { zoneOf } from './drag/drag';
+import { orderWith } from './drag/plan';
 import { addDays } from './model/dates';
-import { inInbox, inScheduled, inToday, isClosed, type BuiltInList } from './model/lists';
+import { inInbox, inScheduled, inToday, isClosed, isOpen, type BuiltInList } from './model/lists';
 import type { LocalDate, Todo } from './model/types';
 import { TodoDraft, type DraftStart } from './state/draft.svelte';
+import { snapshot } from './state/live';
 import { go, hrefFor, type Route } from './state/route';
 import { ui } from './state/ui.svelte';
 
@@ -22,6 +27,52 @@ export function draftStartFor(r: Route, ref: LocalDate): DraftStart {
   if (r.list === 'unscheduled') return { start: 'unscheduled' };
   if (r.list === 'deferred') return { deferred: true };
   return {};
+}
+
+/**
+ * Fields for a to-do created inline in view `r` (FR-1.1): the view's own
+ * start, as for Quick Entry, but in the same container (and, in Scheduled,
+ * on the same day) as the selected to-do, as in Things.
+ */
+export function inlineStart(r: Route, ref: LocalDate, selected?: Todo): repo.NewTodo {
+  const { placement, ...when } = draftStartFor(r, ref);
+  const opts: repo.NewTodo = { ...placement, ...when };
+  if (!selected) return opts;
+  opts.projectId = selected.projectId;
+  opts.areaId = selected.areaId;
+  opts.headingId = selected.headingId;
+  if (r.kind === 'list' && r.list === 'scheduled') opts.startDate = selected.startDate;
+  return opts;
+}
+
+/**
+ * New To-Do from the keyboard (FR-1.1): add a to-do below the selected row,
+ * or at the end of Today, and open it with the title focused. Views without
+ * a list of their own (search results) open Quick Entry instead.
+ */
+export async function newTodoInline(r: Route, ref: LocalDate): Promise<void> {
+  if (!canAddHere(r)) return;
+  if (r.kind !== 'list' && r.kind !== 'project' && r.kind !== 'area') {
+    openQuickEntry(draftStartFor(r, ref));
+    return;
+  }
+  const selected = get(snapshot).todos.find((t) => t.id === ui.selectedId && isOpen(t));
+  const rows = document.querySelectorAll('main [data-row-id]');
+  const anchor = selected
+    ? document.querySelector(`main [data-row-id="${selected.id}"]`)
+    : r.kind === 'list' && r.list === 'today'
+      ? rows[rows.length - 1]
+      : null;
+  const zone = anchor ? zoneOf(anchor, 'todo') : null;
+  const id = await undoGroup(async () => {
+    const newId = await repo.createTodo(inlineStart(r, ref, selected));
+    if (zone) {
+      const after = zone.ids.indexOf((anchor as HTMLElement).dataset.rowId!);
+      await zone.zone.drop(newId, orderWith(zone.ids, newId, after + 1));
+    }
+    return newId;
+  });
+  ui.open(id);
 }
 
 /** Open Quick Entry with a fresh draft (FR-8.1). */

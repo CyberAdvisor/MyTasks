@@ -2,13 +2,15 @@
  * Data operations for My Tasks.
  *
  * Every user change runs in a single IndexedDB transaction (FR-DM.2) and
- * appends to the local change log (FR-DM.3). UI code calls these functions;
- * it never writes to the database directly.
+ * appends to the local change log (FR-DM.3); `history.ts` also records it
+ * for undo (FR-1.6). UI code calls these functions; it never writes to the
+ * database directly.
  */
-import { db, type MyTasksDB } from './database';
+import { db } from './database';
+import { log, tx } from './history';
 import { nowIso, uuidv7 } from '../model/ids';
 import { today } from '../model/dates';
-import { bySortKey, keyAtEnd, keyAtStart, keyBetween } from '../model/order';
+import { bySortKey, keyAtEnd, keyAtStart, keyBetween, placementKeys } from '../model/order';
 import { priorityRules } from '../model/priority';
 import { readSettings, type AppSettings, type SettingKey } from '../model/settings';
 import type {
@@ -26,28 +28,6 @@ import type {
   Todo,
   TodoStart,
 } from '../model/types';
-
-/** Tables that hold entities (everything except the log and settings). */
-const ENTITY_TABLES: EntityName[] = [
-  'areas',
-  'projects',
-  'headings',
-  'todos',
-  'checklistItems',
-  'tags',
-  'savedSearches',
-];
-
-/** Run `fn` in one read-write transaction over all entity tables, the log and settings. */
-function tx<T>(fn: () => Promise<T>, database: MyTasksDB = db): Promise<T> {
-  const tables = [...ENTITY_TABLES.map((n) => database.table(n)), database.changeLog, database.settings];
-  return database.transaction('rw', tables, fn);
-}
-
-/** Append one change-log row. */
-function log(entity: EntityName, entityId: ID, fields: string[]): Promise<number> {
-  return db.changeLog.add({ entity, entityId, fields, at: nowIso() });
-}
 
 /** Fresh base fields for a new record. */
 function base(sortKey: string): BaseRecord {
@@ -67,6 +47,31 @@ async function patch<T extends BaseRecord>(entity: EntityName, id: ID, changes: 
 async function siblingKeys<T extends BaseRecord>(entity: EntityName, filter: (r: T) => boolean): Promise<string[]> {
   const rows = (await db.table(entity).toArray()) as T[];
   return rows.filter((r) => r.deletedAt === null && filter(r)).map((r) => r.sortKey);
+}
+
+/**
+ * Write the keys that put record `id` at its position in `order` (sibling ids
+ * in display order), plus `extra` changes on the moved record. Usually only
+ * the moved record changes (see `placementKeys`). Call inside a transaction.
+ */
+async function place<T extends BaseRecord>(
+  entity: EntityName,
+  id: ID,
+  order: ID[],
+  field: string,
+  keyOf: (r: T) => string | null,
+  extra: Partial<T> = {},
+): Promise<void> {
+  const rows = (await db.table(entity).bulkGet(order)) as (T | undefined)[];
+  const byId = new Map(rows.filter((r): r is T => !!r).map((r) => [r.id, r]));
+  const keys = placementKeys(order, id, (x) => {
+    const r = byId.get(x);
+    return r ? keyOf(r) : null;
+  });
+  for (const [x, key] of keys) {
+    await patch<T>(entity, x, { [field]: key, ...(x === id ? extra : {}) } as Partial<T>);
+  }
+  if (!keys.has(id) && Object.keys(extra).length) await patch<T>(entity, id, extra);
 }
 
 /**
@@ -118,7 +123,7 @@ export function sweepPriorities(): Promise<void> {
     const settings = await loadSettings();
     const todos = await db.todos.where('status').equals('open').toArray();
     for (const t of todos) await applyPriorityRules(t.id, settings);
-  });
+  }, { track: false });
 }
 
 /**
@@ -126,7 +131,7 @@ export function sweepPriorities(): Promise<void> {
  * it off leaves the priorities it already set (FR-14.14).
  */
 export async function setSetting<K extends SettingKey>(key: K, value: AppSettings[K]): Promise<void> {
-  await tx(() => db.settings.put({ key, value }));
+  await tx(() => db.settings.put({ key, value }), { track: false });
   if (value === true) await sweepPriorities();
 }
 
@@ -243,6 +248,8 @@ export type WhenChoice =
   | { kind: 'today' }
   | { kind: 'date'; date: LocalDate }
   | { kind: 'deferred' }
+  /** Available with no date (Things' Anytime), even for an unfiled to-do. */
+  | { kind: 'unscheduled' }
   | { kind: 'clear' };
 
 /** Apply a When choice to a to-do. */
@@ -255,6 +262,7 @@ export function setWhen(id: ID, choice: WhenChoice): Promise<void> {
     if (choice.kind === 'today') startDate = today();
     else if (choice.kind === 'date') startDate = choice.date;
     else if (choice.kind === 'deferred') start = 'deferred';
+    else if (choice.kind === 'unscheduled') start = 'unscheduled';
     // Clearing returns an unfiled to-do to the Inbox for processing.
     else start = t.areaId || t.projectId ? 'unscheduled' : 'inbox';
     start = normalizeStart({ start, startDate, areaId: t.areaId, projectId: t.projectId });
@@ -329,9 +337,20 @@ export function moveTodo(id: ID, to: TodoPlacement): Promise<void> {
   });
 }
 
-/** Change a to-do's position among its siblings. */
-export function setTodoSortKey(id: ID, sortKey: string): Promise<void> {
-  return tx(() => patch<Todo>('todos', id, { sortKey }));
+/**
+ * Place a to-do at its position in `order`, the ids of its siblings in display
+ * order after a drag or a keyboard move (FR-10.3, FR-10.6). Today orders by
+ * `todaySortKey`; every other list by `sortKey`. Giving `headingId` also moves
+ * the to-do under that heading (null: no heading).
+ */
+export function placeTodo(
+  id: ID,
+  opts: { order: ID[]; field?: 'sortKey' | 'todaySortKey'; headingId?: ID | null },
+): Promise<void> {
+  const field = opts.field ?? 'sortKey';
+  const extra: Partial<Todo> = opts.headingId === undefined ? {} : { headingId: opts.headingId };
+  const keyOf = (t: Todo) => (field === 'todaySortKey' ? (t.todaySortKey ?? t.sortKey) : t.sortKey);
+  return tx(() => place<Todo>('todos', id, opts.order, field, keyOf, extra));
 }
 
 /** Turn a to-do into a project with the same title, notes and dates (FR-1.5). */
@@ -431,6 +450,19 @@ export function updateProject(
   changes: Partial<Pick<Project, 'title' | 'notes' | 'deadline' | 'startDate' | 'start' | 'areaId'>>,
 ): Promise<void> {
   return tx(() => patch<Project>('projects', id, changes));
+}
+
+/**
+ * Place a project at its position in `order` (its sibling projects in display
+ * order) inside area `areaId`, or with no area when null. Moving it to another
+ * area takes its headings and to-dos along (FR-10.8, FR-10.9).
+ */
+export function placeProject(id: ID, opts: { order: ID[]; areaId: ID | null }): Promise<void> {
+  return tx(async () => {
+    const p = await db.projects.get(id);
+    const extra: Partial<Project> = p && (p.areaId ?? null) !== opts.areaId ? { areaId: opts.areaId } : {};
+    await place<Project>('projects', id, opts.order, 'sortKey', (x) => x.sortKey, extra);
+  });
 }
 
 /** Apply a When choice to a project (FR-2.1), using the same picker as to-dos. */
@@ -537,6 +569,11 @@ export function renameHeading(id: ID, title: string): Promise<void> {
   return tx(() => patch<Heading>('headings', id, { title }));
 }
 
+/** Place a heading at its position in `order`; its to-dos move with it (FR-10.7). */
+export function placeHeading(id: ID, order: ID[]): Promise<void> {
+  return tx(() => place<Heading>('headings', id, order, 'sortKey', (h) => h.sortKey));
+}
+
 /** Archive a heading; its to-dos are completed with it, as in Things. */
 export function archiveHeading(id: ID): Promise<void> {
   return tx(async () => {
@@ -589,6 +626,11 @@ export function createArea(title = ''): Promise<ID> {
 
 export function renameArea(id: ID, title: string): Promise<void> {
   return tx(() => patch<Area>('areas', id, { title }));
+}
+
+/** Place an area at its position in the sidebar `order` (FR-10.8). */
+export function placeArea(id: ID, order: ID[]): Promise<void> {
+  return tx(() => place<Area>('areas', id, order, 'sortKey', (a) => a.sortKey));
 }
 
 /**
@@ -780,12 +822,9 @@ export function updateSavedSearch(id: ID, fields: Partial<SavedSearchFields>): P
   return tx(() => patch<SavedSearch>('savedSearches', id, changes));
 }
 
-/** Move a saved search one place up or down in the sidebar. */
-export function moveSavedSearch(id: ID, direction: 'up' | 'down'): Promise<void> {
-  return tx(async () => {
-    const key = await shiftedKey<SavedSearch>('savedSearches', id, () => true, direction);
-    if (key) await patch<SavedSearch>('savedSearches', id, { sortKey: key });
-  });
+/** Place a saved search at its position in the sidebar `order` (FR-15.5). */
+export function placeSavedSearch(id: ID, order: ID[]): Promise<void> {
+  return tx(() => place<SavedSearch>('savedSearches', id, order, 'sortKey', (x) => x.sortKey));
 }
 
 /** Delete a saved search. To-dos are never affected (FR-15.5). */

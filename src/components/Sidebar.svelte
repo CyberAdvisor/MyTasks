@@ -1,6 +1,9 @@
 <!--
   Sidebar (design doc, Section 3 "Sidebar layout"): app header, built-in
   lists with counts, collapsible Saved Searches, then areas and projects.
+  Drag saved searches, areas and projects to reorder them; drag a project
+  onto another area to move it there, or below the last area to take it out
+  of any area (FR-10.8, FR-10.9, FR-15.5).
 -->
 <script lang="ts">
   import Icon from './Icon.svelte';
@@ -12,7 +15,10 @@
   import { LIST_META } from '../lib/listMeta';
   import { openMatchCount, savedSearchesInOrder } from '../lib/model/search';
   import { ui } from '../lib/state/ui.svelte';
+  import { readFlag, writeFlag } from '../lib/state/flags';
   import * as repo from '../lib/db/repo';
+  import { dragItem, dropZone, type DropZone } from '../lib/drag/drag';
+  import type { ID } from '../lib/model/types';
 
   const SAVED_KEY = 'mytasks.savedSearchesCollapsed';
 
@@ -23,22 +29,9 @@
   let savedCollapsed = $state(readFlag(SAVED_KEY));
   let menuOpen = $state(false);
 
-  /** Read a remembered boolean; storage can be unavailable in some contexts. */
-  function readFlag(key: string): boolean {
-    try {
-      return localStorage.getItem(key) === '1';
-    } catch {
-      return false;
-    }
-  }
-
   function toggleSaved() {
     savedCollapsed = !savedCollapsed;
-    try {
-      localStorage.setItem(SAVED_KEY, savedCollapsed ? '1' : '0');
-    } catch {
-      /* not remembered; harmless */
-    }
+    writeFlag(SAVED_KEY, savedCollapsed);
   }
 
   /** Is this route the one currently shown? */
@@ -57,6 +50,15 @@
     const id = await repo.createArea('');
     go({ kind: 'area', id });
   }
+
+  const savedZone: DropZone = { type: 'saved', drop: (id, order) => repo.placeSavedSearch(id, order) };
+  const areaZone: DropZone = { type: 'area', drop: (id, order) => repo.placeArea(id, order) };
+  /** Each area, and the list of projects with no area, takes projects from any other. */
+  const projectZone = (areaId: ID | null): DropZone => ({
+    type: 'project',
+    group: 'projects',
+    drop: (id, order) => repo.placeProject(id, { order, areaId }),
+  });
 
   const groups: BuiltInList[][] = [['inbox'], ['today', 'scheduled', 'unscheduled', 'deferred'], ['logbook', 'trash']];
 </script>
@@ -105,11 +107,11 @@
     </button>
     {#if !savedCollapsed}
       {#if saved.length}
-        <ul class="lists">
+        <ul class="lists" use:dropZone={savedZone}>
           {#each saved as x (x.id)}
             {@const r = { kind: 'saved', id: x.id } as Route}
             {@const count = openMatchCount($snapshot, x)}
-            <li>
+            <li use:dragItem={{ type: 'saved', id: x.id }}>
               <a href={hrefFor(r)} class="item" class:active={isActive(r)} aria-current={isActive(r) ? 'page' : undefined}>
                 <Icon name="search" color="var(--text-2)" />
                 <span class="label">{x.title || 'Saved Search'}</span>
@@ -124,38 +126,41 @@
     {/if}
     <hr />
 
-    {#each areas as area (area.id)}
-      {@const r = { kind: 'area', id: area.id } as Route}
-      <a href={hrefFor(r)} class="item area" class:active={isActive(r)}>
-        <Icon name="area" color="var(--text-2)" />
-        <span class="label">{area.title || 'New Area'}</span>
-      </a>
-      <ul class="lists">
-        {#each areaProjects($snapshot, area.id) as project (project.id)}
-          {@const pr = { kind: 'project', id: project.id } as Route}
-          <li>
-            <a href={hrefFor(pr)} class="item project" class:active={isActive(pr)}>
-              <ProgressPie fraction={projectProgress($snapshot, project.id)} />
-              <span class="label">{project.title || 'New Project'}</span>
-            </a>
-          </li>
-        {/each}
-      </ul>
-    {/each}
+    <div use:dropZone={areaZone}>
+      {#each areas as area (area.id)}
+        {@const r = { kind: 'area', id: area.id } as Route}
+        <div use:dragItem={{ type: 'area', id: area.id }} use:dropZone={projectZone(area.id)}>
+          <a href={hrefFor(r)} class="item area" class:active={isActive(r)}>
+            <Icon name="area" color="var(--text-2)" />
+            <span class="label">{area.title || 'New Area'}</span>
+          </a>
+          <ul class="lists">
+            {#each areaProjects($snapshot, area.id) as project (project.id)}
+              {@const pr = { kind: 'project', id: project.id } as Route}
+              <li use:dragItem={{ type: 'project', id: project.id }}>
+                <a href={hrefFor(pr)} class="item project" class:active={isActive(pr)}>
+                  <ProgressPie fraction={projectProgress($snapshot, project.id)} />
+                  <span class="label">{project.title || 'New Project'}</span>
+                </a>
+              </li>
+            {/each}
+          </ul>
+        </div>
+      {/each}
+    </div>
 
-    {#if looseProjects.length}
-      <ul class="lists gap">
-        {#each looseProjects as project (project.id)}
-          {@const pr = { kind: 'project', id: project.id } as Route}
-          <li>
-            <a href={hrefFor(pr)} class="item" class:active={isActive(pr)}>
-              <ProgressPie fraction={projectProgress($snapshot, project.id)} />
-              <span class="label">{project.title || 'New Project'}</span>
-            </a>
-          </li>
-        {/each}
-      </ul>
-    {/if}
+    <!-- Always present, so a project can be dragged out of every area. -->
+    <ul class="lists" class:gap={looseProjects.length > 0} use:dropZone={projectZone(null)}>
+      {#each looseProjects as project (project.id)}
+        {@const pr = { kind: 'project', id: project.id } as Route}
+        <li use:dragItem={{ type: 'project', id: project.id }}>
+          <a href={hrefFor(pr)} class="item" class:active={isActive(pr)}>
+            <ProgressPie fraction={projectProgress($snapshot, project.id)} />
+            <span class="label">{project.title || 'New Project'}</span>
+          </a>
+        </li>
+      {/each}
+    </ul>
   </div>
 
   <div class="footer">
