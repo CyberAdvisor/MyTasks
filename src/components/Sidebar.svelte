@@ -66,7 +66,7 @@
     </svg>
     <div class="brand-text">
       <span class="brand-name">My Tasks</span>
-      <span class="brand-sub">Accomplish More Daily</span>
+      <span class="brand-sub">Getting Things Done Daily</span>
     </div>
   </div>
 

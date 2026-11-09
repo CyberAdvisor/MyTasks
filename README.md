@@ -1,6 +1,6 @@
 # My Tasks
 
-**Accomplish More Daily.** A free, open-source task manager in the style of Things, built as an installable web app (PWA). All data stays on your device.
+**Getting Things Done Daily.** A free, open-source task manager in the style of Things, built as an installable web app (PWA). All data stays on your device.
 
 - Live app: https://mytasks.fyi (from Milestone 5)
 - License: MIT
