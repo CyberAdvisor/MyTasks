@@ -8,12 +8,13 @@
  * - `settings`: app settings merged over the defaults.
  * - `todayDate`: the local date, refreshed at midnight and whenever the app
  *   becomes visible again (FR-3.5 day rollover). Each refresh also runs the
- *   automatic priority rules (FR-14.9, FR-14.10).
+ *   automatic priority rules (FR-14.9, FR-14.10) and moves completed items
+ *   that are due to Completed (FR-12.2).
  */
 import { liveQuery } from 'dexie';
 import { readable, type Readable } from 'svelte/store';
 import { db } from '../db/database';
-import { sweepPriorities } from '../db/repo';
+import { sweepCompleted, sweepPriorities } from '../db/repo';
 import { msUntilMidnight, today } from '../model/dates';
 import type { Snapshot } from '../model/lists';
 import { DEFAULT_SETTINGS, readSettings, type AppSettings } from '../model/settings';
@@ -75,6 +76,7 @@ export const todayDate: Readable<LocalDate> = readable<LocalDate>(today(), (set)
   const refresh = () => {
     set(today());
     sweepPriorities().catch((e) => console.error('Priority sweep failed', e));
+    sweepCompleted().catch((e) => console.error('Completed sweep failed', e));
     clearTimeout(timer);
     timer = setTimeout(refresh, msUntilMidnight() + 1000);
   };

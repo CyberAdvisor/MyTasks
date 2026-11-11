@@ -10,6 +10,7 @@
   import TodoList from '../components/TodoList.svelte';
   import EditableTitle from '../components/EditableTitle.svelte';
   import ViewHeader from '../components/ViewHeader.svelte';
+  import MoveToCompleted from '../components/MoveToCompleted.svelte';
   import ChoiceDialog from '../components/ChoiceDialog.svelte';
   import Popover from '../components/Popover.svelte';
   import TagPicker from '../components/TagPicker.svelte';
@@ -29,7 +30,8 @@
 
   let s = $derived($snapshot);
   let area = $derived(s.areas.find((a) => a.id === id));
-  let allProjects = $derived(areaProjects(s, id));
+  // Completed projects stay here, struck through, until moved to Completed (FR-12.2).
+  let allProjects = $derived(areaProjects(s, id, true));
   let allTodos = $derived(areaLooseTodos(s, id));
   // The ⋯ menu shows either its item list or the tag picker; the chips
   // under the title open the tag picker on their own.
@@ -128,6 +130,7 @@
         {/if}
       </Popover>
     {/snippet}
+    {#snippet actions()}<MoveToCompleted view={{ kind: 'area', id }} />{/snippet}
   </ViewHeader>
 
   {#if areaTags.length}
@@ -149,7 +152,7 @@
     <ul class="projects" use:dropZone={projectZone}>
       {#each projects as p (p.id)}
         <li use:dragItem={{ type: 'project', id: p.id }}>
-          <a href={hrefFor({ kind: 'project', id: p.id })}>
+          <a href={hrefFor({ kind: 'project', id: p.id })} class:closed={p.status !== 'open'}>
             <ProgressPie fraction={projectProgress(s, p.id)} />
             {p.title || 'New Project'}
           </a>
@@ -191,6 +194,10 @@
   }
   .projects a:hover {
     background: var(--hover-bg);
+  }
+  .projects a.closed {
+    color: var(--text-done);
+    text-decoration: line-through;
   }
   .missing {
     color: var(--text-3);

@@ -15,6 +15,11 @@ export function toLocalDate(d: Date): LocalDate {
   return `${y}-${m}-${day}`;
 }
 
+/** The local date of an ISO timestamp, e.g. the day a to-do was completed. */
+export function localDay(iso: string): LocalDate {
+  return toLocalDate(new Date(iso));
+}
+
 /** Today's local date. */
 export function today(): LocalDate {
   return toLocalDate(new Date());

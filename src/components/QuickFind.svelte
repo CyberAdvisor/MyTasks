@@ -9,11 +9,11 @@
   import ProgressPie from './ProgressPie.svelte';
   import { ui } from '../lib/state/ui.svelte';
   import { snapshot, todayDate } from '../lib/state/live';
-  import { go, route } from '../lib/state/route';
-  import { revealTodo } from '../lib/actions';
+  import { go, route, viewRefOf } from '../lib/state/route';
+  import { moveWaiting, revealTodo } from '../lib/actions';
   import { containerLabel } from '../lib/labels';
   import { LIST_META } from '../lib/listMeta';
-  import { projectProgress, type BuiltInList } from '../lib/model/lists';
+  import { projectProgress, waitingInView, type BuiltInList } from '../lib/model/lists';
   import { quickFind, type FindResult } from '../lib/model/search';
 
   let dialog: HTMLDialogElement;
@@ -26,7 +26,10 @@
     Object.entries(LIST_META).map(([k, m]) => [k, m.title]),
   ) as Record<BuiltInList, string>;
 
-  let results = $derived(quickFind($snapshot, query, LIST_TITLES));
+  // Move to Completed acts on the view Quick Find was opened over (FR-12.2).
+  let view = $derived(viewRefOf($route));
+  let waiting = $derived(view ? waitingInView($snapshot, view, $todayDate) : undefined);
+  let results = $derived(quickFind($snapshot, query, LIST_TITLES, waiting));
 
   // A new query starts at the top.
   $effect(() => {
@@ -65,6 +68,8 @@
         return go({ kind: 'search', query: '', tagIds: [r.id] });
       case 'todo':
         return revealTodo(r.todo, $route, $todayDate);
+      case 'move-completed':
+        return void moveWaiting(r.waiting);
       case 'search':
         return go({ kind: 'search', query: r.query, tagIds: [] });
     }
@@ -100,6 +105,10 @@
     if (r.kind === 'todo') return r.logged ? 'Completed' : containerLabel(r.todo, $snapshot);
     if (r.kind === 'project' && r.logged) return 'Completed';
     if (r.kind === 'tag') return 'Tag';
+    if (r.kind === 'move-completed') {
+      const n = r.waiting.todos.length + r.waiting.projects.length;
+      return `${n} completed ${n === 1 ? 'item' : 'items'}`;
+    }
     return '';
   }
 </script>
@@ -147,6 +156,8 @@
             <ProgressPie fraction={projectProgress($snapshot, r.id)} />
           {:else if r.kind === 'todo'}
             <span class="box" class:done={r.logged}></span>
+          {:else if r.kind === 'move-completed'}
+            <Icon name={LIST_META.logbook.icon} color={LIST_META.logbook.color} size={16} />
           {:else}
             <Icon name={r.kind === 'area' ? 'area' : r.kind === 'tag' ? 'tag' : 'search'} size={16} color="var(--text-2)" />
           {/if}

@@ -7,7 +7,7 @@ import { undoGroup } from './db/history';
 import { zoneOf } from './drag/drag';
 import { orderWith } from './drag/plan';
 import { addDays } from './model/dates';
-import { inInbox, inScheduled, inToday, isClosed, isOpen, type BuiltInList } from './model/lists';
+import { inInbox, inScheduled, inToday, isClosed, isLogged, isOpen, type BuiltInList, type WaitingItems } from './model/lists';
 import type { LocalDate, Todo } from './model/types';
 import { TodoDraft, type DraftStart } from './state/draft.svelte';
 import { snapshot } from './state/live';
@@ -92,7 +92,8 @@ export async function saveDraft(): Promise<void> {
 export function homeOf(todo: Todo, ref: LocalDate): Route {
   const list = (l: BuiltInList): Route => ({ kind: 'list', list: l });
   if (todo.trashedAt) return list('trash');
-  if (isClosed(todo)) return list('logbook');
+  // A closed to-do still waiting to move to Completed is found where it was.
+  if (isLogged(todo)) return list('logbook');
   if (todo.projectId) return { kind: 'project', id: todo.projectId };
   if (todo.areaId) return { kind: 'area', id: todo.areaId };
   if (inInbox(todo)) return list('inbox');
@@ -144,4 +145,10 @@ export async function newHeading(projectId: string): Promise<void> {
 export function canAddHere(r: Route): boolean {
   if (r.kind === 'settings') return false;
   return !(r.kind === 'list' && (r.list === 'logbook' || r.list === 'trash'));
+}
+
+/** Move a view's waiting completed items to Completed now (FR-12.2). Undoable. */
+export async function moveWaiting(items: WaitingItems): Promise<void> {
+  await repo.moveToCompleted(items);
+  ui.offerUndo('Moved to Completed');
 }

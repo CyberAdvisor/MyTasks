@@ -11,6 +11,7 @@
   import ProgressPie from '../components/ProgressPie.svelte';
   import TodoList from '../components/TodoList.svelte';
   import ViewHeader from '../components/ViewHeader.svelte';
+  import MoveToCompleted from '../components/MoveToCompleted.svelte';
   import ChoiceDialog from '../components/ChoiceDialog.svelte';
   import TagBar from '../components/TagBar.svelte';
   import Segmented from '../components/Segmented.svelte';
@@ -118,6 +119,8 @@
   {#snippet actions()}
     {#if list === 'trash' && !isEmpty}
       <button type="button" class="btn-plain" onclick={() => (confirmEmpty = true)}>Empty Trash</button>
+    {:else}
+      <MoveToCompleted view={{ kind: 'list', list }} />
     {/if}
   {/snippet}
 </ViewHeader>

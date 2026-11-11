@@ -19,7 +19,16 @@ export interface AppSettings {
   todayGrouping: TodayGrouping;
   /** FR-V.3: light, dark, or follow the system. */
   theme: Theme;
+  /** FR-12.2: when completed items move to Completed. */
+  moveToCompleted: MoveToCompleted;
+  /** FR-12.7: show completed to-dos below the open ones in each section. */
+  sinkCompleted: boolean;
+  /** FR-7.5: show checked checklist items below the unchecked ones. */
+  sinkChecked: boolean;
 }
+
+/** When completed items move to Completed (FR-12.2). */
+export type MoveToCompleted = 'immediately' | 'daily' | 'manually';
 
 /** The Appearance setting (FR-V.3). */
 export type Theme = 'system' | 'light' | 'dark';
@@ -35,10 +44,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultP2: true,
   todayGrouping: 'none',
   theme: 'system',
+  moveToCompleted: 'daily',
+  sinkCompleted: false,
+  sinkChecked: false,
 };
 
 const GROUPINGS: TodayGrouping[] = ['none', 'project', 'priority', 'context'];
 export const THEMES: Theme[] = ['system', 'light', 'dark'];
+export const MOVE_TO_COMPLETED: MoveToCompleted[] = ['immediately', 'daily', 'manually'];
 
 /** All priorities, highest first. */
 export const PRIORITIES: Priority[] = [1, 2, 3, 4, 5];
@@ -57,6 +70,10 @@ export function readSettings(rows: SettingEntry[]): AppSettings {
     defaultP2: bool('defaultP2', DEFAULT_SETTINGS.defaultP2),
     todayGrouping: GROUPINGS.find((g) => g === stored.get('todayGrouping')) ?? DEFAULT_SETTINGS.todayGrouping,
     theme: THEMES.find((t) => t === stored.get('theme')) ?? DEFAULT_SETTINGS.theme,
+    moveToCompleted:
+      MOVE_TO_COMPLETED.find((m) => m === stored.get('moveToCompleted')) ?? DEFAULT_SETTINGS.moveToCompleted,
+    sinkCompleted: bool('sinkCompleted', DEFAULT_SETTINGS.sinkCompleted),
+    sinkChecked: bool('sinkChecked', DEFAULT_SETTINGS.sinkChecked),
   };
 }
 

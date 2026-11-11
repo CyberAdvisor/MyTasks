@@ -42,7 +42,7 @@ describe('storage', () => {
 
     const v2 = new MyTasksDB(name);
     await v2.open();
-    expect(v2.verno).toBe(2);
+    expect(v2.verno).toBe(3); // upgraded to the latest version
     expect((await v2.todos.get('t1'))?.contextId).toBeNull();
     expect((await v2.savedSearches.get('s1'))?.contextId).toBeNull();
     expect(await v2.contexts.count()).toBe(0);
