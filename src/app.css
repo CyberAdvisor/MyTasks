@@ -150,6 +150,48 @@ dialog .btn-plain {
 .menu-item.active {
   font-weight: 600;
 }
+/* Menu icons are blue, as in Things; destructive items stay red
+   (a deviation from Things, design doc Section 6). */
+.menu-item > svg {
+  color: var(--accent);
+  stroke: currentColor;
+}
+.menu-item.danger,
+.menu-item.danger > svg {
+  color: var(--danger);
+}
+
+/* The bold ⋯ right after a project or area title (FR-2.1, FR-2.5). */
+.more-btn {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  padding: 4px 6px;
+  border-radius: var(--radius);
+  display: inline-flex;
+  flex: none;
+}
+.more-btn:hover,
+.more-btn[aria-expanded='true'] {
+  background: var(--hover-bg);
+}
+
+/* Value chips under a project or area title; each reopens its picker. */
+.title-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: -8px 0 10px 38px;
+}
+.title-chips .tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
 .menu-sep {
   height: 1px;
   background: var(--rule);

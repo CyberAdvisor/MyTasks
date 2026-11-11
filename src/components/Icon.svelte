@@ -7,7 +7,8 @@
     | 'inbox' | 'star' | 'calendar' | 'layers' | 'archive' | 'logbook' | 'trash'
     | 'search' | 'chevron-down' | 'chevron-right' | 'chevron-left' | 'area' | 'plus'
     | 'settings' | 'flag' | 'note' | 'move' | 'more' | 'x' | 'check' | 'heading'
-    | 'tag' | 'checklist' | 'priority' | 'arrow-up' | 'arrow-down' | 'heading-add' | 'copy' | 'group';
+    | 'tag' | 'checklist' | 'priority' | 'arrow-up' | 'arrow-down' | 'heading-add' | 'copy' | 'group'
+    | 'project' | 'pencil' | 'cancel';
 
   let { name, size = 18, color = 'currentColor', label = '', weight = 2 }: {
     name: Name; size?: number; color?: string; label?: string;
@@ -45,6 +46,9 @@
     copy: 'M9 9h11v11H9z M5 15H4V4h11v1',
     'heading-add': 'M3 6h12.5l5 6-5 6H3z M7.5 12h6 M10.5 9v6',
     group: 'M3 4h7 M7 8h14 M7 12h14 M3 16h7 M7 20h14',
+    project: 'M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18z',
+    pencil: 'M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4',
+    cancel: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M9 9l6 6 M15 9l-6 6',
   };
 </script>
 

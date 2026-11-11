@@ -3,6 +3,7 @@ import { db } from '../src/lib/db/database';
 import * as repo from '../src/lib/db/repo';
 import { today } from '../src/lib/model/dates';
 import {
+  areaProjects,
   inboxTodos,
   logbookGroups,
   projectSections,
@@ -140,5 +141,19 @@ describe('projects, headings and areas', () => {
     const p = await repo.createProject({ areaId: a });
     await repo.deleteArea(a, 'trash');
     expect((await db.projects.get(p))?.trashedAt).not.toBeNull();
+  });
+
+  it('area ⋯ menu: New Project goes last in the area; tags toggle on the area (FR-2.5)', async () => {
+    const a = await repo.createArea('Home');
+    const first = await repo.createProject({ areaId: a, title: 'First' });
+    const added = await repo.createProject({ areaId: a });
+    const s = await snap();
+    expect(areaProjects(s, a).map((p) => p.id)).toEqual([first, added]);
+
+    const tag = await repo.createTag('Errands');
+    await repo.toggleTag('areas', a, tag, true);
+    expect((await db.areas.get(a))?.tagIds).toEqual([tag]);
+    await repo.toggleTag('areas', a, tag, false);
+    expect((await db.areas.get(a))?.tagIds).toEqual([]);
   });
 });

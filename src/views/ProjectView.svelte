@@ -193,7 +193,7 @@
       />
       <Popover bind:open={menuOpen} label="Project actions" align="left">
         {#snippet trigger(toggle, open)}
-          <button type="button" class="more" aria-label="More project actions" aria-expanded={open} onclick={toggle}>
+          <button type="button" class="more-btn" aria-label="More project actions" aria-expanded={open} onclick={toggle}>
             <Icon name="more" size={22} weight={3.5} />
           </button>
         {/snippet}
@@ -232,7 +232,7 @@
   </ViewHeader>
 
   {#if project.status !== 'open' || hasWhen || project.deadline || projectTags.length}
-    <div class="chips">
+    <div class="title-chips">
       {#if project.status !== 'open'}
         <span class="chip status"><Icon name="check" size={12} /> {project.status === 'completed' ? 'Completed' : 'Canceled'}</span>
       {/if}
@@ -297,18 +297,19 @@
           <button type="button" class="btn-plain small" aria-label="Add to-do under heading" onclick={() => addTodo(heading.id)}>
             <Icon name="plus" size={14} />
           </button>
-          <div class="pop-wrap">
-            <button type="button" class="btn-plain small" aria-label="Heading actions" onclick={() => (headingMenu = headingMenu === heading.id ? null : heading.id)}>
-              <Icon name="more" size={14} />
-            </button>
-            {#if headingMenu === heading.id}
-              <div class="pop" role="menu">
-                <button type="button" role="menuitem" onclick={() => headingAction(heading.id, 'archive')}>Archive</button>
-                <button type="button" role="menuitem" onclick={() => headingAction(heading.id, 'convert')}>Convert to Project</button>
-                <button type="button" role="menuitem" class="danger" onclick={() => headingAction(heading.id, 'delete')}>Delete</button>
-              </div>
-            {/if}
-          </div>
+          <Popover bind:open={() => headingMenu === heading.id, (v) => (headingMenu = v ? heading.id : null)} label="Heading actions">
+            {#snippet trigger(toggle, open)}
+              <button type="button" class="btn-plain small" aria-label="Heading actions" aria-expanded={open} onclick={toggle}>
+                <Icon name="more" size={14} />
+              </button>
+            {/snippet}
+            <div role="menu" aria-label="Heading actions">
+              <button type="button" class="menu-item" role="menuitem" onclick={() => headingAction(heading.id, 'archive')}><Icon name="archive" size={15} /> Archive</button>
+              <button type="button" class="menu-item" role="menuitem" onclick={() => headingAction(heading.id, 'convert')}><Icon name="project" size={15} /> Convert to Project</button>
+              <hr class="menu-sep" />
+              <button type="button" class="menu-item danger" role="menuitem" onclick={() => headingAction(heading.id, 'delete')}><Icon name="trash" size={15} /> Delete</button>
+            </div>
+          </Popover>
         </div>
         <TodoList {todos} {ref} />
       </section>
@@ -340,41 +341,12 @@
 {/if}
 
 <style>
-  .more {
-    border: 0;
-    background: transparent;
-    color: var(--text);
-    padding: 4px 6px;
-    border-radius: var(--radius);
-    display: inline-flex;
-    flex: none;
-  }
-  .more:hover,
-  .more[aria-expanded='true'] {
-    background: var(--hover-bg);
-    color: var(--text);
-  }
-  .chips {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-    margin: -8px 0 10px 38px;
-  }
   .chip.due {
     color: var(--danger);
     font-weight: 600;
   }
   .chip.status {
     color: var(--c-logbook);
-  }
-  .tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    border: 0;
-    background: transparent;
-    padding: 0;
   }
   .phone-only {
     display: none;
@@ -415,36 +387,6 @@
   .logged {
     margin-top: 16px;
     font-size: 13px;
-  }
-  .pop-wrap {
-    position: relative;
-  }
-  .pop {
-    position: absolute;
-    right: 0;
-    top: calc(100% + 4px);
-    min-width: 180px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
-    padding: 4px;
-    display: flex;
-    flex-direction: column;
-    z-index: 20;
-  }
-  .pop button {
-    text-align: left;
-    border: 0;
-    background: transparent;
-    padding: 8px 10px;
-    border-radius: var(--radius);
-    font-size: 14px;
-  }
-  .pop button:hover {
-    background: var(--hover-bg);
-  }
-  .danger {
-    color: var(--danger);
   }
   .missing {
     color: var(--text-3);

@@ -1,6 +1,8 @@
 <!--
-  Area page (FR-2.5, FR-2.6): projects first, then loose to-dos. Both can be
-  reordered by dragging, as in Things.
+  Area page (FR-2.5, FR-2.6), laid out as in Things: the ⋯ menu right after
+  the title holds Add/Edit Tags, New Project and Delete Area; the area's tags
+  show as chips under the title, and clicking them reopens the tag picker.
+  Projects come first, then loose to-dos; both reorder by dragging.
 -->
 <script lang="ts">
   import Icon from '../components/Icon.svelte';
@@ -28,6 +30,13 @@
   let area = $derived(s.areas.find((a) => a.id === id));
   let allProjects = $derived(areaProjects(s, id));
   let allTodos = $derived(areaLooseTodos(s, id));
+  // The ⋯ menu shows either its item list or the tag picker; the chips
+  // under the title open the tag picker on their own.
+  let menuOpen = $state(false);
+  let menuPanel = $state<'menu' | 'tags'>('menu');
+  $effect(() => {
+    if (!menuOpen) menuPanel = 'menu';
+  });
   let tagsOpen = $state(false);
   let areaTags = $derived(area ? tagTitles(area.tagIds, s) : []);
 
@@ -52,7 +61,13 @@
   const todoZone: DropZone = { type: 'todo', drop: (tid, order) => repo.placeTodo(tid, { order }) };
 
   async function addProject() {
+    menuOpen = false;
     go({ kind: 'project', id: await repo.createProject({ areaId: id }) });
+  }
+
+  function startDelete() {
+    menuOpen = false;
+    askDelete = true;
   }
 
   async function onDeleteChoice(v: string | null) {
@@ -68,35 +83,59 @@
 {#if !area}
   <p class="missing">This area no longer exists.</p>
 {:else}
+  {#snippet tagsPanel()}
+    <TagPicker
+      tagIds={area!.tagIds}
+      ontoggle={(tagId, on) => repo.toggleTag('areas', id, tagId, on)}
+      ondone={() => (menuOpen = tagsOpen = false)}
+    />
+  {/snippet}
+
   <ViewHeader>
     {#snippet icon()}<Icon name="area" size={26} color="var(--text-2)" />{/snippet}
     {#snippet heading()}
       <EditableTitle
+        fit
         value={area!.title}
         placeholder="New Area"
         label="Area title"
         autofocus={!area!.title}
         onsave={(v) => repo.renameArea(id, v)}
       />
-    {/snippet}
-    {#snippet actions()}
-      <button type="button" class="btn-plain danger" onclick={() => (askDelete = true)}>Delete Area</button>
+      <Popover bind:open={menuOpen} label="Area actions" align="left">
+        {#snippet trigger(toggle, open)}
+          <button type="button" class="more-btn" aria-label="More area actions" aria-expanded={open} onclick={toggle}>
+            <Icon name="more" size={22} weight={3.5} />
+          </button>
+        {/snippet}
+        {#if menuPanel === 'tags'}
+          {@render tagsPanel()}
+        {:else}
+          <div role="menu" aria-label="Area actions">
+            <button type="button" class="menu-item" role="menuitem" onclick={() => (menuPanel = 'tags')}>
+              <Icon name="tag" size={15} /> {area!.tagIds.length ? 'Edit Tags' : 'Add Tags'}
+            </button>
+            <button type="button" class="menu-item" role="menuitem" onclick={addProject}><Icon name="project" size={15} /> New Project</button>
+            <hr class="menu-sep" />
+            <button type="button" class="menu-item danger" role="menuitem" onclick={startDelete}><Icon name="trash" size={15} /> Delete Area</button>
+          </div>
+        {/if}
+      </Popover>
     {/snippet}
   </ViewHeader>
 
-  <div class="fields">
-    <span>Tags</span>
-    <Popover bind:open={tagsOpen} label="Tags" align="left">
-      {#snippet trigger(toggle)}
-        <button type="button" class="value" onclick={toggle}>{areaTags.length ? areaTags.join(', ') : 'None'}</button>
-      {/snippet}
-      <TagPicker
-        tagIds={area.tagIds}
-        ontoggle={(tagId, on) => repo.toggleTag('areas', id, tagId, on)}
-        ondone={() => (tagsOpen = false)}
-      />
-    </Popover>
-  </div>
+  {#if areaTags.length}
+    <div class="title-chips">
+      <Popover bind:open={tagsOpen} label="Tags" align="left">
+        {#snippet trigger(toggle)}
+          <button type="button" class="tags" aria-label="Edit tags" onclick={toggle}>
+            {#each areaTags as name, i (i)}<span class="tag-pill">{name}</span>{/each}
+          </button>
+        {/snippet}
+        {@render tagsPanel()}
+      </Popover>
+    </div>
+  {/if}
 
   <TagBar tags={offered} />
 
@@ -115,10 +154,6 @@
 
   <TodoList {todos} ref={$todayDate} zone={todoZone} />
 
-  <div class="adders">
-    <button type="button" class="btn-plain" onclick={addProject}><Icon name="plus" size={14} /> New Project</button>
-  </div>
-
   {#if askDelete}
     <ChoiceDialog
       title="Delete this area?"
@@ -133,22 +168,6 @@
 {/if}
 
 <style>
-  .fields {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin: 0 0 14px 38px;
-    font-size: 13px;
-    color: var(--text-2);
-  }
-  .value {
-    border: 1px solid #d6d6da;
-    border-radius: 4px;
-    padding: 3px 8px;
-    background: #fff;
-    font-size: 13px;
-    color: var(--text);
-  }
   .projects {
     list-style: none;
     margin: 0 0 14px;
@@ -166,14 +185,6 @@
   }
   .projects a:hover {
     background: var(--hover-bg);
-  }
-  .adders {
-    display: flex;
-    gap: 8px;
-    margin-top: 16px;
-  }
-  .danger {
-    color: var(--danger);
   }
   .missing {
     color: var(--text-3);

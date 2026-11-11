@@ -106,9 +106,9 @@
             </button>
           {/snippet}
           <div role="menu" aria-label="Saved search actions">
-            <button type="button" class="menu-item" role="menuitem" onclick={() => menuAction(() => (dialog = 'edit'))}>Edit Search…</button>
+            <button type="button" class="menu-item" role="menuitem" onclick={() => menuAction(() => (dialog = 'edit'))}><Icon name="pencil" size={15} /> Edit Search…</button>
             <hr class="menu-sep" />
-            <button type="button" class="menu-item danger" role="menuitem" onclick={() => menuAction(() => (askDelete = true))}>Delete</button>
+            <button type="button" class="menu-item danger" role="menuitem" onclick={() => menuAction(() => (askDelete = true))}><Icon name="trash" size={15} /> Delete</button>
           </div>
         </Popover>
       {:else}
@@ -210,9 +210,6 @@
     font-size: 12px;
     font-weight: 400;
     color: var(--text-3);
-  }
-  .danger {
-    color: var(--danger);
   }
   .empty {
     color: var(--text-3);
