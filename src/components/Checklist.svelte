@@ -4,11 +4,16 @@
   Keys in an item: Enter adds the next item; Backspace in an empty item
   deletes it; Alt+Up/Down moves it. Pasting several lines adds one item per
   line. Empty items are removed when the card closes.
+  With "Move checked items to the bottom of the checklist" on, checked items
+  show below the unchecked ones (FR-7.5); display only, so unchecking an
+  item puts it back in its place.
 -->
 <script lang="ts">
   import { onDestroy, tick } from 'svelte';
   import Icon from './Icon.svelte';
   import { splitLines } from '../lib/model/tags';
+  import { sinkDone } from '../lib/model/lists';
+  import { settings } from '../lib/state/live';
   import type { ChecklistOps, ChecklistRow } from '../lib/state/checklist.svelte';
   import type { ID } from '../lib/model/types';
 
@@ -26,6 +31,9 @@
   } = $props();
 
   const SAVE_DELAY_MS = 300;
+
+  /** The items in display order. */
+  let shown = $derived($settings.sinkChecked ? sinkDone(items, (c) => c.completed) : items);
 
   let list = $state<HTMLUListElement>();
   /**
@@ -77,7 +85,7 @@
       [focusId] = await ops.add([''], item.id);
     } else if (e.key === 'Backspace' && titleOf(item) === '') {
       e.preventDefault();
-      const prev = items[index - 1];
+      const prev = shown[index - 1];
       await ops.remove(item.id);
       if (prev) focusId = prev.id;
     } else if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
@@ -112,7 +120,7 @@
 
 {#if items.length}
   <ul class="checklist" bind:this={list} aria-label="Checklist">
-    {#each items as item, i (item.id)}
+    {#each shown as item, i (item.id)}
       <li class:done={item.completed}>
         <button
           type="button"

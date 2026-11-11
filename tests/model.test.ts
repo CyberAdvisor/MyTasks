@@ -103,8 +103,8 @@ describe('list membership', () => {
     expect(sidebarCounts(s, REF).today).toBe(0);
   });
 
-  it('excludes completed and trashed to-dos from every active list', () => {
-    const done = todo({ status: 'completed', startDate: REF });
+  it('excludes moved and trashed to-dos from every active list', () => {
+    const done = todo({ status: 'completed', startDate: REF, loggedAt: 'x' });
     const trashed = todo({ trashedAt: 'x', startDate: REF });
     for (const t of [done, trashed]) {
       expect(inToday(t, REF)).toBe(false);

@@ -222,11 +222,13 @@
       type="button"
       class="check"
       role="checkbox"
-      aria-checked={ui.pending[todo.id] !== undefined}
+      aria-checked={ui.pending[todo.id] !== undefined || todo.status !== 'open'}
       aria-label="Complete"
-      onclick={(e) => ui.toggleDone(todo.id, e.altKey ? 'canceled' : 'completed')}
+      onclick={(e) => ui.check(todo, e.altKey ? 'canceled' : 'completed')}
     >
-      {#if ui.pending[todo.id]}<Icon name="check" size={12} color="#fff" />{/if}
+      {#if ui.pending[todo.id] || todo.status !== 'open'}
+        <Icon name={ui.pending[todo.id] === 'canceled' || todo.status === 'canceled' ? 'x' : 'check'} size={12} color="#fff" />
+      {/if}
     </button>
     <label class="visually-hidden" for="title-{todo.id}">Title</label>
     <input

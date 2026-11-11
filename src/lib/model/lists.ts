@@ -7,7 +7,7 @@
  */
 import type { Area, ChecklistItem, Context, Heading, ID, LocalDate, Priority, Project, SavedSearch, Tag, Todo } from './types';
 import { bySortKey, compareKeys } from './order';
-import { addDays, formatMonth, formatRelative } from './dates';
+import { addDays, formatMonth, formatRelative, localDay } from './dates';
 
 /** Everything the list rules need, as loaded from the database (deleted records removed). */
 export interface Snapshot {
@@ -59,6 +59,24 @@ export function isClosed(item: Todo | Project): boolean {
   return isLive(item) && item.status !== 'open';
 }
 
+/**
+ * Closed but not yet moved to Completed (FR-12.2): it stays in its list,
+ * struck through, until it is moved.
+ */
+export function isWaiting(item: Todo | Project): boolean {
+  return isClosed(item) && item.loggedAt === null;
+}
+
+/** Closed and moved to Completed: shown in the Completed list. */
+export function isLogged(item: Todo | Project): boolean {
+  return isClosed(item) && item.loggedAt !== null;
+}
+
+/** Shown in the lists: open, or closed and still waiting to move. */
+export function isListed(item: Todo | Project): boolean {
+  return isOpen(item) || isWaiting(item);
+}
+
 /** Index projects by id for quick lookup. */
 export function projectIndex(projects: Project[]): Map<ID, Project> {
   return new Map(projects.map((p) => [p.id, p]));
@@ -94,16 +112,20 @@ export function isDue(todo: Todo, ref: LocalDate): boolean {
 
 // ---------------------------------------------------------------------------
 // Membership
+//
+// The date rules apply to listed items: open ones, and closed ones still
+// waiting to move to Completed, which stay where they were (FR-12.2). Counts
+// and the automatic rules look at open items only.
 // ---------------------------------------------------------------------------
 
 /** Inbox: open to-dos with no container and no When date. */
 export function inInbox(todo: Todo): boolean {
-  return isOpen(todo) && todo.start === 'inbox';
+  return isListed(todo) && todo.start === 'inbox';
 }
 
 /** Today: When date today or earlier, or deadline today or past. */
 export function inToday(todo: Todo, ref: LocalDate): boolean {
-  if (!isOpen(todo)) return false;
+  if (!isListed(todo)) return false;
   if (isDue(todo, ref)) return true;
   // A to-do's own When date brings it into Today even inside a held project.
   return todo.start !== 'deferred' && todo.startDate !== null && todo.startDate <= ref;
@@ -111,12 +133,12 @@ export function inToday(todo: Todo, ref: LocalDate): boolean {
 
 /** Scheduled: When date after today, and not already in Today. */
 export function inScheduled(todo: Todo, ref: LocalDate): boolean {
-  return isOpen(todo) && todo.startDate !== null && todo.startDate > ref && !inToday(todo, ref);
+  return isListed(todo) && todo.startDate !== null && todo.startDate > ref && !inToday(todo, ref);
 }
 
 /** Unscheduled: open, not Inbox, not Deferred, not scheduled for later. */
 export function inUnscheduled(todo: Todo, projects: Map<ID, Project>, ref: LocalDate): boolean {
-  if (!isOpen(todo) || todo.start !== 'unscheduled') return false;
+  if (!isListed(todo) || todo.start !== 'unscheduled') return false;
   if (todo.startDate !== null && todo.startDate > ref) return false;
   if (projectHolds(todo, projects, ref) && !inToday(todo, ref)) return false;
   return true;
@@ -124,12 +146,25 @@ export function inUnscheduled(todo: Todo, projects: Map<ID, Project>, ref: Local
 
 /** Deferred: to-dos set to Deferred (and not pulled into Today by a deadline). */
 export function inDeferred(todo: Todo, ref: LocalDate): boolean {
-  return isOpen(todo) && todo.start === 'deferred' && !inToday(todo, ref);
+  return isListed(todo) && todo.start === 'deferred' && !inToday(todo, ref);
 }
 
 /** Today items also listed in Unscheduled get a star (design doc, Section 3). */
 export function isStarred(todo: Todo, ref: LocalDate): boolean {
   return inToday(todo, ref);
+}
+
+/**
+ * `items` with the done ones moved below the rest, keeping the order within
+ * each part. Display only: the stored order does not change.
+ */
+export function sinkDone<T>(items: T[], done: (item: T) => boolean): T[] {
+  return [...items.filter((x) => !done(x)), ...items.filter(done)];
+}
+
+/** Closed to-dos below the open ones (FR-12.7). */
+export function sinkClosed<T extends { status: Todo['status'] }>(items: T[]): T[] {
+  return sinkDone(items, (t) => t.status !== 'open');
 }
 
 // ---------------------------------------------------------------------------
@@ -266,14 +301,14 @@ export function deferredProjects(s: Snapshot): Project[] {
   return bySortKey(s.projects.filter((pr) => isOpen(pr) && pr.start === 'deferred'));
 }
 
-/** Completed list: closed to-dos grouped by local completion date, newest first. */
+/** Completed list: moved to-dos grouped by local completion date, newest first. */
 export function logbookGroups(s: Snapshot, ref: LocalDate): TodoGroup[] {
   const items = visibleTodos(s)
-    .filter(isClosed)
+    .filter(isLogged)
     .sort((a, b) => ((a.completedAt ?? '') < (b.completedAt ?? '') ? 1 : -1));
   const groups = new Map<string, TodoGroup>();
   for (const t of items) {
-    const day = t.completedAt ? localDayOf(t.completedAt) : 'earlier';
+    const day = t.completedAt ? localDay(t.completedAt) : 'earlier';
     if (!groups.has(day)) {
       groups.set(day, { key: day, title: day === 'earlier' ? 'Earlier' : formatRelative(day, ref), todos: [] });
     }
@@ -282,10 +317,10 @@ export function logbookGroups(s: Snapshot, ref: LocalDate): TodoGroup[] {
   return [...groups.values()];
 }
 
-/** Closed projects for the Completed list. */
+/** Moved projects for the Completed list. */
 export function loggedProjects(s: Snapshot): Project[] {
   return s.projects
-    .filter(isClosed)
+    .filter(isLogged)
     .sort((a, b) => ((a.completedAt ?? '') < (b.completedAt ?? '') ? 1 : -1));
 }
 
@@ -302,24 +337,19 @@ export function trashProjects(s: Snapshot): Project[] {
     .sort((a, b) => (a.trashedAt! < b.trashedAt! ? 1 : -1));
 }
 
-/** Local `YYYY-MM-DD` for an ISO timestamp. */
-function localDayOf(iso: string): LocalDate {
-  const d = new Date(iso);
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${m}-${day}`;
-}
-
 // ---------------------------------------------------------------------------
 // Containers
 // ---------------------------------------------------------------------------
 
-/** Open to-dos of a project with no heading, then one group per heading. */
+/**
+ * Listed to-dos of a project (open, or waiting to move to Completed) with no
+ * heading, then one group per heading.
+ */
 export function projectSections(
   s: Snapshot,
   projectId: ID,
 ): { loose: Todo[]; headings: { heading: Heading; todos: Todo[] }[] } {
-  const open = s.todos.filter((t) => t.projectId === projectId && isOpen(t));
+  const open = s.todos.filter((t) => t.projectId === projectId && isListed(t));
   const heads = bySortKey(
     s.headings.filter((h) => h.projectId === projectId && h.deletedAt === null && !h.archived),
   );
@@ -340,16 +370,21 @@ export function projectProgress(s: Snapshot, projectId: ID): number {
   return all.filter((t) => t.status !== 'open').length / all.length;
 }
 
-/** Open projects of an area, or of no area when `areaId` is null. */
-export function areaProjects(s: Snapshot, areaId: ID | null): Project[] {
+/**
+ * Open projects of an area, or of no area when `areaId` is null. With
+ * `waiting`, closed projects not yet moved to Completed are included, as the
+ * sidebar and area pages show them (FR-12.2).
+ */
+export function areaProjects(s: Snapshot, areaId: ID | null, waiting = false): Project[] {
+  const shown = waiting ? isListed : isOpen;
   return bySortKey(
-    s.projects.filter((pr) => isOpen(pr) && (areaId === null ? !pr.areaId : pr.areaId === areaId)),
+    s.projects.filter((pr) => shown(pr) && (areaId === null ? !pr.areaId : pr.areaId === areaId)),
   );
 }
 
-/** Open to-dos sitting directly in an area (no project). */
+/** Listed to-dos sitting directly in an area (no project). */
 export function areaLooseTodos(s: Snapshot, areaId: ID): Todo[] {
-  return bySortKey(visibleTodos(s).filter((t) => isOpen(t) && t.areaId === areaId && !t.projectId));
+  return bySortKey(visibleTodos(s).filter((t) => isListed(t) && t.areaId === areaId && !t.projectId));
 }
 
 /**
@@ -357,7 +392,7 @@ export function areaLooseTodos(s: Snapshot, areaId: ID): Todo[] {
  * the list: `due` (red) counts due and overdue to-dos, `today` (grey) the rest.
  */
 export function sidebarCounts(s: Snapshot, ref: LocalDate): { inbox: number; today: number; due: number } {
-  const todos = visibleTodos(s);
+  const todos = visibleTodos(s).filter(isOpen);
   const today = todos.filter((t) => inToday(t, ref));
   const due = today.filter((t) => isDue(t, ref)).length;
   return {
@@ -365,4 +400,49 @@ export function sidebarCounts(s: Snapshot, ref: LocalDate): { inbox: number; tod
     today: today.length - due,
     due,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Move to Completed (FR-12.2)
+// ---------------------------------------------------------------------------
+
+/** A view with its own Move to Completed button: a built-in list, a project or an area. */
+export type ViewRef = { kind: 'list'; list: BuiltInList } | { kind: 'project'; id: ID } | { kind: 'area'; id: ID };
+
+/** The to-dos and projects that a Move to Completed command moves. */
+export interface WaitingItems {
+  todos: ID[];
+  projects: ID[];
+}
+
+/**
+ * Items shown in `view` that are closed and still waiting to move to
+ * Completed. Move to Completed moves just these, so the button shows only
+ * when there are some.
+ */
+export function waitingInView(s: Snapshot, view: ViewRef, ref: LocalDate): WaitingItems {
+  const ids = (items: (Todo | Project)[]) => items.filter(isWaiting).map((x) => x.id);
+  if (view.kind === 'project') {
+    const pr = s.projects.find((p) => p.id === view.id);
+    const sec = projectSections(s, view.id);
+    return {
+      todos: ids([...sec.loose, ...sec.headings.flatMap((h) => h.todos)]),
+      projects: pr ? ids([pr]) : [],
+    };
+  }
+  if (view.kind === 'area') {
+    return { todos: ids(areaLooseTodos(s, view.id)), projects: ids(areaProjects(s, view.id, true)) };
+  }
+  const p = projectIndex(s.projects);
+  const todos = visibleTodos(s);
+  const inList: Record<BuiltInList, (t: Todo) => boolean> = {
+    inbox: inInbox,
+    today: (t) => inToday(t, ref),
+    scheduled: (t) => inScheduled(t, ref),
+    unscheduled: (t) => inUnscheduled(t, p, ref),
+    deferred: (t) => inDeferred(t, ref),
+    logbook: () => false,
+    trash: () => false,
+  };
+  return { todos: ids(todos.filter(inList[view.list])), projects: [] };
 }

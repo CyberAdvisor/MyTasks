@@ -341,7 +341,9 @@ describe('Quick Entry draft', async () => {
     expect(homeOf(todo({ startDate: ref }), ref)).toEqual({ kind: 'list', list: 'today' });
     expect(homeOf(todo({ startDate: '2026-12-01' }), ref)).toEqual({ kind: 'list', list: 'scheduled' });
     expect(homeOf(todo({ start: 'deferred' }), ref)).toEqual({ kind: 'list', list: 'deferred' });
-    expect(homeOf(todo({ status: 'completed' }), ref)).toEqual({ kind: 'list', list: 'logbook' });
+    expect(homeOf(todo({ status: 'completed', loggedAt: 'x' }), ref)).toEqual({ kind: 'list', list: 'logbook' });
+    // Completed but still waiting to move: found where it was (FR-12.2).
+    expect(homeOf(todo({ status: 'completed', startDate: ref }), ref)).toEqual({ kind: 'list', list: 'today' });
     expect(homeOf(todo(), ref)).toEqual({ kind: 'list', list: 'unscheduled' });
   });
 });

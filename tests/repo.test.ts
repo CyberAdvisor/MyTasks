@@ -67,6 +67,7 @@ describe('to-dos', () => {
   it('logs completed to-dos and restores them on uncheck', async () => {
     const id = await repo.createTodo({ title: 'x' });
     await repo.setTodoStatus(id, 'completed');
+    await repo.moveToCompleted({ todos: [id], projects: [] });
     let s = await snap();
     expect(logbookGroups(s, today())[0].todos[0].id).toBe(id);
     expect(inboxTodos(s)).toHaveLength(0);
@@ -74,6 +75,7 @@ describe('to-dos', () => {
     s = await snap();
     expect(inboxTodos(s)).toHaveLength(1);
     expect(s.todos[0].completedAt).toBeNull();
+    expect(s.todos[0].loggedAt).toBeNull();
   });
 
   it('trashes, restores and permanently empties', async () => {

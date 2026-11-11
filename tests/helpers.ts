@@ -57,6 +57,7 @@ export function todo(over: Partial<Todo> = {}): Todo {
     projectId: null,
     headingId: null,
     completedAt: null,
+    loggedAt: null,
     trashedAt: null,
     ...over,
   };
@@ -79,6 +80,7 @@ export function project(over: Partial<Project> = {}): Project {
     tagIds: [],
     areaId: null,
     completedAt: null,
+    loggedAt: null,
     trashedAt: null,
     ...over,
   };

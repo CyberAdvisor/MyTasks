@@ -8,7 +8,7 @@ import { get } from 'svelte/store';
 import * as repo from './db/repo';
 import { moveByKeyboard } from './drag/drag';
 import { canAddHere, newHeading, newTodoInline, openQuickEntry } from './actions';
-import { isOpen, type BuiltInList, type TodayGrouping } from './model/lists';
+import { isListed, type BuiltInList, type TodayGrouping } from './model/lists';
 import type { Priority, Todo } from './model/types';
 import { settings, snapshot, todayDate } from './state/live';
 import { go, route } from './state/route';
@@ -44,10 +44,13 @@ function rowOf(id: string): HTMLElement | undefined {
   return rows().find((el) => el.dataset.rowId === id);
 }
 
-/** The to-do item commands act on: the open card's, else the selected row's. */
+/**
+ * The to-do item commands act on: the open card's, else the selected row's.
+ * A completed to-do still waiting in its list counts (FR-12.2).
+ */
 function target(): Todo | undefined {
   const id = ui.expandedId ?? (ui.selectedId && rowOf(ui.selectedId) ? ui.selectedId : null);
-  return get(snapshot).todos.find((t) => t.id === id && isOpen(t));
+  return get(snapshot).todos.find((t) => t.id === id && isListed(t));
 }
 
 /** Move the selection to the previous (-1) or next (+1) row and focus it. */
@@ -134,7 +137,7 @@ export function runCommand(command: Command): boolean {
     }
     case 'complete':
     case 'cancel':
-      ui.toggleDone(t.id, command === 'complete' ? 'completed' : 'canceled');
+      ui.check(t, command === 'complete' ? 'completed' : 'canceled');
       return true;
     case 'today':
       // Toggles, as in Things (FR-3.4).

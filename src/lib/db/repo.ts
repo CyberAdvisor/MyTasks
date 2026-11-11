@@ -9,7 +9,7 @@
 import { db } from './database';
 import { log, tx } from './history';
 import { nowIso, uuidv7 } from '../model/ids';
-import { today } from '../model/dates';
+import { localDay, today } from '../model/dates';
 import { bySortKey, keyAtEnd, keyAtStart, keyBetween, placementKeys } from '../model/order';
 import { priorityRules } from '../model/priority';
 import { readSettings, type AppSettings, type SettingKey } from '../model/settings';
@@ -133,7 +133,64 @@ export function sweepPriorities(): Promise<void> {
  */
 export async function setSetting<K extends SettingKey>(key: K, value: AppSettings[K]): Promise<void> {
   await tx(() => db.settings.put({ key, value }), { track: false });
-  if (value === true) await sweepPriorities();
+  if (key === 'moveToCompleted') await sweepCompleted();
+  else if (value === true && (key === 'autoP1' || key === 'defaultP2')) await sweepPriorities();
+}
+
+// ---------------------------------------------------------------------------
+// Moving completed items to Completed (FR-12.2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Status, completion time and move time for a status change. A closed item
+ * goes straight to Completed when the setting is Immediately; otherwise it
+ * waits in its list. Reopening clears both times.
+ */
+function statusFields(
+  status: Todo['status'],
+  at: string,
+  settings: AppSettings,
+): Pick<Todo, 'status' | 'completedAt' | 'loggedAt'> {
+  if (status === 'open') return { status, completedAt: null, loggedAt: null };
+  return { status, completedAt: at, loggedAt: settings.moveToCompleted === 'immediately' ? at : null };
+}
+
+/** Whether a waiting item is due to move under `mode`, given today's date. */
+function dueToMove(item: Todo | Project, mode: AppSettings['moveToCompleted'], ref: LocalDate): boolean {
+  if (item.status === 'open' || item.loggedAt !== null) return false;
+  if (mode === 'immediately') return true;
+  // Daily: everything completed before today (FR-3.5 rollover).
+  return mode === 'daily' && item.completedAt !== null && localDay(item.completedAt) < ref;
+}
+
+/**
+ * Move the waiting items the setting says are due: all of them for
+ * Immediately, those completed before today for Daily, none for Manually.
+ * Runs at launch, on resume, at midnight and when the setting changes. It is
+ * the app's own change, so it never replaces the user's last undo step.
+ */
+export function sweepCompleted(): Promise<void> {
+  return tx(async () => {
+    const { moveToCompleted } = await loadSettings();
+    if (moveToCompleted === 'manually') return;
+    const ref = today();
+    const at = nowIso();
+    for (const t of await db.todos.where('status').anyOf('completed', 'canceled').toArray()) {
+      if (dueToMove(t, moveToCompleted, ref)) await patch<Todo>('todos', t.id, { loggedAt: at });
+    }
+    for (const p of await db.projects.where('status').anyOf('completed', 'canceled').toArray()) {
+      if (dueToMove(p, moveToCompleted, ref)) await patch<Project>('projects', p.id, { loggedAt: at });
+    }
+  }, { track: false });
+}
+
+/** Move to Completed (FR-12.2): move the given waiting to-dos and projects now. Undoable. */
+export function moveToCompleted(ids: { todos: ID[]; projects: ID[] }): Promise<void> {
+  return tx(async () => {
+    const at = nowIso();
+    for (const id of ids.todos) await patch<Todo>('todos', id, { loggedAt: at });
+    for (const id of ids.projects) await patch<Project>('projects', id, { loggedAt: at });
+  });
 }
 
 /** Set or clear a to-do's context (FR-18.3). */
@@ -230,6 +287,7 @@ export async function createTodo(opts: NewTodo = {}): Promise<ID> {
       projectId: project ? projectId : null,
       headingId,
       completedAt: null,
+      loggedAt: null,
       trashedAt: null,
     };
     await db.todos.add(todo);
@@ -290,7 +348,8 @@ export function setDeadline(id: ID, deadline: LocalDate | null): Promise<void> {
 /** Complete, cancel or reopen a to-do (FR-1.3, FR-1.4, FR-12.1). */
 export function setTodoStatus(id: ID, status: Todo['status']): Promise<void> {
   return tx(async () => {
-    await patch<Todo>('todos', id, { status, completedAt: status === 'open' ? null : nowIso() });
+    const settings = await loadSettings();
+    await patch<Todo>('todos', id, statusFields(status, nowIso(), settings));
     // Closed to-dos keep their priority (FR-14.12); a reopened one is checked again.
     if (status === 'open') await applyPriorityRules(id);
   });
@@ -317,6 +376,7 @@ export async function duplicateTodo(id: ID): Promise<ID | undefined> {
       ...base(keyBetween(t.sortKey, next)),
       status: 'open',
       completedAt: null,
+      loggedAt: null,
       trashedAt: null,
     };
     await db.todos.add(copy);
@@ -388,6 +448,8 @@ export function convertTodoToProject(id: ID): Promise<ID | undefined> {
         notes: '',
         status: item.completed ? 'completed' : 'open',
         completedAt: item.completed ? at : null,
+        // Never shown as an open to-do, so it goes straight to Completed.
+        loggedAt: item.completed ? at : null,
         start: 'unscheduled',
         startDate: null,
         deadline: null,
@@ -440,6 +502,7 @@ async function insertProject(opts: NewProject): Promise<ID> {
     tagIds: opts.tagIds ? [...opts.tagIds] : [],
     areaId,
     completedAt: null,
+    loggedAt: null,
     trashedAt: null,
   };
   await db.projects.add(project);
@@ -489,11 +552,12 @@ export function setProjectWhen(id: ID, choice: WhenChoice): Promise<void> {
 export function closeProject(id: ID, status: 'completed' | 'canceled', openTodos: 'completed' | 'canceled'): Promise<void> {
   return tx(async () => {
     const at = nowIso();
+    const settings = await loadSettings();
     const todos = await db.todos.where('projectId').equals(id).toArray();
     for (const t of todos.filter((x) => x.status === 'open' && x.deletedAt === null && x.trashedAt === null)) {
-      await patch<Todo>('todos', t.id, { status: openTodos, completedAt: at });
+      await patch<Todo>('todos', t.id, statusFields(openTodos, at, settings));
     }
-    await patch<Project>('projects', id, { status, completedAt: at });
+    await patch<Project>('projects', id, statusFields(status, at, settings));
   });
 }
 
@@ -515,6 +579,7 @@ export function duplicateProject(id: ID): Promise<ID | undefined> {
       tagIds: [...p.tagIds],
       status: 'open',
       completedAt: null,
+      loggedAt: null,
       trashedAt: null,
     };
     await db.projects.add(copy);
@@ -550,7 +615,7 @@ export function duplicateProject(id: ID): Promise<ID | undefined> {
 
 /** Reopen a closed project. */
 export function reopenProject(id: ID): Promise<void> {
-  return tx(() => patch<Project>('projects', id, { status: 'open', completedAt: null }));
+  return tx(() => patch<Project>('projects', id, { status: 'open', completedAt: null, loggedAt: null }));
 }
 
 /** Move a project (and its to-dos) to Trash, or restore it. */
@@ -582,13 +647,16 @@ export function placeHeading(id: ID, order: ID[]): Promise<void> {
   return tx(() => place<Heading>('headings', id, order, 'sortKey', (h) => h.sortKey));
 }
 
-/** Archive a heading; its to-dos are completed with it, as in Things. */
+/**
+ * Archive a heading; its to-dos are completed with it, as in Things, and go
+ * straight to Completed, since the heading they would wait under is hidden.
+ */
 export function archiveHeading(id: ID): Promise<void> {
   return tx(async () => {
     const at = nowIso();
     const todos = await db.todos.where('headingId').equals(id).toArray();
     for (const t of todos.filter((x) => x.status === 'open')) {
-      await patch<Todo>('todos', t.id, { status: 'completed', completedAt: at });
+      await patch<Todo>('todos', t.id, { status: 'completed', completedAt: at, loggedAt: at });
     }
     await patch<Heading>('headings', id, { archived: true });
   });

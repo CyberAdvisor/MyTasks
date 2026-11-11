@@ -1,6 +1,8 @@
 <!--
   Settings (design doc, Section 5.10 FR-14.13 and Section 5.4 FR-6.1).
   - Appearance (FR-V.3): System, Light or Dark.
+  - Completed Items: when completed items move to Completed (FR-12.2) and
+    the two "move to the bottom" switches (FR-12.7, FR-7.5).
   - Priority Settings: P1–P5 labels and the two automatic-rule switches.
   - Tags: create, rename, reorder and delete (the Manage Tags window).
   - Contexts (FR-18.2): the same, for the contexts a to-do can be in.
@@ -14,7 +16,13 @@
   import Segmented from '../components/Segmented.svelte';
   import { settings, snapshot } from '../lib/state/live';
   import { bySortKey } from '../lib/model/order';
-  import { DEFAULT_PRIORITY_LABELS, PRIORITIES, cleanLabels, type Theme } from '../lib/model/settings';
+  import {
+    DEFAULT_PRIORITY_LABELS,
+    PRIORITIES,
+    cleanLabels,
+    type MoveToCompleted,
+    type Theme,
+  } from '../lib/model/settings';
   import * as repo from '../lib/db/repo';
   import type { ID, Priority } from '../lib/model/types';
 
@@ -22,6 +30,12 @@
     { value: 'system', label: 'System' },
     { value: 'light', label: 'Light' },
     { value: 'dark', label: 'Dark' },
+  ];
+
+  const MOVE_OPTIONS: { value: MoveToCompleted; label: string }[] = [
+    { value: 'immediately', label: 'Immediately' },
+    { value: 'daily', label: 'Daily' },
+    { value: 'manually', label: 'Manually' },
   ];
 
   let tags = $derived(bySortKey($snapshot.tags));
@@ -73,6 +87,41 @@
     />
   </div>
   <p class="help">System follows your device's light or dark setting.</p>
+</section>
+
+<section aria-labelledby="completed-heading">
+  <h2 id="completed-heading">Completed Items</h2>
+  <div class="setting-row">
+    <span>Move completed items to Completed</span>
+    <Segmented
+      label="Move completed items to Completed"
+      options={MOVE_OPTIONS}
+      value={$settings.moveToCompleted}
+      onchange={(v) => repo.setSetting('moveToCompleted', v)}
+    />
+  </div>
+  <p class="help">
+    Until they move, completed items stay in their list, struck through. Daily moves them at
+    midnight. Manually waits for Move to Completed.
+  </p>
+  <label class="switch-row">
+    <input
+      type="checkbox"
+      role="switch"
+      checked={$settings.sinkCompleted}
+      onchange={(e) => repo.setSetting('sinkCompleted', e.currentTarget.checked)}
+    />
+    <span>Move completed to-dos to the bottom of the list</span>
+  </label>
+  <label class="switch-row">
+    <input
+      type="checkbox"
+      role="switch"
+      checked={$settings.sinkChecked}
+      onchange={(e) => repo.setSetting('sinkChecked', e.currentTarget.checked)}
+    />
+    <span>Move checked items to the bottom of the checklist</span>
+  </label>
 </section>
 
 <section aria-labelledby="prio-heading">

@@ -7,7 +7,7 @@
  * `#/saved/<id>` and `#/filter/<name>`. Hash routes work on any static host.
  */
 import { readable, type Readable } from 'svelte/store';
-import type { BuiltInList } from '../model/lists';
+import type { BuiltInList, ViewRef } from '../model/lists';
 import { FILTER_TITLES, type BuiltInFilter } from '../model/search';
 import type { ID } from '../model/types';
 
@@ -79,3 +79,8 @@ export const route: Readable<Route> = readable<Route>(parseHash(location.hash), 
   window.addEventListener('hashchange', onChange);
   return () => window.removeEventListener('hashchange', onChange);
 });
+
+/** The view a route shows, for Move to Completed (FR-12.2); null for pages without one. */
+export function viewRefOf(r: Route): ViewRef | null {
+  return r.kind === 'list' || r.kind === 'project' || r.kind === 'area' ? r : null;
+}

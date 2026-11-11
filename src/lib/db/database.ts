@@ -59,6 +59,15 @@ export class MyTasksDB extends Dexie {
           x.contextId ??= null;
         });
       });
+    // Version 3: completed items wait in their list until moved to Completed
+    // (FR-12.2). Everything already completed or canceled counts as moved.
+    this.version(3).stores({}).upgrade(async (tx) => {
+      const markMoved = (x: { status: string; completedAt: string | null; modifiedAt: string; loggedAt?: string | null }) => {
+        x.loggedAt ??= x.status === 'open' ? null : (x.completedAt ?? x.modifiedAt);
+      };
+      await tx.table('todos').toCollection().modify(markMoved);
+      await tx.table('projects').toCollection().modify(markMoved);
+    });
   }
 }
 

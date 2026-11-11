@@ -3,10 +3,14 @@
   rows can be reordered by dragging or with Cmd/Ctrl+Up and Down (FR-10.3).
   The whole section, heading and bottom padding included, takes drops, so a
   row can be dropped on a group's title or in the gap below its last row.
+  With "Move completed to-dos to the bottom of the list" on, completed rows
+  waiting to move show below the open ones (FR-12.7); display only.
 -->
 <script lang="ts">
   import TodoRow from './TodoRow.svelte';
   import { dropZone, type DropZone } from '../lib/drag/drag';
+  import { sinkClosed } from '../lib/model/lists';
+  import { settings } from '../lib/state/live';
   import type { LocalDate, Todo } from '../lib/model/types';
 
   let {
@@ -38,6 +42,8 @@
     /** How the rows are reordered; none for lists without a manual order. */
     zone?: DropZone | null;
   } = $props();
+
+  let shown = $derived(mode === 'open' && $settings.sinkCompleted ? sinkClosed(todos) : todos);
 </script>
 
 <section class="group" use:dropZone={zone}>
@@ -45,7 +51,7 @@
     <h2>{title}{#if subtitle}<span class="sub">{subtitle}</span>{/if}</h2>
   {/if}
   <ul>
-    {#each todos as todo (todo.id)}
+    {#each shown as todo (todo.id)}
       <TodoRow {todo} {ref} {mode} {showPriority} {showContext} containerLabel={label(todo)} starred={starred(todo)} />
     {/each}
   </ul>

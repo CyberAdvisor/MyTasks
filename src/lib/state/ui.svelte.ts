@@ -5,7 +5,7 @@
 import * as repo from '../db/repo';
 import { undo } from '../db/history';
 import { readFlag, writeFlag } from './flags';
-import type { ID } from '../model/types';
+import type { ID, Todo } from '../model/types';
 import type { TodoDraft } from './draft.svelte';
 
 /** How long a completed row stays visible before it leaves the list (FR-1.3). */
@@ -128,6 +128,15 @@ class UiState {
     this.selectedId = r.id;
     this.scrollId = r.id;
     if (r.open) this.expandedId = r.id;
+  }
+
+  /**
+   * The checkbox of a row or card: check an open to-do off (`toggleDone`), or
+   * reopen one that is completed and still waiting in its list (FR-12.2).
+   */
+  check(todo: Todo, status: 'completed' | 'canceled' = 'completed'): void {
+    if (todo.status === 'open') this.toggleDone(todo.id, status);
+    else void repo.setTodoStatus(todo.id, 'open');
   }
 
   /**

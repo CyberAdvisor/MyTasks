@@ -52,7 +52,8 @@
   });
 
   let pending = $derived(ui.pending[todo.id]);
-  let done = $derived(mode === 'logbook' || pending !== undefined);
+  // Done: in Completed, checked off, or completed and waiting to move (FR-12.2).
+  let done = $derived(mode === 'logbook' || pending !== undefined || todo.status !== 'open');
   let canceled = $derived(todo.status === 'canceled' || pending === 'canceled');
   let due = $derived(todo.deadline !== null && todo.deadline <= ref);
   let futureDate = $derived(todo.startDate !== null && todo.startDate > ref ? todo.startDate : null);
@@ -60,14 +61,10 @@
   let checklist = $derived(checklistProgress(todo.id, $snapshot));
   let context = $derived(showContext ? contextTitle(todo.contextId, $snapshot) : '');
 
-  /** Checkbox: complete (Alt-click cancels), or reopen from Completed. */
+  /** Checkbox: complete (Alt-click cancels), or reopen a completed to-do. */
   function onCheck(e: MouseEvent) {
-    if (mode === 'logbook') {
-      void repo.setTodoStatus(todo.id, 'open');
-      return;
-    }
     if (mode === 'trash') return;
-    ui.toggleDone(todo.id, e.altKey ? 'canceled' : 'completed');
+    ui.check(todo, e.altKey ? 'canceled' : 'completed');
   }
 
   /** Touch opens straight away; a pointer selects, double-click opens. */

@@ -64,6 +64,8 @@ export interface Project extends BaseRecord {
   tagIds: ID[];
   areaId: ID | null;
   completedAt: Timestamp | null;
+  /** When it was moved to Completed (FR-12.2); null while open or still waiting in its list. */
+  loggedAt: Timestamp | null;
   trashedAt: Timestamp | null;
 }
 
@@ -93,6 +95,8 @@ export interface Todo extends BaseRecord {
   projectId: ID | null;
   headingId: ID | null;
   completedAt: Timestamp | null;
+  /** When it was moved to Completed (FR-12.2); null while open or still waiting in its list. */
+  loggedAt: Timestamp | null;
   trashedAt: Timestamp | null;
 }
 

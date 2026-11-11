@@ -25,7 +25,8 @@
 
   let counts = $derived(sidebarCounts($snapshot, $todayDate));
   let areas = $derived(bySortKey($snapshot.areas));
-  let looseProjects = $derived(areaProjects($snapshot, null));
+  // Completed projects stay listed, struck through, until moved to Completed (FR-12.2).
+  let looseProjects = $derived(areaProjects($snapshot, null, true));
   let saved = $derived(savedSearchesInOrder($snapshot));
   let savedCollapsed = $state(readFlag(SAVED_KEY));
   let menuOpen = $state(false);
@@ -150,10 +151,10 @@
             <span class="label">{area.title || 'New Area'}</span>
           </a>
           <ul class="lists">
-            {#each areaProjects($snapshot, area.id) as project (project.id)}
+            {#each areaProjects($snapshot, area.id, true) as project (project.id)}
               {@const pr = { kind: 'project', id: project.id } as Route}
               <li use:dragItem={{ type: 'project', id: project.id }}>
-                <a href={hrefFor(pr)} class="item project" class:active={isActive(pr)} use:dropTarget={moveHere({ projectId: project.id })}>
+                <a href={hrefFor(pr)} class="item project" class:active={isActive(pr)} class:closed={project.status !== 'open'} use:dropTarget={project.status === 'open' ? moveHere({ projectId: project.id }) : null}>
                   <ProgressPie fraction={projectProgress($snapshot, project.id)} size={14} />
                   <span class="label">{project.title || 'New Project'}</span>
                 </a>
@@ -169,7 +170,7 @@
       {#each looseProjects as project (project.id)}
         {@const pr = { kind: 'project', id: project.id } as Route}
         <li use:dragItem={{ type: 'project', id: project.id }}>
-          <a href={hrefFor(pr)} class="item" class:active={isActive(pr)} use:dropTarget={moveHere({ projectId: project.id })}>
+          <a href={hrefFor(pr)} class="item" class:active={isActive(pr)} class:closed={project.status !== 'open'} use:dropTarget={project.status === 'open' ? moveHere({ projectId: project.id }) : null}>
             <ProgressPie fraction={projectProgress($snapshot, project.id)} size={14} />
             <span class="label">{project.title || 'New Project'}</span>
           </a>
@@ -283,6 +284,10 @@
   }
   .item.project {
     padding-left: 18px;
+  }
+  .closed .label {
+    color: var(--text-done);
+    text-decoration: line-through;
   }
   .label {
     flex: 1;

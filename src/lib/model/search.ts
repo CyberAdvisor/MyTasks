@@ -17,6 +17,7 @@ import {
   type BuiltInList,
   type Snapshot,
   type TodoGroup,
+  type WaitingItems,
 } from './lists';
 import { bySortKey } from './order';
 import { contextTitle } from './contexts';
@@ -151,22 +152,38 @@ export type FindResult =
   | { kind: 'project'; id: ID; title: string; logged: boolean }
   | { kind: 'tag'; id: ID; title: string }
   | { kind: 'todo'; todo: Todo; logged: boolean }
+  | { kind: 'move-completed'; title: string; waiting: WaitingItems }
   | { kind: 'search'; query: string };
+
+/** Title of the Move to Completed command (FR-12.2). */
+export const MOVE_TO_COMPLETED_TITLE = 'Move to Completed';
 
 /** The most to-dos Quick Find lists; the rest are on the full results page. */
 const FIND_TODO_LIMIT = 30;
 
 /**
- * Quick Find results for `query`: lists, built-in filters, saved searches,
+ * Quick Find results for `query`: the Move to Completed command (when
+ * `waiting`, the current view's waiting items, is not empty), lists, built-in
+ * filters, saved searches,
  * areas, projects and tags whose name matches, then matching to-dos (open
  * first, logged last), then a row that opens the full results page.
  * `listTitles` gives the built-in lists' display names.
  */
-export function quickFind(s: Snapshot, query: string, listTitles: Record<BuiltInList, string>): FindResult[] {
+export function quickFind(
+  s: Snapshot,
+  query: string,
+  listTitles: Record<BuiltInList, string>,
+  waiting: WaitingItems = { todos: [], projects: [] },
+): FindResult[] {
   const words = queryWords(query);
   if (!words.length) return [];
   const named = (title: string) => hasAll(fold(title), words);
   const results: FindResult[] = [];
+
+  // The Move to Completed command, when the current view has items waiting.
+  if ((waiting.todos.length || waiting.projects.length) && named(MOVE_TO_COMPLETED_TITLE)) {
+    results.push({ kind: 'move-completed', title: MOVE_TO_COMPLETED_TITLE, waiting });
+  }
 
   for (const [list, title] of Object.entries(listTitles) as [BuiltInList, string][]) {
     if (named(title)) results.push({ kind: 'list', list, title });
