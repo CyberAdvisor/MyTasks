@@ -2,6 +2,8 @@
   Expanded to-do card (FR-1.2): title, notes, checklist, tags, When,
   deadline, priority and context (FR-18.3). Set fields show as chips on the left of the bottom
   bar; buttons for the empty ones sit on the right, as in Things.
+  Below the card, as in Things, a blue link names the to-do's project or
+  area, with Go to Project and Change Project (the Move dialog).
   Edits save as you type, debounced 300 ms; there is no Save button.
   Escape or a click outside closes it.
 -->
@@ -16,7 +18,10 @@
   import ContextMenu from './ContextMenu.svelte';
   import Checklist from './Checklist.svelte';
   import { ui } from '../lib/state/ui.svelte';
-  import { go } from '../lib/state/route';
+  import ProgressPie from './ProgressPie.svelte';
+  import { go, route } from '../lib/state/route';
+  import { containerLink, goToContainer } from '../lib/actions';
+  import { projectProgress } from '../lib/model/lists';
   import { settings, snapshot } from '../lib/state/live';
   import { deadlineLabel, formatRelative } from '../lib/model/dates';
   import { priorityLabel } from '../lib/model/settings';
@@ -36,6 +41,7 @@
   // svelte-ignore state_referenced_locally
   let notes = $state(todo.notes);
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
+  /** The card and the project link under it; clicks inside keep the card open. */
   let card: HTMLDivElement;
   let titleInput: HTMLInputElement;
 
@@ -61,6 +67,17 @@
   );
   let tagNames = $derived(tagTitles(todo.tagIds, $snapshot));
   let contextName = $derived(contextTitle(todo.contextId, $snapshot));
+  // The link under the card to the to-do's project or area (FR-1.2).
+  let link = $derived(containerLink(todo, $route));
+  let linkName = $derived(
+    !link
+      ? ''
+      : link.kind === 'project'
+        ? $snapshot.projects.find((p) => p.id === link!.id)?.title || 'New Project'
+        : $snapshot.areas.find((a) => a.id === link!.id)?.title || 'New Area',
+  );
+  let noun = $derived(link?.kind === 'area' ? 'Area' : 'Project');
+  let linkOpen = $state(false);
   let checklistItems = $derived(checklistFor(todo.id, $snapshot));
   let checklistOps = $derived(storedChecklist(todo.id));
 
@@ -198,7 +215,8 @@
   <ContextMenu contextId={todo.contextId} onchoose={chooseContext} />
 {/snippet}
 
-<div class="card" bind:this={card} role="group" aria-label="Edit to-do">
+<div bind:this={card}>
+<div class="card" role="group" aria-label="Edit to-do">
   <div class="top">
     <button
       type="button"
@@ -372,7 +390,51 @@
   </div>
 </div>
 
+{#if link}
+  <div class="where">
+    <Popover bind:open={linkOpen} label="{noun} actions">
+      {#snippet trigger(toggle, open)}
+        <button type="button" class="where-btn" aria-label="{noun}: {linkName}" aria-expanded={open} onclick={toggle}>
+          {#if link!.kind === 'project'}
+            <ProgressPie fraction={projectProgress($snapshot, link!.id)} size={14} />
+          {:else}
+            <Icon name="area" size={14} />
+          {/if}
+          {linkName}
+          <Icon name="chevron-right" size={13} />
+        </button>
+      {/snippet}
+      <div role="menu" aria-label="{noun} actions">
+        <button type="button" class="menu-item" role="menuitem" onclick={() => { linkOpen = false; flush(); goToContainer(todo, $route); }}>Go to {noun}</button>
+        <button type="button" class="menu-item" role="menuitem" onclick={() => { linkOpen = false; ui.movingId = todo.id; }}>Change {noun}</button>
+      </div>
+    </Popover>
+  </div>
+{/if}
+</div>
+
 <style>
+  .where {
+    display: flex;
+    justify-content: flex-end;
+    margin: -2px 6px 8px;
+  }
+  .where-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 0;
+    background: transparent;
+    padding: 3px 6px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent-text);
+  }
+  .where-btn:hover,
+  .where-btn[aria-expanded='true'] {
+    background: var(--hover-bg);
+  }
   .card {
     margin: 6px 0;
     padding: 12px 14px 10px;
