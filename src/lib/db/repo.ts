@@ -17,6 +17,7 @@ import type {
   Area,
   BaseRecord,
   ChecklistItem,
+  Context,
   EntityName,
   Heading,
   ID,
@@ -135,6 +136,11 @@ export async function setSetting<K extends SettingKey>(key: K, value: AppSetting
   if (value === true) await sweepPriorities();
 }
 
+/** Set or clear a to-do's context (FR-18.3). */
+export function setContext(id: ID, contextId: ID | null): Promise<void> {
+  return tx(() => patch<Todo>('todos', id, { contextId }));
+}
+
 /** Set or clear a to-do's priority as the user's own choice (FR-14.2). */
 export function setPriority(id: ID, priority: Priority | null): Promise<void> {
   return tx(() =>
@@ -183,6 +189,7 @@ export interface NewTodo extends TodoPlacement {
   tagIds?: ID[];
   /** A priority the user chose; `null` means they chose None. Omit for no choice. */
   priority?: Priority | null;
+  contextId?: ID | null;
   checklist?: { title: string; completed: boolean }[];
 }
 
@@ -218,6 +225,7 @@ export async function createTodo(opts: NewTodo = {}): Promise<ID> {
       prioritySource: opts.priority === undefined ? null : 'user',
       priorityBeforeAuto: null,
       tagIds: opts.tagIds ?? [],
+      contextId: opts.contextId ?? null,
       areaId,
       projectId: project ? projectId : null,
       headingId,
@@ -731,6 +739,47 @@ export function toggleTag(entity: 'todos' | 'projects' | 'areas', id: ID, tagId:
 }
 
 // ---------------------------------------------------------------------------
+// Contexts (FR-18.2)
+// ---------------------------------------------------------------------------
+
+/** Create a context at the end of the Settings list. */
+export function createContext(title: string): Promise<ID> {
+  return tx(async () => {
+    const keys = await siblingKeys<Context>('contexts', () => true);
+    const context: Context = { ...base(keyAtEnd(keys)), title: title.trim() };
+    await db.contexts.add(context);
+    await log('contexts', context.id, ['*']);
+    return context.id;
+  });
+}
+
+export function renameContext(id: ID, title: string): Promise<void> {
+  return tx(() => patch<Context>('contexts', id, { title: title.trim() }));
+}
+
+/** Move a context one place up or down in Settings. */
+export function moveContext(id: ID, direction: 'up' | 'down'): Promise<void> {
+  return tx(async () => {
+    const key = await shiftedKey<Context>('contexts', id, () => true, direction);
+    if (key) await patch<Context>('contexts', id, { sortKey: key });
+  });
+}
+
+/** Delete a context and clear it from every to-do and saved search; one undo step. */
+export function deleteContext(id: ID): Promise<void> {
+  return tx(async () => {
+    for (const entity of ['todos', 'savedSearches'] as const) {
+      const rows = (await db.table(entity).filter((r: Todo | SavedSearch) => r.contextId === id).toArray()) as (
+        | Todo
+        | SavedSearch
+      )[];
+      for (const r of rows) await patch<Todo | SavedSearch>(entity, r.id, { contextId: null });
+    }
+    await patch<Context>('contexts', id, { deletedAt: nowIso() });
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Checklists (FR-7.1, FR-7.2)
 // ---------------------------------------------------------------------------
 
@@ -794,7 +843,7 @@ export function moveChecklistItem(id: ID, direction: 'up' | 'down'): Promise<voi
 // ---------------------------------------------------------------------------
 
 /** The editable fields of a saved search. */
-export type SavedSearchFields = Pick<SavedSearch, 'title' | 'query' | 'tagIds'>;
+export type SavedSearchFields = Pick<SavedSearch, 'title' | 'query' | 'tagIds'> & { contextId?: ID | null };
 
 /** Save a search at the end of the sidebar section and return its id (FR-15.1). */
 export function createSavedSearch(fields: SavedSearchFields): Promise<ID> {
@@ -805,6 +854,7 @@ export function createSavedSearch(fields: SavedSearchFields): Promise<ID> {
       title: fields.title.trim(),
       query: fields.query.trim(),
       tagIds: [...fields.tagIds],
+      contextId: fields.contextId ?? null,
     };
     await db.savedSearches.add(saved);
     await log('savedSearches', saved.id, ['*']);

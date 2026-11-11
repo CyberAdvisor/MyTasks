@@ -18,6 +18,7 @@
     starred = () => false,
     mode = 'open',
     showPriority = true,
+    showContext = true,
     zone = null,
   }: {
     todos: Todo[];
@@ -32,6 +33,8 @@
     mode?: 'open' | 'logbook' | 'trash';
     /** Show priority chips on rows. */
     showPriority?: boolean;
+    /** Show contexts on rows. */
+    showContext?: boolean;
     /** How the rows are reordered; none for lists without a manual order. */
     zone?: DropZone | null;
   } = $props();
@@ -43,7 +46,7 @@
   {/if}
   <ul>
     {#each todos as todo (todo.id)}
-      <TodoRow {todo} {ref} {mode} {showPriority} containerLabel={label(todo)} starred={starred(todo)} />
+      <TodoRow {todo} {ref} {mode} {showPriority} {showContext} containerLabel={label(todo)} starred={starred(todo)} />
     {/each}
   </ul>
 </section>

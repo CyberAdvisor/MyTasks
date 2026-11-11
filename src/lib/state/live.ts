@@ -25,6 +25,7 @@ const EMPTY: Snapshot = {
   headings: [],
   todos: [],
   tags: [],
+  contexts: [],
   checklistItems: [],
   savedSearches: [],
 };
@@ -35,12 +36,13 @@ const live = <T extends { deletedAt: string | null }>(rows: T[]) => rows.filter(
 /** Live view of all records the lists need. */
 export const snapshot: Readable<Snapshot> = readable<Snapshot>(EMPTY, (set) => {
   const sub = liveQuery(async () => {
-    const [areas, projects, headings, todos, tags, checklistItems, savedSearches] = await Promise.all([
+    const [areas, projects, headings, todos, tags, contexts, checklistItems, savedSearches] = await Promise.all([
       db.areas.toArray(),
       db.projects.toArray(),
       db.headings.toArray(),
       db.todos.toArray(),
       db.tags.toArray(),
+      db.contexts.toArray(),
       db.checklistItems.toArray(),
       db.savedSearches.toArray(),
     ]);
@@ -50,6 +52,7 @@ export const snapshot: Readable<Snapshot> = readable<Snapshot>(EMPTY, (set) => {
       headings: live(headings),
       todos: live(todos),
       tags: live(tags),
+      contexts: live(contexts),
       checklistItems: live(checklistItems),
       savedSearches: live(savedSearches),
     } satisfies Snapshot;

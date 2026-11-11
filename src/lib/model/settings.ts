@@ -31,7 +31,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   todayGrouping: 'none',
 };
 
-const GROUPINGS: TodayGrouping[] = ['none', 'project', 'priority'];
+const GROUPINGS: TodayGrouping[] = ['none', 'project', 'priority', 'context'];
 
 /** All priorities, highest first. */
 export const PRIORITIES: Priority[] = [1, 2, 3, 4, 5];

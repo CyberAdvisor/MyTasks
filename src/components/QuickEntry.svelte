@@ -1,6 +1,6 @@
 <!--
   Quick Entry (FR-8.1): a floating card for writing a new to-do with every
-  field: title, notes, checklist, tags, When, deadline, priority and where it
+  field: title, notes, checklist, tags, When, deadline, priority, context and where it
   goes (the Inbox unless opened from another view, FR-10.5).
   Nothing is stored until Save (Enter in the title, or Cmd/Ctrl+Enter);
   Cancel or Escape discards the draft.
@@ -12,6 +12,7 @@
   import DeadlinePicker from './DeadlinePicker.svelte';
   import TagPicker from './TagPicker.svelte';
   import PriorityMenu from './PriorityMenu.svelte';
+  import ContextMenu from './ContextMenu.svelte';
   import Checklist from './Checklist.svelte';
   import DestinationList from './DestinationList.svelte';
   import { ui } from '../lib/state/ui.svelte';
@@ -20,6 +21,7 @@
   import { deadlineLabel, formatRelative } from '../lib/model/dates';
   import { priorityLabel } from '../lib/model/settings';
   import { tagTitles } from '../lib/model/tags';
+  import { contextTitle } from '../lib/model/contexts';
   import type { TodoDraft } from '../lib/state/draft.svelte';
   import type { TodoPlacement, WhenChoice } from '../lib/db/repo';
   import type { ID, LocalDate, Priority } from '../lib/model/types';
@@ -34,6 +36,7 @@
   let deadlineOpen = $state(false);
   let tagsOpen = $state(false);
   let prioOpen = $state(false);
+  let contextOpen = $state(false);
   let checklistFocus = $state<ID | null>(null);
 
   let ref = $derived($todayDate);
@@ -42,6 +45,7 @@
     draft.deferred ? 'Deferred' : draft.startDate === null ? '' : draft.startDate <= ref ? 'Today' : formatRelative(draft.startDate, ref),
   );
   let tagNames = $derived(tagTitles(draft.tagIds, $snapshot));
+  let contextName = $derived(contextTitle(draft.contextId, $snapshot));
   let where = $derived(placementLabel(draft.placement));
 
   $effect(() => {
@@ -115,6 +119,11 @@
     draft.priority = p;
   }
 
+  function chooseContext(contextId: ID | null) {
+    contextOpen = false;
+    draft.contextId = contextId;
+  }
+
   async function addChecklist() {
     [checklistFocus] = await draft.checklist.add([''], null);
   }
@@ -131,6 +140,9 @@
 {/snippet}
 {#snippet prioPanel()}
   <PriorityMenu priority={draft.priority ?? null} onchoose={choosePriority} />
+{/snippet}
+{#snippet contextPanel()}
+  <ContextMenu contextId={draft.contextId} onchoose={chooseContext} />
 {/snippet}
 
 <dialog
@@ -211,6 +223,16 @@
           {@render prioPanel()}
         </Popover>
       {/if}
+      {#if contextName}
+        <Popover bind:open={contextOpen} label="Context" align="left">
+          {#snippet trigger(toggle)}
+            <button type="button" class="chip" aria-label="Context: {contextName}" onclick={toggle}>
+              <Icon name="context" size={12} />{contextName}
+            </button>
+          {/snippet}
+          {@render contextPanel()}
+        </Popover>
+      {/if}
     </div>
 
     <div class="right">
@@ -257,6 +279,16 @@
             </button>
           {/snippet}
           {@render prioPanel()}
+        </Popover>
+      {/if}
+      {#if !contextName}
+        <Popover bind:open={contextOpen} label="Context">
+          {#snippet trigger(toggle, open)}
+            <button type="button" class="icon-btn" aria-label="Context" title="Context" aria-expanded={open} onclick={toggle}>
+              <Icon name="context" size={16} />
+            </button>
+          {/snippet}
+          {@render contextPanel()}
         </Popover>
       {/if}
     </div>

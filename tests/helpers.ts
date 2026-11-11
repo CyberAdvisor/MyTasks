@@ -6,12 +6,13 @@ import type { Project, Todo } from '../src/lib/model/types';
 
 /** Load the current database contents the way the app does. */
 export async function snap(): Promise<Snapshot> {
-  const [areas, projects, headings, todos, tags, checklistItems, savedSearches] = await Promise.all([
+  const [areas, projects, headings, todos, tags, contexts, checklistItems, savedSearches] = await Promise.all([
     db.areas.toArray(),
     db.projects.toArray(),
     db.headings.toArray(),
     db.todos.toArray(),
     db.tags.toArray(),
+    db.contexts.toArray(),
     db.checklistItems.toArray(),
     db.savedSearches.toArray(),
   ]);
@@ -21,6 +22,7 @@ export async function snap(): Promise<Snapshot> {
     headings: headings.filter((h) => !h.deletedAt),
     todos: todos.filter((t) => !t.deletedAt),
     tags: tags.filter((t) => !t.deletedAt),
+    contexts: contexts.filter((c) => !c.deletedAt),
     checklistItems: checklistItems.filter((c) => !c.deletedAt),
     savedSearches: savedSearches.filter((x) => !x.deletedAt),
   };
@@ -28,7 +30,7 @@ export async function snap(): Promise<Snapshot> {
 
 /** An empty snapshot with the given overrides. */
 export function snapshotOf(over: Partial<Snapshot> = {}): Snapshot {
-  return { areas: [], projects: [], headings: [], todos: [], tags: [], checklistItems: [], savedSearches: [], ...over };
+  return { areas: [], projects: [], headings: [], todos: [], tags: [], contexts: [], checklistItems: [], savedSearches: [], ...over };
 }
 
 /** Build a to-do with sensible defaults for list-rule tests. */
@@ -50,6 +52,7 @@ export function todo(over: Partial<Todo> = {}): Todo {
     prioritySource: null,
     priorityBeforeAuto: null,
     tagIds: [],
+    contextId: null,
     areaId: null,
     projectId: null,
     headingId: null,

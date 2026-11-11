@@ -1,6 +1,7 @@
 <!--
   The seven built-in lists (design doc, Section 3, List membership rules).
-  Today can be grouped by Project or Priority (FR-16).
+  Today can be grouped by Projects, Priorities or Contexts with the bar under
+  its title (FR-16, FR-18.7).
   Rows can be reordered (FR-10.3) in the Inbox, in Today (also within a
   Today group), within a day in Scheduled, and within each group of
   Unscheduled and Deferred, as in Things. Logbook and Trash have no manual order.
@@ -12,9 +13,9 @@
   import ViewHeader from '../components/ViewHeader.svelte';
   import ChoiceDialog from '../components/ChoiceDialog.svelte';
   import TagBar from '../components/TagBar.svelte';
-  import Popover from '../components/Popover.svelte';
   import { ui } from '../lib/state/ui.svelte';
   import { activeTag, filterByTag, projectTagIds, tagsInUse } from '../lib/model/tags';
+  import { activeContext, contextsInUse, filterByContext } from '../lib/model/contexts';
   import { settings, snapshot, todayDate } from '../lib/state/live';
   import { hrefFor } from '../lib/state/route';
   import { LIST_META } from '../lib/listMeta';
@@ -51,30 +52,30 @@
     list === 'deferred' ? L.deferredProjects(s) : list === 'logbook' ? L.loggedProjects(s) : list === 'trash' ? L.trashProjects(s) : [],
   );
 
-  // Tag filter (FR-6.3): offer the tags used here, then narrow every part of the list.
-  let offered = $derived(tagsInUse([...allFlat, ...allGroups.flatMap((g) => g.todos)], s));
+  // Filter bar (FR-6.3, FR-18.5): offer the tags and contexts used here, then
+  // narrow every part of the list. Projects have no context, so a context
+  // filter hides the project rows.
+  let allTodos = $derived([...allFlat, ...allGroups.flatMap((g) => g.todos)]);
+  let offered = $derived(tagsInUse(allTodos, s));
+  let offeredContexts = $derived(contextsInUse(allTodos, s));
   let tag = $derived(activeTag(ui.tagFilter, offered));
-  let flat = $derived(filterByTag(allFlat, tag, s));
-  let groups = $derived(
-    allGroups.map((g) => ({ ...g, todos: filterByTag(g.todos, tag, s) })).filter((g) => g.todos.length),
+  let ctx = $derived(activeContext(ui.contextFilter, offeredContexts));
+  const narrow = (todos: Todo[]) => filterByContext(filterByTag(todos, tag, s), ctx);
+  let flat = $derived(narrow(allFlat));
+  let groups = $derived(allGroups.map((g) => ({ ...g, todos: narrow(g.todos) })).filter((g) => g.todos.length));
+  let projects = $derived(
+    ctx ? [] : tag ? allProjects.filter((p) => projectTagIds(p, s).has(tag!)) : allProjects,
   );
-  let projects = $derived(tag ? allProjects.filter((p) => projectTagIds(p, s).has(tag!)) : allProjects);
 
-  // Today grouping (FR-16): applied after the tag filter.
+  // Today grouping (FR-16): applied after the filter bar.
   const GROUPINGS: { value: L.TodayGrouping; label: string }[] = [
-    { value: 'none', label: 'None' },
-    { value: 'project', label: 'Project' },
-    { value: 'priority', label: 'Priority' },
+    { value: 'none', label: 'All' },
+    { value: 'project', label: 'Projects' },
+    { value: 'priority', label: 'Priorities' },
+    { value: 'context', label: 'Contexts' },
   ];
   let grouping = $derived(list === 'today' ? $settings.todayGrouping : 'none');
-  let groupOpen = $state(false);
-  let groupingLabel = $derived(GROUPINGS.find((g) => g.value === grouping)?.label ?? 'None');
   let todayGroups = $derived(grouping === 'none' ? [] : L.todayGroups(flat, grouping, s, $settings.priorityLabels));
-
-  function chooseGrouping(value: L.TodayGrouping) {
-    groupOpen = false;
-    void repo.setSetting('todayGrouping', value);
-  }
 
   let mode = $derived<'open' | 'logbook' | 'trash'>(list === 'logbook' ? 'logbook' : list === 'trash' ? 'trash' : 'open');
   let isEmpty = $derived(!allFlat.length && !allGroups.length && !allProjects.length);
@@ -117,37 +118,25 @@
     {#if list === 'trash' && !isEmpty}
       <button type="button" class="btn-plain" onclick={() => (confirmEmpty = true)}>Empty Trash</button>
     {/if}
-    {#if list === 'today'}
-      <!-- An icon on the title line; blue while Today is grouped (FR-16.1). -->
-      <Popover bind:open={groupOpen} label="Group Today">
-        {#snippet trigger(toggle, open)}
-          <button
-            type="button"
-            class="btn-plain"
-            aria-haspopup="menu"
-            aria-expanded={open}
-            aria-label="Group Today by {groupingLabel}"
-            title="Group by: {groupingLabel}"
-            onclick={toggle}
-          >
-            <Icon name="group" size={20} color={grouping === 'none' ? 'currentColor' : 'var(--accent)'} />
-          </button>
-        {/snippet}
-        <div role="menu" aria-label="Group Today by">
-          <div class="menu-head">Group by</div>
-          {#each GROUPINGS as g (g.value)}
-            <button type="button" class="menu-item" role="menuitemradio" aria-checked={grouping === g.value} onclick={() => chooseGrouping(g.value)}>
-              <span class="grow">{g.label}</span>
-              {#if grouping === g.value}<Icon name="check" size={13} color="var(--accent)" />{/if}
-            </button>
-          {/each}
-        </div>
-      </Popover>
-    {/if}
   {/snippet}
 </ViewHeader>
 
-<TagBar tags={offered} />
+{#if list === 'today'}
+  <!-- Grouping bar under the title (FR-16.1); the app remembers the choice. -->
+  <div class="grouping" role="group" aria-label="Group Today by">
+    {#each GROUPINGS as g (g.value)}
+      <button
+        type="button"
+        aria-pressed={grouping === g.value}
+        onclick={() => repo.setSetting('todayGrouping', g.value)}
+      >
+        {g.label}
+      </button>
+    {/each}
+  </div>
+{/if}
+
+<TagBar tags={offered} contexts={offeredContexts} />
 
 {#if projects.length}
   <ul class="projects">
@@ -177,6 +166,7 @@
       subtitle={g.subtitle}
       label={grouping === 'project' ? () => '' : label}
       showPriority={grouping !== 'priority'}
+      showContext={grouping !== 'context'}
       zone={todayZone}
     />
   {/each}
@@ -241,14 +231,27 @@
     font-weight: 400;
     color: var(--text-3);
   }
-  .grow {
-    flex: 1;
+  .grouping {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    margin: -8px 0 16px 38px;
+    background: var(--hover-bg);
+    border-radius: 8px;
   }
-  .menu-head {
-    padding: 4px 10px 2px;
-    font-size: 11px;
+  .grouping button {
+    border: 0;
+    background: transparent;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-2);
+  }
+  .grouping button[aria-pressed='true'] {
+    background: #fff;
+    color: var(--text);
     font-weight: 600;
-    color: var(--text-3);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
   }
   .empty {
     color: var(--text-3);

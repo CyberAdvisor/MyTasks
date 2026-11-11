@@ -87,6 +87,8 @@ export interface Todo extends BaseRecord {
   /** Automatic value held before an automatic P1, restored by FR-14.11. */
   priorityBeforeAuto: Priority | null;
   tagIds: ID[];
+  /** The to-do's context, one of those defined in Settings (FR-18.1). */
+  contextId: ID | null;
   areaId: ID | null;
   projectId: ID | null;
   headingId: ID | null;
@@ -106,10 +108,20 @@ export interface Tag extends BaseRecord {
   parentTagId: ID | null;
 }
 
+/**
+ * A context a to-do can be in, e.g. Home or Phone (FR-18). Defined in
+ * Settings; to-dos point to it by id, so renaming never touches them.
+ */
+export interface Context extends BaseRecord {
+  title: string;
+}
+
 export interface SavedSearch extends BaseRecord {
   title: string;
   query: string;
   tagIds: ID[];
+  /** Only to-dos in this context; null for any (FR-18.6). */
+  contextId: ID | null;
 }
 
 /** Entity names, used by the change log (FR-DM.3). */
@@ -120,6 +132,7 @@ export type EntityName =
   | 'todos'
   | 'checklistItems'
   | 'tags'
+  | 'contexts'
   | 'savedSearches';
 
 /** One row of the local change log, kept for the future sync release. */

@@ -22,6 +22,7 @@
   import { containerLabel } from '../lib/labels';
   import { defaultSearchName, isEmptyFilter, searchResults, type SearchFilter } from '../lib/model/search';
   import { activeTag, tagTitles, tagsInUse } from '../lib/model/tags';
+  import { activeContext, contextTitle, contextsInUse } from '../lib/model/contexts';
   import * as repo from '../lib/db/repo';
   import type { ID, Todo } from '../lib/model/types';
 
@@ -49,14 +50,26 @@
   let askDelete = $state(false);
 
   /** The search as stored or typed, before the tag bar. */
-  let base = $derived<SearchFilter>(saved ? { query: saved.query, tagIds: saved.tagIds } : { query: text, tagIds });
+  let base = $derived<SearchFilter>(
+    saved
+      ? { query: saved.query, tagIds: saved.tagIds, contextId: saved.contextId }
+      : { query: text, tagIds, contextId: null },
+  );
   let all = $derived(searchResults(s, base));
 
-  // Tag bar (FR-6.3): narrow the results by one more tag.
-  let offered = $derived(tagsInUse([...all.groups.flatMap((g) => g.todos), ...all.logged], s));
+  // Filter bar (FR-6.3, FR-18.5): narrow the results by one more tag, and by
+  // a context when the search has none.
+  let found = $derived([...all.groups.flatMap((g) => g.todos), ...all.logged]);
+  let offered = $derived(tagsInUse(found, s));
+  let offeredContexts = $derived(base.contextId ? [] : contextsInUse(found, s));
   let tag = $derived(activeTag(ui.tagFilter, offered));
-  let filter = $derived<SearchFilter>(tag && !base.tagIds.includes(tag) ? { ...base, tagIds: [...base.tagIds, tag] } : base);
-  let results = $derived(tag ? searchResults(s, filter) : all);
+  let ctx = $derived(activeContext(ui.contextFilter, offeredContexts));
+  let filter = $derived<SearchFilter>({
+    ...base,
+    tagIds: tag && !base.tagIds.includes(tag) ? [...base.tagIds, tag] : base.tagIds,
+    contextId: base.contextId ?? ctx,
+  });
+  let results = $derived(tag || ctx ? searchResults(s, filter) : all);
 
   let heading = $derived(saved ? saved.title || 'Saved Search' : 'Search');
   let summary = $derived(describe(base));
@@ -69,6 +82,8 @@
     if (f.query.trim()) parts.push(`“${f.query.trim()}”`);
     const tags = tagTitles(f.tagIds, s);
     if (tags.length) parts.push(`Tagged ${tags.join(', ')}`);
+    const context = contextTitle(f.contextId ?? null, s);
+    if (context) parts.push(`Context ${context}`);
     return parts.join(' · ');
   }
 
@@ -127,7 +142,7 @@
     </div>
   {/if}
 
-  <TagBar tags={offered} />
+  <TagBar tags={offered} contexts={offeredContexts} />
 
   {#each results.groups as g (g.key)}
     <TodoList todos={g.todos} {ref} title={g.title} subtitle={g.subtitle} />
@@ -152,8 +167,8 @@
   <SavedSearchDialog
     title={dialog === 'save' ? 'Save Search' : 'Edit Saved Search'}
     initial={dialog === 'edit' && saved
-      ? { title: saved.title, query: saved.query, tagIds: saved.tagIds }
-      : { title: defaultSearchName(filter, s), query: filter.query, tagIds: filter.tagIds }}
+      ? { title: saved.title, query: saved.query, tagIds: saved.tagIds, contextId: saved.contextId }
+      : { title: defaultSearchName(filter, s), query: filter.query, tagIds: filter.tagIds, contextId: filter.contextId }}
     onsave={onSave}
     oncancel={() => (dialog = null)}
   />

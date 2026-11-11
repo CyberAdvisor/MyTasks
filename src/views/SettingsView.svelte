@@ -2,21 +2,24 @@
   Settings (design doc, Section 5.10 FR-14.13 and Section 5.4 FR-6.1).
   - Priority Settings: P1–P5 labels and the two automatic-rule switches.
   - Tags: create, rename, reorder and delete (the Manage Tags window).
+  - Contexts (FR-18.2): the same, for the contexts a to-do can be in.
   Changes save as soon as a field is left or a switch is flipped.
 -->
 <script lang="ts">
   import Icon from '../components/Icon.svelte';
   import ViewHeader from '../components/ViewHeader.svelte';
   import ChoiceDialog from '../components/ChoiceDialog.svelte';
+  import NamedList from '../components/NamedList.svelte';
   import { settings, snapshot } from '../lib/state/live';
   import { bySortKey } from '../lib/model/order';
   import { DEFAULT_PRIORITY_LABELS, PRIORITIES, cleanLabels } from '../lib/model/settings';
   import * as repo from '../lib/db/repo';
-  import type { ID, Priority, Tag } from '../lib/model/types';
+  import type { ID, Priority } from '../lib/model/types';
 
   let tags = $derived(bySortKey($snapshot.tags));
-  let newTag = $state('');
-  let deleting = $state<Tag | null>(null);
+  let contexts = $derived(bySortKey($snapshot.contexts));
+  /** The tag or context waiting for delete confirmation. */
+  let deleting = $state<{ kind: 'tag' | 'context'; id: ID; title: string } | null>(null);
 
   /** Save one priority label; an empty label returns to its default (FR-14.3). */
   function saveLabel(p: Priority, input: HTMLInputElement) {
@@ -33,32 +36,17 @@
     void repo.setSetting('priorityLabels', labels);
   }
 
-  /** Rename a tag; a blank name is not allowed, so the old one comes back. */
-  function renameTag(tag: Tag, input: HTMLInputElement) {
-    const title = input.value.trim();
-    if (!title) input.value = tag.title;
-    else if (title !== tag.title) void repo.renameTag(tag.id, title);
-  }
-
-  async function addTag(e: SubmitEvent) {
-    e.preventDefault();
-    if (!newTag.trim()) return;
-    await repo.createTag(newTag);
-    newTag = '';
-  }
-
   function onDeleteChoice(v: string | null) {
-    const tag = deleting;
+    const item = deleting;
     deleting = null;
-    if (v === 'delete' && tag) void repo.deleteTag(tag.id);
+    if (v !== 'delete' || !item) return;
+    void (item.kind === 'tag' ? repo.deleteTag(item.id) : repo.deleteContext(item.id));
   }
 
   /** Enter in a text field saves it by leaving the field. */
   const blurOnEnter = (e: KeyboardEvent) => {
     if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur();
   };
-
-  const moveTag = (id: ID, dir: 'up' | 'down') => repo.moveTag(id, dir);
 </script>
 
 <ViewHeader title="Settings">
@@ -117,44 +105,43 @@
 
 <section aria-labelledby="tags-heading">
   <h2 id="tags-heading">Tags</h2>
-  {#if tags.length}
-    <ul class="rows">
-      {#each tags as tag, i (tag.id)}
-        <li>
-          <Icon name="tag" size={14} color="var(--text-3)" />
-          <input
-            class="text"
-            value={tag.title}
-            aria-label="Tag name"
-            onchange={(e) => renameTag(tag, e.currentTarget)}
-            onkeydown={blurOnEnter}
-          />
-          <button type="button" class="btn-plain small" aria-label="Move {tag.title} up" disabled={i === 0} onclick={() => moveTag(tag.id, 'up')}>
-            <Icon name="arrow-up" size={14} />
-          </button>
-          <button type="button" class="btn-plain small" aria-label="Move {tag.title} down" disabled={i === tags.length - 1} onclick={() => moveTag(tag.id, 'down')}>
-            <Icon name="arrow-down" size={14} />
-          </button>
-          <button type="button" class="btn-plain small danger" aria-label="Delete {tag.title}" onclick={() => (deleting = tag)}>
-            <Icon name="trash" size={14} />
-          </button>
-        </li>
-      {/each}
-    </ul>
-  {:else}
-    <p class="help">No tags yet.</p>
-  {/if}
-  <form class="add" onsubmit={addTag}>
-    <input class="text" bind:value={newTag} placeholder="New tag" aria-label="New tag name" />
-    <button type="submit" class="btn-plain" disabled={!newTag.trim()}><Icon name="plus" size={14} /> Add Tag</button>
-  </form>
+  <NamedList
+    items={tags}
+    icon="tag"
+    noun="Tag"
+    onrename={repo.renameTag}
+    onmove={repo.moveTag}
+    ondelete={(t) => (deleting = { kind: 'tag', ...t })}
+    onadd={repo.createTag}
+  />
 </section>
 
-{#if deleting}
+<section aria-labelledby="contexts-heading">
+  <h2 id="contexts-heading">Contexts</h2>
+  <p class="help">Where or how a to-do can be done, such as Home, Office or Phone. A to-do has one context or none.</p>
+  <NamedList
+    items={contexts}
+    icon="context"
+    noun="Context"
+    onrename={repo.renameContext}
+    onmove={repo.moveContext}
+    ondelete={(c) => (deleting = { kind: 'context', ...c })}
+    onadd={repo.createContext}
+  />
+</section>
+
+{#if deleting?.kind === 'tag'}
   <ChoiceDialog
     title={`Delete the tag “${deleting.title}”?`}
     message="It will be removed from every to-do, project and area. The items themselves stay."
     choices={[{ label: 'Delete Tag', value: 'delete', danger: true }]}
+    onchoose={onDeleteChoice}
+  />
+{:else if deleting}
+  <ChoiceDialog
+    title={`Delete the context “${deleting.title}”?`}
+    message="It will be cleared from every to-do and saved search that uses it. The to-dos themselves stay."
+    choices={[{ label: 'Delete Context', value: 'delete', danger: true }]}
     onchoose={onDeleteChoice}
   />
 {/if}
@@ -205,9 +192,6 @@
     padding: 4px 6px;
     font-size: 13px;
   }
-  .danger {
-    color: var(--danger);
-  }
   .switch-row {
     display: flex;
     align-items: center;
@@ -243,15 +227,6 @@
   }
   .switch-row input:checked::after {
     transform: translateX(14px);
-  }
-  .add {
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
-  }
-  button:disabled {
-    opacity: 0.4;
-    cursor: default;
   }
   @media (max-width: 767px) {
     section {

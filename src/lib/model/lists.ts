@@ -5,7 +5,7 @@
  * list each item appears in and how lists are grouped. No storage access here,
  * so the rules are easy to unit-test.
  */
-import type { Area, ChecklistItem, Heading, ID, LocalDate, Priority, Project, SavedSearch, Tag, Todo } from './types';
+import type { Area, ChecklistItem, Context, Heading, ID, LocalDate, Priority, Project, SavedSearch, Tag, Todo } from './types';
 import { bySortKey, compareKeys } from './order';
 import { addDays, formatMonth, formatRelative } from './dates';
 
@@ -16,6 +16,7 @@ export interface Snapshot {
   headings: Heading[];
   todos: Todo[];
   tags: Tag[];
+  contexts: Context[];
   checklistItems: ChecklistItem[];
   savedSearches: SavedSearch[];
 }
@@ -149,12 +150,12 @@ export function todayTodos(s: Snapshot, ref: LocalDate): Todo[] {
 }
 
 /** How the Today list is grouped (FR-16.1). */
-export type TodayGrouping = 'none' | 'project' | 'priority';
+export type TodayGrouping = 'none' | 'project' | 'priority' | 'context';
 
 /**
- * Group Today's to-dos (FR-16.2 to FR-16.5). `todos` must already be in
- * Today's manual order and tag-filtered (FR-16.6); every group keeps that
- * order. `None` returns one untitled group. Empty groups are left out.
+ * Group Today's to-dos (FR-16.2 to FR-16.5, FR-18.7). `todos` must already be
+ * in Today's manual order and filtered (FR-16.6); every group keeps that
+ * order. `none` (All) returns one untitled group. Empty groups are left out.
  */
 export function todayGroups(
   todos: Todo[],
@@ -172,6 +173,21 @@ export function todayGroups(
         todos: todos.filter((t) => t.priority === p),
       }))
       .filter((g) => g.todos.length);
+  }
+  if (grouping === 'context') {
+    // One group per context in Settings order, then "No context".
+    const groups: TodoGroup[] = bySortKey(s.contexts).map((c) => ({
+      key: `context:${c.id}`,
+      title: c.title || 'Untitled',
+      todos: todos.filter((t) => t.contextId === c.id),
+    }));
+    const known = new Set(s.contexts.map((c) => c.id));
+    groups.push({
+      key: 'context:none',
+      title: 'No context',
+      todos: todos.filter((t) => t.contextId === null || !known.has(t.contextId)),
+    });
+    return groups.filter((g) => g.todos.length);
   }
   return todos.length ? [{ key: 'all', title: '', todos }] : [];
 }
