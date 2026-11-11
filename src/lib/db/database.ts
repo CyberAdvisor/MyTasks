@@ -19,6 +19,9 @@ import type {
   Todo,
 } from '../model/types';
 
+/** The current schema version; synced lists record it (FR-19.4). */
+export const SCHEMA_VERSION = 3;
+
 export class MyTasksDB extends Dexie {
   areas!: Table<Area, string>;
   projects!: Table<Project, string>;

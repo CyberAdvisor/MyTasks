@@ -8,7 +8,7 @@
     | 'search' | 'chevron-down' | 'chevron-right' | 'chevron-left' | 'area' | 'plus'
     | 'settings' | 'flag' | 'note' | 'move' | 'more' | 'x' | 'check' | 'heading'
     | 'tag' | 'checklist' | 'priority' | 'arrow-up' | 'arrow-down' | 'heading-add' | 'copy'
-    | 'project' | 'pencil' | 'cancel' | 'context';
+    | 'project' | 'pencil' | 'cancel' | 'context' | 'cloud' | 'cloud-off' | 'alert' | 'sync';
 
   let { name, size = 18, color = 'currentColor', label = '', weight = 2 }: {
     name: Name; size?: number; color?: string; label?: string;
@@ -49,6 +49,10 @@
     pencil: 'M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4',
     cancel: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M9 9l6 6 M15 9l-6 6',
     context: 'M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z M12 7.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z',
+    cloud: 'M17.5 19H7a5 5 0 1 1 1.1-9.88A6 6 0 0 1 19.6 11.1 4 4 0 0 1 17.5 19z',
+    'cloud-off': 'M17.5 19H7a5 5 0 0 1-1.8-9.67 M10.2 6.6A6 6 0 0 1 19.6 11.1a4 4 0 0 1 1.3 6.6 M3 3l18 18',
+    alert: 'M12 3 2 20h20z M12 10v4 M12 17h.01',
+    sync: 'M20 11a8 8 0 0 0-14.3-4.9L4 8 M4 4v4h4 M4 13a8 8 0 0 0 14.3 4.9L20 16 M20 20v-4h-4',
   };
 </script>
 

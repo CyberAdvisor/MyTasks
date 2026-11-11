@@ -72,6 +72,44 @@ dialog .btn-plain {
   background: var(--hover-bg);
 }
 
+/* The main action of a form: Connect, Unlock, Change Passphrase. */
+.btn-primary {
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--on-accent);
+  padding: 8px 16px;
+  font-weight: 600;
+}
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* A labelled text field in a form (Setup and the sync dialogs). */
+.form-label {
+  display: block;
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.form-field {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0 0 14px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--field);
+  font-size: 15px;
+}
+.form-error {
+  margin: 12px 0 0;
+  color: var(--danger);
+  font-size: 14px;
+}
+
 /* Chip-style buttons in cards and dialogs. */
 .chip {
   display: inline-flex;

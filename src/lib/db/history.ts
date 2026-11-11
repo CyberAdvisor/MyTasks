@@ -12,6 +12,8 @@
  *   run with `track: false`, so they never replace the user's last change.
  * - `undoGroup` merges several transactions into one step, for actions made of
  *   more than one call (create a to-do, then place it).
+ * - Every committed change except one applied from the gist notifies the
+ *   `onLocalChange` listeners, so sync can push it (FR-19.5).
  */
 import Dexie, { type Transaction } from 'dexie';
 import { db, type MyTasksDB } from './database';
@@ -69,11 +71,23 @@ export function log(entity: EntityName, entityId: ID, fields: string[]): Promise
   return db.changeLog.add({ entity, entityId, fields, at: nowIso() });
 }
 
+const listeners = new Set<() => void>();
+
+/** Call `fn` after every committed local change. Returns a function that stops it. */
+export function onLocalChange(fn: () => void): () => void {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
 /**
  * Run `fn` in one read-write transaction over every table. With `track`
- * (the default) its writes become the step `undo` reverses.
+ * (the default) its writes become the step `undo` reverses. `fromSync`
+ * marks changes that came from the gist: they are not local changes.
  */
-export async function tx<T>(fn: () => Promise<T>, { track = true }: { track?: boolean } = {}): Promise<T> {
+export async function tx<T>(
+  fn: () => Promise<T>,
+  { track = true, fromSync = false }: { track?: boolean; fromSync?: boolean } = {},
+): Promise<T> {
   const step = track ? (group ?? new UndoStep()) : null;
   const tables = [...ENTITY_TABLES.map((n) => db.table(n)), db.changeLog, db.settings];
   const result = await db.transaction('rw', tables, () => {
@@ -81,6 +95,7 @@ export async function tx<T>(fn: () => Promise<T>, { track = true }: { track?: bo
     return fn();
   });
   if (step && step !== group && step.before.size) last = step;
+  if (!fromSync) for (const l of listeners) l();
   return result;
 }
 
@@ -98,8 +113,9 @@ export async function undoGroup<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 /**
- * Undo the last change: restore each record it touched, and remove records it
- * created. Returns false when there is nothing to undo.
+ * Undo the last change: restore each record it touched, and mark records it
+ * created as deleted (a tombstone, so the deletion syncs like any change).
+ * Returns false when there is nothing to undo.
  */
 export async function undo(): Promise<boolean> {
   const step = last;
@@ -110,7 +126,7 @@ export async function undo(): Promise<boolean> {
       const at = nowIso();
       for (const { entity, id, record } of step.before.values()) {
         if (record) await db.table(entity).put({ ...record, modifiedAt: at });
-        else await db.table(entity).delete(id);
+        else await db.table(entity).update(id, { deletedAt: at, modifiedAt: at });
         await log(entity, id, ['*']);
       }
     },
