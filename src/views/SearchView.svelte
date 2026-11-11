@@ -6,7 +6,7 @@
   With `savedId`, runs that saved search live, with a menu to edit or delete
   it (saved searches are reordered by dragging them in the sidebar). Either
   way, open matches are grouped by Area and Project, and
-  completed matches come last in a collapsed Logbook group.
+  completed matches come last in a collapsed Completed group.
 -->
 <script lang="ts">
   import Icon from '../components/Icon.svelte';
@@ -151,7 +151,7 @@
   {#if results.logged.length}
     <button type="button" class="logged" aria-expanded={showLogged} onclick={() => (showLogged = !showLogged)}>
       <Icon name={showLogged ? 'chevron-down' : 'chevron-right'} size={12} />
-      Logbook <span class="count">{results.logged.length}</span>
+      Completed <span class="count">{results.logged.length}</span>
     </button>
     {#if showLogged}
       <TodoList todos={results.logged} {ref} mode="logbook" {label} />

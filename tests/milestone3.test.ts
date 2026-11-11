@@ -27,7 +27,7 @@ const LIST_TITLES: Record<BuiltInList, string> = {
   scheduled: 'Scheduled',
   unscheduled: 'Unscheduled',
   deferred: 'Deferred',
-  logbook: 'Logbook',
+  logbook: 'Completed',
   trash: 'Trash',
 };
 

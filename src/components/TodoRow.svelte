@@ -60,7 +60,7 @@
   let checklist = $derived(checklistProgress(todo.id, $snapshot));
   let context = $derived(showContext ? contextTitle(todo.contextId, $snapshot) : '');
 
-  /** Checkbox: complete (Alt-click cancels), or reopen from the Logbook. */
+  /** Checkbox: complete (Alt-click cancels), or reopen from Completed. */
   function onCheck(e: MouseEvent) {
     if (mode === 'logbook') {
       void repo.setTodoStatus(todo.id, 'open');

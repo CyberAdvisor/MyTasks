@@ -266,7 +266,7 @@ export function deferredProjects(s: Snapshot): Project[] {
   return bySortKey(s.projects.filter((pr) => isOpen(pr) && pr.start === 'deferred'));
 }
 
-/** Logbook: closed to-dos grouped by local completion date, newest first. */
+/** Completed list: closed to-dos grouped by local completion date, newest first. */
 export function logbookGroups(s: Snapshot, ref: LocalDate): TodoGroup[] {
   const items = visibleTodos(s)
     .filter(isClosed)
@@ -282,7 +282,7 @@ export function logbookGroups(s: Snapshot, ref: LocalDate): TodoGroup[] {
   return [...groups.values()];
 }
 
-/** Closed projects for the Logbook. */
+/** Closed projects for the Completed list. */
 export function loggedProjects(s: Snapshot): Project[] {
   return s.projects
     .filter(isClosed)

@@ -4,7 +4,7 @@
   its title (FR-16, FR-18.7).
   Rows can be reordered (FR-10.3) in the Inbox, in Today (also within a
   Today group), within a day in Scheduled, and within each group of
-  Unscheduled and Deferred, as in Things. Logbook and Trash have no manual order.
+  Unscheduled and Deferred, as in Things. Completed and Trash have no manual order.
 -->
 <script lang="ts">
   import Icon from '../components/Icon.svelte';

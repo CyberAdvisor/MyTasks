@@ -321,7 +321,7 @@
 
   {#if closedTodos.length}
     <button type="button" class="btn-plain logged" onclick={() => (showLogged = !showLogged)}>
-      {showLogged ? 'Hide' : 'Show'} {closedTodos.length} logged {closedTodos.length === 1 ? 'item' : 'items'}
+      {showLogged ? 'Hide' : 'Show'} {closedTodos.length} completed {closedTodos.length === 1 ? 'item' : 'items'}
     </button>
     {#if showLogged}<TodoList todos={closedTodos} {ref} mode="logbook" />{/if}
   {/if}
