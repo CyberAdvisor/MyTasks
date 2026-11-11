@@ -21,7 +21,8 @@
   import SearchView from './views/SearchView.svelte';
   import FilterView from './views/FilterView.svelte';
   import { route, go, hrefFor } from './lib/state/route';
-  import { todayDate } from './lib/state/live';
+  import { settings, todayDate } from './lib/state/live';
+  import { applyTheme } from './lib/theme';
   import { ui } from './lib/state/ui.svelte';
   import { canAddHere, draftStartFor, openQuickEntry } from './lib/actions';
   import { runCommand } from './lib/commands';
@@ -35,6 +36,9 @@
     phoneQuery.addEventListener('change', onChange);
     return () => phoneQuery.removeEventListener('change', onChange);
   });
+
+  // Light, dark or system theme (FR-V.3).
+  $effect(() => applyTheme($settings.theme));
 
   // On wider screens there is no Home screen: open Today instead.
   $effect(() => {

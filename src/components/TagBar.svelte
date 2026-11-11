@@ -48,8 +48,8 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    border: 1px solid #d6d6da;
-    background: #fff;
+    border: 1px solid var(--line);
+    background: var(--field);
     border-radius: 999px;
     padding: 3px 10px;
     font-size: 12px;
@@ -61,6 +61,6 @@
   .pill[aria-pressed='true'] {
     background: var(--accent);
     border-color: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
   }
 </style>

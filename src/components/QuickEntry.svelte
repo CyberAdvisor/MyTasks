@@ -303,7 +303,7 @@
 <style>
   dialog {
     margin: 12vh auto auto;
-    border: 1px solid #e5e5e8;
+    border: 1px solid var(--surface-border);
     border-radius: 12px;
     padding: 14px 16px 12px;
     width: min(560px, calc(100% - 24px));
@@ -316,7 +316,7 @@
     gap: 6px;
   }
   dialog::backdrop {
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--overlay);
   }
   .top {
     display: flex;
@@ -407,7 +407,7 @@
     border: 0;
     border-radius: var(--radius);
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     font-weight: 600;
     padding: 6px 16px;
   }

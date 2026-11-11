@@ -297,7 +297,7 @@
     font-weight: 400;
   }
   .count.due {
-    color: #fff;
+    color: var(--on-strong);
     background: var(--danger);
     border-radius: 999px;
     padding: 0 6px;
@@ -306,7 +306,7 @@
   hr {
     border: 0;
     height: 1px;
-    background: #d9d9de;
+    background: var(--divider);
     margin: 8px 6px;
   }
   .section-label {
@@ -341,7 +341,7 @@
     bottom: calc(100% + 6px);
     left: 0;
     min-width: 160px;
-    background: #fff;
+    background: var(--surface);
     border-radius: 8px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
     padding: 4px;

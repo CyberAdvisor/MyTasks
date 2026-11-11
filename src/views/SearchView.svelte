@@ -190,7 +190,7 @@
     gap: 8px;
     margin: -6px 0 16px 38px;
     padding: 6px 10px;
-    border: 1px solid #d6d6da;
+    border: 1px solid var(--line);
     border-radius: var(--radius);
   }
   .field input {

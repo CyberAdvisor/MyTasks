@@ -99,7 +99,7 @@
     padding: 4px 0;
   }
   .text {
-    border: 1px solid #d6d6da;
+    border: 1px solid var(--line);
     border-radius: var(--radius);
     padding: 5px 8px;
     font-size: 14px;

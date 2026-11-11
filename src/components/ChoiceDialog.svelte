@@ -62,7 +62,7 @@
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
   }
   dialog::backdrop {
-    background: rgba(0, 0, 0, 0.25);
+    background: var(--overlay);
   }
   h2 {
     margin: 0 0 8px;
@@ -84,11 +84,12 @@
     border: 0;
     border-radius: var(--radius);
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     padding: 8px 14px;
     font-weight: 600;
   }
   .choice.danger {
     background: var(--danger);
+    color: var(--on-strong);
   }
 </style>

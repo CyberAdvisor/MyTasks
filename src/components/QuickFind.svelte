@@ -163,14 +163,14 @@
 <style>
   dialog {
     margin: 12vh auto auto;
-    border: 1px solid #e5e5e8;
+    border: 1px solid var(--surface-border);
     border-radius: 12px;
     padding: 8px;
     width: min(520px, calc(100% - 24px));
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
   }
   dialog::backdrop {
-    background: rgba(0, 0, 0, 0.12);
+    background: var(--overlay-soft);
   }
   .field {
     display: flex;
@@ -204,7 +204,7 @@
   }
   li[aria-selected='true'] {
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
   }
   li[aria-selected='true'] .note {
     color: rgba(255, 255, 255, 0.85);
@@ -230,7 +230,7 @@
     flex: none;
     border: 1.5px solid var(--border);
     border-radius: 3px;
-    background: #fff;
+    background: var(--field);
   }
   .box.done {
     background: var(--text-done);

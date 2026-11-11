@@ -83,7 +83,7 @@
     gap: 56px;
     padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--rule);
-    background: #fff;
+    background: var(--surface);
   }
   .tool {
     border: 0;
@@ -97,7 +97,7 @@
     background: var(--hover-bg);
   }
   .tool:disabled {
-    color: #c4c4c8;
+    color: var(--disabled);
     cursor: default;
   }
 </style>

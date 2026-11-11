@@ -63,7 +63,7 @@
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
   }
   dialog::backdrop {
-    background: rgba(0, 0, 0, 0.25);
+    background: var(--overlay);
   }
   h2 {
     margin: 0 0 10px 6px;
