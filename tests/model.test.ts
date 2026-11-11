@@ -124,13 +124,23 @@ describe('list membership', () => {
     expect(groups[0].title).toBe('Tomorrow');
   });
 
-  it('counts Today and due items for the sidebar', () => {
+  it('splits Today into due (red) and the rest (grey), adding up to the list', () => {
     const s: Snapshot = {
       areas: [],
       headings: [], tags: [], contexts: [], checklistItems: [], savedSearches: [],
       projects: [],
-      todos: [todo({ start: 'inbox' }), todo({ startDate: REF }), todo({ deadline: REF })],
+      todos: [todo({ start: 'inbox' }), todo({ startDate: REF }), todo({ startDate: REF }), todo({ deadline: REF })],
     };
     expect(sidebarCounts(s, REF)).toEqual({ inbox: 1, today: 2, due: 1 });
+  });
+
+  it('shows only the red count when every Today to-do is due', () => {
+    const s: Snapshot = {
+      areas: [],
+      headings: [], tags: [], contexts: [], checklistItems: [], savedSearches: [],
+      projects: [],
+      todos: [todo({ deadline: REF }), todo({ startDate: REF, deadline: '2026-11-01' })],
+    };
+    expect(sidebarCounts(s, REF)).toEqual({ inbox: 0, today: 0, due: 2 });
   });
 });

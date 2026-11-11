@@ -105,9 +105,9 @@
               <Icon name={meta.icon} color={meta.color} size={16} />
               <span class="label">{meta.title}</span>
               {#if list === 'inbox' && counts.inbox}<span class="count">{counts.inbox}</span>{/if}
-              {#if list === 'today' && counts.today}
+              {#if list === 'today'}
                 {#if counts.due}<span class="count due" title="Due or overdue">{counts.due}</span>{/if}
-                <span class="count">{counts.today}</span>
+                {#if counts.today}<span class="count">{counts.today}</span>{/if}
               {/if}
             </a>
           </li>
