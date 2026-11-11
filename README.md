@@ -15,7 +15,8 @@ v1 is being built in milestones. Each milestone is a pull request.
 | 2 | Tags, When and deadline pickers, checklists and notes, priority and its automatic rules, Settings | Done |
 | 3 | Saved searches, Today grouping, search and Quick Find, Quick Entry | Done |
 | 4 | Drag and drop, keyboard shortcuts (including Cmd/Ctrl+G to cycle Today grouping), undo | Done |
-| 5 | Install, export/import and backups, themes, hosting at mytasks.fyi, accessibility | Planned |
+| 5 | Install and offline, export/import and backups, themes, hosting at mytasks.fyi, accessibility, Logbook timing (FR-12.2), Markdown notes (FR-7.4) | Planned |
+| 6 | Finishing touches: empty-state illustrations, pull-down to Quick Find, swipe back on phones, resizable sidebar, sidebar blur, title-bar area, long-list virtualization | Planned |
 
 ## Develop
 
