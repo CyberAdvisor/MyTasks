@@ -439,8 +439,8 @@
     margin: 6px 0;
     padding: 12px 14px 10px;
     border-radius: 10px;
-    background: #fff;
-    border: 1px solid #e5e5e8;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 10px 28px rgba(0, 0, 0, 0.08);
     display: flex;
     flex-direction: column;
@@ -458,7 +458,7 @@
     flex: none;
     border: 1.5px solid var(--border);
     border-radius: 4px;
-    background: #fff;
+    background: var(--field);
     display: flex;
     align-items: center;
     justify-content: center;

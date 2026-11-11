@@ -1,40 +1,9 @@
 /*
- * Global styles and design tokens (design doc, Section 6).
- * Dark theme and the token file proper arrive in Milestone 5.
+ * Global styles (design doc, Section 6). Colors come from tokens.css.
  */
+@import './tokens.css';
 :root {
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-
-  --bg: #ffffff;
-  --sidebar-bg: #f2f2f4;
-  --sidebar-border: #e3e3e7;
-  --selected-bg: #dcdce2;
-  --hover-bg: #ebebef;
-  --text: #1c1c1e;
-  --text-2: #55555a;
-  --text-3: #6b6b70;
-  --text-done: #8a8a90;
-  --rule: #efeff1;
-  --border: #b9b9bf;
-  --accent: #2f6fdb;
-  --accent-text: #1f5bb8;
-  --danger: #c4271b;
-
-  --c-inbox: #2f6fdb;
-  --c-today: #e0a200;
-  --c-scheduled: #d92d20;
-  --c-unscheduled: #0e9384;
-  --c-deferred: #a3793f;
-  --c-logbook: #079455;
-  --c-trash: #6b6b70;
-
-  /* Priority chips, P1 (highest) to P5 (FR-14.4). */
-  --p1: #c4271b;
-  --p2: #b35600;
-  --p3: #8a6d00;
-  --p4: #1f5bb8;
-  --p5: #6b6b70;
-
   --radius: 6px;
   --row-h: 36px;
   font-family: var(--font);
@@ -112,7 +81,7 @@ dialog .btn-plain {
   color: var(--text-2);
   padding: 4px 8px;
   border-radius: var(--radius);
-  background: #f4f4f6;
+  background: var(--chip-bg);
   border: 0;
 }
 .chip:hover {
@@ -124,7 +93,7 @@ dialog .btn-plain {
   font-size: 12px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #e9eef8;
+  background: var(--tag-bg);
   color: var(--accent-text);
   white-space: nowrap;
 }
@@ -208,7 +177,7 @@ dialog .btn-plain {
   line-height: 1;
   padding: 3px 6px;
   border-radius: 999px;
-  color: #fff;
+  color: var(--on-strong);
   white-space: nowrap;
 }
 .prio-1 { background: var(--p1); }

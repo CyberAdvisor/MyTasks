@@ -72,7 +72,7 @@
     flex-direction: column;
   }
   dialog::backdrop {
-    background: rgba(0, 0, 0, 0.25);
+    background: var(--overlay);
   }
   h2 {
     margin: 0 0 6px;

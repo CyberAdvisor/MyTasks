@@ -163,7 +163,7 @@
     flex: none;
     border: 1.5px solid var(--border);
     border-radius: 50%;
-    background: #fff;
+    background: var(--field);
     display: flex;
     align-items: center;
     justify-content: center;

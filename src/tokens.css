@@ -1,0 +1,80 @@
+/*
+ * Design tokens: every color the app uses, for the light and dark themes
+ * (design doc, Section 6, Color and Themes, FR-V.3).
+ *
+ * Each token is `light-dark(<light>, <dark>)`. Which half applies follows
+ * `color-scheme`: by default the system's setting, or the user's choice in
+ * Settings > Appearance, applied as `data-theme` on <html> (lib/theme.ts).
+ *
+ * Components use these tokens only, never raw colors, so the two themes stay
+ * in one place. tests/theme.test.ts checks text contrast (4.5:1) in both.
+ */
+:root {
+  color-scheme: light dark;
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+:root {
+  /* Surfaces */
+  --bg: light-dark(#ffffff, #1e1e20); /* list pane */
+  --sidebar-bg: light-dark(#f2f2f4, #262628);
+  --sidebar-border: light-dark(#e3e3e7, #38383b);
+  --surface: light-dark(#ffffff, #2c2c2e); /* cards, popovers, menus, dialogs, toolbar */
+  --surface-border: light-dark(#e5e5e8, #3a3a3d); /* edge of cards and floating panels */
+  --field: light-dark(#ffffff, #1e1e20); /* checkboxes and filter pills */
+  --line: light-dark(#d6d6da, #48484c); /* borders of fields and pills */
+  --divider: light-dark(#d9d9de, #3a3a3d); /* sidebar divider lines */
+  --rule: light-dark(#efeff1, #333336); /* rules under headings, toolbar edge */
+  --chip-bg: light-dark(#f4f4f6, #333336); /* set fields on the open card */
+  --tag-bg: light-dark(#e9eef8, #21375a);
+  --selected-bg: light-dark(#dcdce2, #3a3a3e); /* selected sidebar list */
+  --selected-row: light-dark(#e6effc, #1f3556); /* selected to-do */
+  --hover-bg: light-dark(#ebebef, #323235);
+  --segment-on: light-dark(#ffffff, #55555b); /* chosen segment of a segmented control */
+  --switch-off: light-dark(#c9c9ce, #55555a);
+  --overlay: light-dark(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.55)); /* behind dialogs */
+  --overlay-soft: light-dark(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.4)); /* behind Quick Find */
+
+  /* Text */
+  --text: light-dark(#1c1c1e, #ececf0);
+  --text-2: light-dark(#55555a, #b6b6bc);
+  --text-3: light-dark(#6b6b70, #9a9aa1);
+  --text-done: light-dark(#8a8a90, #7d7d84);
+  --placeholder: light-dark(#b0b0b6, #6a6a70);
+  --disabled: light-dark(#c4c4c8, #55555a);
+  --border: light-dark(#b9b9bf, #6a6a70); /* checkbox outline */
+
+  /* Accent and alerts. The accent fill is the same in both themes so white text on it stays readable. */
+  --accent: #2f6fdb;
+  --on-accent: #ffffff;
+  --accent-text: light-dark(#1f5bb8, #7fb0ff);
+  --danger: light-dark(#c4271b, #ff6b5e);
+  /* Text on the theme's strong fills (priority chips, the red due count, Delete buttons). */
+  --on-strong: light-dark(#ffffff, #1e1e20);
+
+  /* Built-in list colors */
+  --c-inbox: light-dark(#2f6fdb, #5a9cff);
+  --c-today: light-dark(#e0a200, #ffc531);
+  --c-scheduled: light-dark(#d92d20, #ff6259);
+  --c-unscheduled: light-dark(#0e9384, #34c8b2);
+  --c-deferred: light-dark(#a3793f, #c9a26b);
+  --c-logbook: light-dark(#079455, #3fcf7f);
+  --c-trash: light-dark(#6b6b70, #9a9aa1);
+
+  /* Priority chips, P1 (highest) to P5 (FR-14.4). */
+  --p1: light-dark(#c4271b, #ff6b5e);
+  --p2: light-dark(#b35600, #ff9f43);
+  --p3: light-dark(#8a6d00, #e6c437);
+  --p4: light-dark(#1f5bb8, #7fb0ff);
+  --p5: light-dark(#6b6b70, #9a9aa1);
+
+  /* The Undo toast is dark in both themes, a step lighter in dark. */
+  --toast-bg: light-dark(#2c2c2e, #3a3a3e);
+  --toast-text: #ffffff;
+  --toast-link: #8ab4ff;
+}

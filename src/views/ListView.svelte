@@ -13,6 +13,7 @@
   import ViewHeader from '../components/ViewHeader.svelte';
   import ChoiceDialog from '../components/ChoiceDialog.svelte';
   import TagBar from '../components/TagBar.svelte';
+  import Segmented from '../components/Segmented.svelte';
   import { ui } from '../lib/state/ui.svelte';
   import { activeTag, filterByTag, projectTagIds, tagsInUse } from '../lib/model/tags';
   import { activeContext, contextsInUse, filterByContext } from '../lib/model/contexts';
@@ -123,16 +124,13 @@
 
 {#if list === 'today'}
   <!-- Grouping bar under the title (FR-16.1); the app remembers the choice. -->
-  <div class="grouping" role="group" aria-label="Group Today by">
-    {#each GROUPINGS as g (g.value)}
-      <button
-        type="button"
-        aria-pressed={grouping === g.value}
-        onclick={() => repo.setSetting('todayGrouping', g.value)}
-      >
-        {g.label}
-      </button>
-    {/each}
+  <div class="grouping">
+    <Segmented
+      label="Group Today by"
+      options={GROUPINGS}
+      value={grouping}
+      onchange={(v) => repo.setSetting('todayGrouping', v)}
+    />
   </div>
 {/if}
 
@@ -232,26 +230,8 @@
     color: var(--text-3);
   }
   .grouping {
-    display: inline-flex;
-    gap: 2px;
-    padding: 2px;
-    margin: -8px 0 16px 38px;
-    background: var(--hover-bg);
-    border-radius: 8px;
-  }
-  .grouping button {
-    border: 0;
-    background: transparent;
-    padding: 4px 12px;
-    border-radius: 6px;
-    font-size: 13px;
-    color: var(--text-2);
-  }
-  .grouping button[aria-pressed='true'] {
-    background: #fff;
-    color: var(--text);
-    font-weight: 600;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+    display: flex;
+    margin: -3px 0 16px 38px;
   }
   .empty {
     color: var(--text-3);

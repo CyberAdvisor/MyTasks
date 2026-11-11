@@ -169,7 +169,7 @@
     list-style: none;
   }
   .row.selected {
-    background: #e6effc;
+    background: var(--selected-row);
   }
   .card-slot {
     list-style: none;
@@ -181,7 +181,7 @@
     flex: none;
     border: 1.5px solid var(--border);
     border-radius: 4px;
-    background: #fff;
+    background: var(--field);
     display: flex;
     align-items: center;
     justify-content: center;

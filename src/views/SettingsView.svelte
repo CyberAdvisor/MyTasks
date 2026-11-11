@@ -1,5 +1,6 @@
 <!--
   Settings (design doc, Section 5.10 FR-14.13 and Section 5.4 FR-6.1).
+  - Appearance (FR-V.3): System, Light or Dark.
   - Priority Settings: P1–P5 labels and the two automatic-rule switches.
   - Tags: create, rename, reorder and delete (the Manage Tags window).
   - Contexts (FR-18.2): the same, for the contexts a to-do can be in.
@@ -10,11 +11,18 @@
   import ViewHeader from '../components/ViewHeader.svelte';
   import ChoiceDialog from '../components/ChoiceDialog.svelte';
   import NamedList from '../components/NamedList.svelte';
+  import Segmented from '../components/Segmented.svelte';
   import { settings, snapshot } from '../lib/state/live';
   import { bySortKey } from '../lib/model/order';
-  import { DEFAULT_PRIORITY_LABELS, PRIORITIES, cleanLabels } from '../lib/model/settings';
+  import { DEFAULT_PRIORITY_LABELS, PRIORITIES, cleanLabels, type Theme } from '../lib/model/settings';
   import * as repo from '../lib/db/repo';
   import type { ID, Priority } from '../lib/model/types';
+
+  const THEME_OPTIONS: { value: Theme; label: string }[] = [
+    { value: 'system', label: 'System' },
+    { value: 'light', label: 'Light' },
+    { value: 'dark', label: 'Dark' },
+  ];
 
   let tags = $derived(bySortKey($snapshot.tags));
   let contexts = $derived(bySortKey($snapshot.contexts));
@@ -52,6 +60,20 @@
 <ViewHeader title="Settings">
   {#snippet icon()}<Icon name="settings" size={26} color="var(--text-2)" />{/snippet}
 </ViewHeader>
+
+<section aria-labelledby="appearance-heading">
+  <h2 id="appearance-heading">Appearance</h2>
+  <div class="setting-row">
+    <span>Theme</span>
+    <Segmented
+      label="Theme"
+      options={THEME_OPTIONS}
+      value={$settings.theme}
+      onchange={(v) => repo.setSetting('theme', v)}
+    />
+  </div>
+  <p class="help">System follows your device's light or dark setting.</p>
+</section>
 
 <section aria-labelledby="prio-heading">
   <h2 id="prio-heading">Priority Settings</h2>
@@ -181,7 +203,7 @@
     justify-content: center;
   }
   .text {
-    border: 1px solid #d6d6da;
+    border: 1px solid var(--line);
     border-radius: var(--radius);
     padding: 5px 8px;
     font-size: 14px;
@@ -191,6 +213,14 @@
   .small {
     padding: 4px 6px;
     font-size: 13px;
+  }
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 6px 0;
+    font-size: 14px;
   }
   .switch-row {
     display: flex;
@@ -204,7 +234,7 @@
     width: 34px;
     height: 20px;
     border-radius: 999px;
-    background: #c9c9ce;
+    background: var(--switch-off);
     position: relative;
     flex: none;
     margin: 0;
@@ -219,7 +249,7 @@
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: #fff;
+    background: #fff; /* the knob stays white in both themes, as in macOS */
     transition: transform 0.15s;
   }
   .switch-row input:checked {

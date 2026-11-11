@@ -126,6 +126,6 @@
     padding-right: 2px;
   }
   input::placeholder {
-    color: #b0b0b6;
+    color: var(--placeholder);
   }
 </style>

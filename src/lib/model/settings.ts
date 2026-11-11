@@ -17,7 +17,12 @@ export interface AppSettings {
   defaultP2: boolean;
   /** FR-16.1: how the Today list is grouped. */
   todayGrouping: TodayGrouping;
+  /** FR-V.3: light, dark, or follow the system. */
+  theme: Theme;
 }
+
+/** The Appearance setting (FR-V.3). */
+export type Theme = 'system' | 'light' | 'dark';
 
 /** Stored setting keys. */
 export type SettingKey = keyof AppSettings;
@@ -29,9 +34,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
   autoP1: true,
   defaultP2: true,
   todayGrouping: 'none',
+  theme: 'system',
 };
 
 const GROUPINGS: TodayGrouping[] = ['none', 'project', 'priority', 'context'];
+export const THEMES: Theme[] = ['system', 'light', 'dark'];
 
 /** All priorities, highest first. */
 export const PRIORITIES: Priority[] = [1, 2, 3, 4, 5];
@@ -49,6 +56,7 @@ export function readSettings(rows: SettingEntry[]): AppSettings {
     autoP1: bool('autoP1', DEFAULT_SETTINGS.autoP1),
     defaultP2: bool('defaultP2', DEFAULT_SETTINGS.defaultP2),
     todayGrouping: GROUPINGS.find((g) => g === stored.get('todayGrouping')) ?? DEFAULT_SETTINGS.todayGrouping,
+    theme: THEMES.find((t) => t === stored.get('theme')) ?? DEFAULT_SETTINGS.theme,
   };
 }
 

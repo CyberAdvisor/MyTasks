@@ -137,10 +137,10 @@
   }
   .day.selected {
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
   }
   .day:disabled {
-    color: #c4c4c8;
+    color: var(--disabled);
     cursor: default;
   }
 </style>

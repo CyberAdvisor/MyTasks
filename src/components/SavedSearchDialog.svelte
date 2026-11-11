@@ -119,7 +119,7 @@
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
   }
   dialog::backdrop {
-    background: rgba(0, 0, 0, 0.25);
+    background: var(--overlay);
   }
   h2 {
     margin: 0 0 12px;
@@ -143,7 +143,7 @@
     margin-bottom: 4px;
   }
   input {
-    border: 1px solid #d6d6da;
+    border: 1px solid var(--line);
     border-radius: var(--radius);
     padding: 7px 9px;
     font-size: 14px;
@@ -155,8 +155,8 @@
     gap: 6px;
   }
   .pill {
-    border: 1px solid #d6d6da;
-    background: #fff;
+    border: 1px solid var(--line);
+    background: var(--field);
     border-radius: 999px;
     padding: 3px 10px;
     font-size: 12px;
@@ -165,7 +165,7 @@
   .pill[aria-pressed='true'] {
     background: var(--accent);
     border-color: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
   }
   .hint {
     margin: 0 0 10px;
@@ -181,7 +181,7 @@
     border: 0;
     border-radius: var(--radius);
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     padding: 8px 14px;
     font-weight: 600;
   }
