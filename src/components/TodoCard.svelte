@@ -329,10 +329,11 @@
           </button>
         {/snippet}
         <div role="menu" aria-label="More actions">
-          <button type="button" class="menu-item" role="menuitem" onclick={duplicate}>Duplicate</button>
-          <button type="button" class="menu-item" role="menuitem" onclick={convert}>Convert to Project</button>
-          <button type="button" class="menu-item" role="menuitem" onclick={() => { moreOpen = false; ui.toggleDone(todo.id, 'canceled'); }}>Cancel To-Do</button>
-          <button type="button" class="menu-item danger" role="menuitem" onclick={remove}>Delete</button>
+          <button type="button" class="menu-item" role="menuitem" onclick={duplicate}><Icon name="copy" size={15} /> Duplicate</button>
+          <button type="button" class="menu-item" role="menuitem" onclick={convert}><Icon name="project" size={15} /> Convert to Project</button>
+          <button type="button" class="menu-item" role="menuitem" onclick={() => { moreOpen = false; ui.toggleDone(todo.id, 'canceled'); }}><Icon name="cancel" size={15} /> Cancel To-Do</button>
+          <hr class="menu-sep" />
+          <button type="button" class="menu-item danger" role="menuitem" onclick={remove}><Icon name="trash" size={15} /> Delete</button>
         </div>
       </Popover>
     </div>
@@ -433,8 +434,5 @@
   }
   .icon-btn:hover {
     background: var(--hover-bg);
-  }
-  .danger {
-    color: var(--danger);
   }
 </style>
