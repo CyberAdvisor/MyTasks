@@ -97,8 +97,8 @@
 
   /** Secondary text: where a to-do lives, or that an item is logged. */
   function noteOf(r: FindResult): string {
-    if (r.kind === 'todo') return r.logged ? 'Logbook' : containerLabel(r.todo, $snapshot);
-    if (r.kind === 'project' && r.logged) return 'Logbook';
+    if (r.kind === 'todo') return r.logged ? 'Completed' : containerLabel(r.todo, $snapshot);
+    if (r.kind === 'project' && r.logged) return 'Completed';
     if (r.kind === 'tag') return 'Tag';
     return '';
   }

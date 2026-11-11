@@ -86,7 +86,7 @@
     </svg>
     <div class="brand-text">
       <span class="brand-name">My Tasks</span>
-      <span class="brand-sub">Getting Tasks Done Daily</span>
+      <span class="brand-sub">Plan. Do. Track</span>
     </div>
     <!-- Phones have no toolbar, so Quick Find opens from here. -->
     <button type="button" class="find" aria-label="Quick Find" title="Quick Find" onclick={() => ui.openFind()}>

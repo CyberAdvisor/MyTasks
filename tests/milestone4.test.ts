@@ -294,7 +294,7 @@ describe('keyboard bindings (Section 7)', async () => {
       ['s', 'go-scheduled'],
       ['u', 'go-unscheduled'],
       ['d', 'go-deferred'],
-      ['l', 'go-logbook'],
+      ['c', 'go-logbook'],
       ['g', 'cycle-grouping'],
     ];
     const r = new KeyResolver();

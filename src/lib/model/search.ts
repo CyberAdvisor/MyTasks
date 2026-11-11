@@ -36,7 +36,7 @@ export type BuiltInFilter = 'deadlines' | 'projects' | 'logged-projects';
 export const FILTER_TITLES: Record<BuiltInFilter, string> = {
   deadlines: 'Deadlines',
   projects: 'All Projects',
-  'logged-projects': 'Logged Projects',
+  'logged-projects': 'Completed Projects',
 };
 
 // ---------------------------------------------------------------------------

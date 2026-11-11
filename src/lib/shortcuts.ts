@@ -114,7 +114,7 @@ export const BINDINGS: Binding[] = [
   { command: 'go-scheduled', label: 'Go to Scheduled', app: ['Mod+3'], tab: ['G S'] },
   { command: 'go-unscheduled', label: 'Go to Unscheduled', app: ['Mod+4'], tab: ['G U'] },
   { command: 'go-deferred', label: 'Go to Deferred', app: ['Mod+5'], tab: ['G D'] },
-  { command: 'go-logbook', label: 'Go to Logbook', app: ['Mod+6'], tab: ['G L'] },
+  { command: 'go-logbook', label: 'Go to Completed', app: ['Mod+6'], tab: ['G C'] },
   { command: 'go-trash', label: 'Go to Trash', app: ['Mod+7'] },
   { command: 'toggle-sidebar', label: 'Show or hide the sidebar', both: ['Mod+/'] },
   { command: 'undo', label: 'Undo', both: ['Mod+Z'], inText: false },

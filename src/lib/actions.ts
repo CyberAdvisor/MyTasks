@@ -118,7 +118,7 @@ export async function newHeading(projectId: string): Promise<void> {
   ui.newHeadingId = await repo.createHeading(projectId, '');
 }
 
-/** Whether the current view accepts new to-dos (Logbook, Trash and Settings do not). */
+/** Whether the current view accepts new to-dos (Completed, Trash and Settings do not). */
 export function canAddHere(r: Route): boolean {
   if (r.kind === 'settings') return false;
   return !(r.kind === 'list' && (r.list === 'logbook' || r.list === 'trash'));
