@@ -113,6 +113,28 @@ export function revealTodo(todo: Todo, current: Route, ref: LocalDate): void {
   else go(target);
 }
 
+/**
+ * The project or area page an open card links to (FR-1.2): the to-do's
+ * container, or null when it has none or that page is already showing.
+ */
+export function containerLink(todo: Todo, current: Route): Extract<Route, { kind: 'project' | 'area' }> | null {
+  const target: Extract<Route, { kind: 'project' | 'area' }> | null = todo.projectId
+    ? { kind: 'project', id: todo.projectId }
+    : todo.areaId
+      ? { kind: 'area', id: todo.areaId }
+      : null;
+  return target && hrefFor(target) !== hrefFor(current) ? target : null;
+}
+
+/** Go to a to-do's project or area page with the to-do selected (Go to Project). */
+export function goToContainer(todo: Todo, current: Route): void {
+  const target = containerLink(todo, current);
+  if (!target) return;
+  ui.close();
+  ui.revealNext(todo.id, false);
+  go(target);
+}
+
 /** Add an empty heading at the end of a project and focus its title (FR-2.4). */
 export async function newHeading(projectId: string): Promise<void> {
   ui.newHeadingId = await repo.createHeading(projectId, '');
