@@ -1,7 +1,7 @@
 <!--
   One to-do row (design doc, Section 6, Components: Row), laid out as in
   Things: the title, then the note and checklist icons and the tags; the
-  project or area underneath; the deadline and priority on the right.
+  project or area underneath; the context, deadline and priority on the right.
   Shows the expanded card in place when this to-do is open. Open rows can be
   selected with the arrow keys and dragged within their list (FR-10.3).
 -->
@@ -13,6 +13,7 @@
   import { deadlineLabel, formatRelative } from '../lib/model/dates';
   import { priorityLabel } from '../lib/model/settings';
   import { checklistProgress, tagTitles } from '../lib/model/tags';
+  import { contextTitle } from '../lib/model/contexts';
   import * as repo from '../lib/db/repo';
   import { dragItem } from '../lib/drag/drag';
   import type { LocalDate, Todo } from '../lib/model/types';
@@ -24,6 +25,7 @@
     starred = false,
     mode = 'open',
     showPriority = true,
+    showContext = true,
   }: {
     todo: Todo;
     /** Today's date, for deadline and date labels. */
@@ -36,6 +38,8 @@
     mode?: 'open' | 'logbook' | 'trash';
     /** Show the priority chip (hidden when Today is grouped by priority, FR-14.4). */
     showPriority?: boolean;
+    /** Show the context (hidden when Today is grouped by context, FR-18.7). */
+    showContext?: boolean;
   } = $props();
 
   let item = $state<HTMLLIElement>();
@@ -54,6 +58,7 @@
   let futureDate = $derived(todo.startDate !== null && todo.startDate > ref ? todo.startDate : null);
   let tags = $derived(tagTitles(todo.tagIds, $snapshot));
   let checklist = $derived(checklistProgress(todo.id, $snapshot));
+  let context = $derived(showContext ? contextTitle(todo.contextId, $snapshot) : '');
 
   /** Checkbox: complete (Alt-click cancels), or reopen from the Logbook. */
   function onCheck(e: MouseEvent) {
@@ -135,6 +140,9 @@
     </div>
 
     <div class="aside">
+      {#if context}
+        <span class="context"><Icon name="context" size={12} />{context}</span>
+      {/if}
       {#if todo.deadline}
         <span class="deadline" class:due>
           <Icon name="flag" size={12} />{deadlineLabel(todo.deadline, ref)}
@@ -255,6 +263,13 @@
     gap: 4px;
     font-size: 12px;
     color: var(--text-3);
+  }
+  .context {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-2);
   }
   .deadline.due {
     color: var(--danger);

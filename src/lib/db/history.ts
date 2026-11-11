@@ -26,6 +26,7 @@ const ENTITY_TABLES: EntityName[] = [
   'todos',
   'checklistItems',
   'tags',
+  'contexts',
   'savedSearches',
 ];
 

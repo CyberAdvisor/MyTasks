@@ -1,10 +1,11 @@
 <!--
-  Name a new saved search, or edit one (FR-15.1, FR-15.5): its name, search
-  text and the tags a to-do must carry.
+  Name a new saved search, or edit one (FR-15.1, FR-15.5, FR-18.6): its name,
+  search text, the tags a to-do must carry and an optional context.
 -->
 <script lang="ts">
   import { snapshot } from '../lib/state/live';
   import { bySortKey } from '../lib/model/order';
+  import { contextsInOrder } from '../lib/model/contexts';
   import { isEmptyFilter } from '../lib/model/search';
   import type { SavedSearchFields } from '../lib/db/repo';
   import type { ID } from '../lib/model/types';
@@ -29,9 +30,12 @@
   let query = $state(initial.query);
   // svelte-ignore state_referenced_locally
   let tagIds = $state<ID[]>([...initial.tagIds]);
+  // svelte-ignore state_referenced_locally
+  let contextId = $state<ID | null>(initial.contextId ?? null);
 
   let tags = $derived(bySortKey($snapshot.tags));
-  let valid = $derived(name.trim() !== '' && !isEmptyFilter({ query, tagIds }));
+  let contexts = $derived(contextsInOrder($snapshot));
+  let valid = $derived(name.trim() !== '' && !isEmptyFilter({ query, tagIds, contextId }));
 
   $effect(() => {
     dialog.showModal();
@@ -43,7 +47,7 @@
 
   function submit(e: SubmitEvent) {
     e.preventDefault();
-    if (valid) onsave({ title: name, query, tagIds });
+    if (valid) onsave({ title: name, query, tagIds, contextId });
   }
 </script>
 
@@ -78,8 +82,25 @@
         </div>
       </fieldset>
     {/if}
+    {#if contexts.length}
+      <fieldset>
+        <legend>Only to-dos in context</legend>
+        <div class="tags">
+          {#each contexts as c (c.id)}
+            <button
+              type="button"
+              class="pill"
+              aria-pressed={contextId === c.id}
+              onclick={() => (contextId = contextId === c.id ? null : c.id)}
+            >
+              {c.title || 'Untitled'}
+            </button>
+          {/each}
+        </div>
+      </fieldset>
+    {/if}
     {#if !valid}
-      <p class="hint">{name.trim() ? 'Enter words to search for, or pick a tag.' : 'Enter a name.'}</p>
+      <p class="hint">{name.trim() ? 'Enter words to search for, or pick a tag or context.' : 'Enter a name.'}</p>
     {/if}
     <div class="actions">
       <button type="button" class="btn-plain" onclick={oncancel}>Cancel</button>

@@ -1,6 +1,6 @@
 <!--
   Expanded to-do card (FR-1.2): title, notes, checklist, tags, When,
-  deadline and priority. Set fields show as chips on the left of the bottom
+  deadline, priority and context (FR-18.3). Set fields show as chips on the left of the bottom
   bar; buttons for the empty ones sit on the right, as in Things.
   Edits save as you type, debounced 300 ms; there is no Save button.
   Escape or a click outside closes it.
@@ -13,6 +13,7 @@
   import DeadlinePicker from './DeadlinePicker.svelte';
   import TagPicker from './TagPicker.svelte';
   import PriorityMenu from './PriorityMenu.svelte';
+  import ContextMenu from './ContextMenu.svelte';
   import Checklist from './Checklist.svelte';
   import { ui } from '../lib/state/ui.svelte';
   import { go } from '../lib/state/route';
@@ -20,6 +21,7 @@
   import { deadlineLabel, formatRelative } from '../lib/model/dates';
   import { priorityLabel } from '../lib/model/settings';
   import { checklistFor, tagTitles } from '../lib/model/tags';
+  import { contextTitle } from '../lib/model/contexts';
   import { storedChecklist } from '../lib/state/checklist.svelte';
   import * as repo from '../lib/db/repo';
   import type { ID, LocalDate, Priority, Todo } from '../lib/model/types';
@@ -42,6 +44,7 @@
   let deadlineOpen = $state(false);
   let tagsOpen = $state(false);
   let prioOpen = $state(false);
+  let contextOpen = $state(false);
   let moreOpen = $state(false);
   /** Checklist item to focus once it renders. */
   let checklistFocus = $state<ID | null>(null);
@@ -57,6 +60,7 @@
           : formatRelative(todo.startDate, ref),
   );
   let tagNames = $derived(tagTitles(todo.tagIds, $snapshot));
+  let contextName = $derived(contextTitle(todo.contextId, $snapshot));
   let checklistItems = $derived(checklistFor(todo.id, $snapshot));
   let checklistOps = $derived(storedChecklist(todo.id));
 
@@ -142,6 +146,11 @@
     void repo.setPriority(todo.id, p);
   }
 
+  function chooseContext(contextId: ID | null) {
+    contextOpen = false;
+    void repo.setContext(todo.id, contextId);
+  }
+
   async function addChecklist() {
     [checklistFocus] = await checklistOps.add([''], null);
   }
@@ -184,6 +193,9 @@
 {/snippet}
 {#snippet prioPanel()}
   <PriorityMenu priority={todo.priority} onchoose={choosePriority} />
+{/snippet}
+{#snippet contextPanel()}
+  <ContextMenu contextId={todo.contextId} onchoose={chooseContext} />
 {/snippet}
 
 <div class="card" bind:this={card} role="group" aria-label="Edit to-do">
@@ -269,6 +281,16 @@
           {@render prioPanel()}
         </Popover>
       {/if}
+      {#if contextName}
+        <Popover bind:open={contextOpen} label="Context" align="left">
+          {#snippet trigger(toggle)}
+            <button type="button" class="chip" aria-label="Context: {contextName}" onclick={toggle}>
+              <Icon name="context" size={12} />{contextName}
+            </button>
+          {/snippet}
+          {@render contextPanel()}
+        </Popover>
+      {/if}
     </div>
 
     <div class="right">
@@ -315,6 +337,16 @@
             </button>
           {/snippet}
           {@render prioPanel()}
+        </Popover>
+      {/if}
+      {#if !contextName}
+        <Popover bind:open={contextOpen} label="Context">
+          {#snippet trigger(toggle, open)}
+            <button type="button" class="icon-btn" aria-label="Context" title="Context" aria-expanded={open} onclick={toggle}>
+              <Icon name="context" size={16} />
+            </button>
+          {/snippet}
+          {@render contextPanel()}
         </Popover>
       {/if}
 

@@ -6,8 +6,8 @@
  * shows what the same search would show.
  *
  * Matching rule (FR-9.2): case and accents are ignored, and every word of the
- * query must appear in the to-do's title, notes or checklist text. To-dos in
- * the Trash never match.
+ * query must appear in the to-do's title, notes, checklist text or context
+ * name (FR-18.6). To-dos in the Trash never match.
  */
 import {
   groupByContainer,
@@ -19,13 +19,15 @@ import {
   type TodoGroup,
 } from './lists';
 import { bySortKey } from './order';
+import { contextTitle } from './contexts';
 import { effectiveTagIds } from './tags';
 import type { ID, SavedSearch, Todo } from './types';
 
-/** What to search for: words, and tags a to-do must all carry. */
+/** What to search for: words, tags a to-do must all carry, and an optional context. */
 export interface SearchFilter {
   query: string;
   tagIds: ID[];
+  contextId?: ID | null;
 }
 
 /** Built-in searches offered by Quick Find (FR-9.3). */
@@ -56,7 +58,7 @@ function hasAll(text: string, words: string[]): boolean {
   return words.every((w) => text.includes(w));
 }
 
-/** Folded searchable text of each to-do: title, notes and checklist. */
+/** Folded searchable text of each to-do: title, notes, checklist and context name. */
 function searchText(todos: Todo[], s: Snapshot): Map<ID, string> {
   const checklist = new Map<ID, string[]>();
   for (const c of s.checklistItems) {
@@ -64,13 +66,16 @@ function searchText(todos: Todo[], s: Snapshot): Map<ID, string> {
     checklist.get(c.todoId)!.push(c.title);
   }
   return new Map(
-    todos.map((t) => [t.id, fold([t.title, t.notes, ...(checklist.get(t.id) ?? [])].join('\n'))]),
+    todos.map((t) => [
+      t.id,
+      fold([t.title, t.notes, ...(checklist.get(t.id) ?? []), contextTitle(t.contextId, s)].join('\n')),
+    ]),
   );
 }
 
-/** Is the filter empty (no words and no tags)? An empty filter matches nothing. */
+/** Is the filter empty (no words, tags or context)? An empty filter matches nothing. */
 export function isEmptyFilter(f: SearchFilter): boolean {
-  return !queryWords(f.query).length && !f.tagIds.length;
+  return !queryWords(f.query).length && !f.tagIds.length && !f.contextId;
 }
 
 /**
@@ -85,7 +90,8 @@ export function searchTodos(s: Snapshot, f: SearchFilter): { open: Todo[]; logge
   const matches = candidates.filter(
     (t) =>
       hasAll(text.get(t.id)!, words) &&
-      (!f.tagIds.length || f.tagIds.every((id) => effectiveTagIds(t, s).has(id))),
+      (!f.tagIds.length || f.tagIds.every((id) => effectiveTagIds(t, s).has(id))) &&
+      (!f.contextId || t.contextId === f.contextId),
   );
   return {
     open: bySortKey(matches.filter(isOpen)),
@@ -111,11 +117,13 @@ export function savedSearchesInOrder(s: Snapshot): SavedSearch[] {
   return bySortKey(s.savedSearches);
 }
 
-/** Default name for a new saved search: the search text, else the tag names (FR-15.1). */
+/** Default name for a new saved search: the search text, else the tag and context names (FR-15.1). */
 export function defaultSearchName(f: SearchFilter, s: Snapshot): string {
   const text = f.query.trim();
   if (text) return text;
   const names = bySortKey(s.tags.filter((t) => f.tagIds.includes(t.id))).map((t) => t.title || 'Untitled');
+  const context = contextTitle(f.contextId ?? null, s);
+  if (context) names.push(context);
   return names.join(', ') || 'Search';
 }
 

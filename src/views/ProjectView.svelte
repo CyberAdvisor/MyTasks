@@ -23,6 +23,7 @@
   import TagBar from '../components/TagBar.svelte';
   import { newHeading } from '../lib/actions';
   import { activeTag, filterByTag, tagTitles, tagsInUse } from '../lib/model/tags';
+  import { activeContext, contextsInUse, filterByContext } from '../lib/model/contexts';
   import { snapshot, todayDate } from '../lib/state/live';
   import { go } from '../lib/state/route';
   import { ui } from '../lib/state/ui.svelte';
@@ -30,7 +31,7 @@
   import { isClosed, projectProgress, projectSections } from '../lib/model/lists';
   import * as repo from '../lib/db/repo';
   import { dragItem, dropZone, type DropZone } from '../lib/drag/drag';
-  import type { ID } from '../lib/model/types';
+  import type { ID, Todo } from '../lib/model/types';
 
   let { id }: { id: ID } = $props();
 
@@ -38,14 +39,16 @@
   let ref = $derived($todayDate);
   let project = $derived(s.projects.find((p) => p.id === id));
   let allSections = $derived(projectSections(s, id));
-  // Tag filter (FR-6.3) over the project's open to-dos.
-  let offered = $derived(
-    tagsInUse([...allSections.loose, ...allSections.headings.flatMap((h) => h.todos)], s),
-  );
+  // Filter bar (FR-6.3, FR-18.5) over the project's open to-dos.
+  let openTodos = $derived([...allSections.loose, ...allSections.headings.flatMap((h) => h.todos)]);
+  let offered = $derived(tagsInUse(openTodos, s));
+  let offeredContexts = $derived(contextsInUse(openTodos, s));
   let tag = $derived(activeTag(ui.tagFilter, offered));
+  let ctx = $derived(activeContext(ui.contextFilter, offeredContexts));
+  const narrow = (todos: Todo[]) => filterByContext(filterByTag(todos, tag, s), ctx);
   let sections = $derived({
-    loose: filterByTag(allSections.loose, tag, s),
-    headings: allSections.headings.map((h) => ({ ...h, todos: filterByTag(h.todos, tag, s) })),
+    loose: narrow(allSections.loose),
+    headings: allSections.headings.map((h) => ({ ...h, todos: narrow(h.todos) })),
   });
   let closedTodos = $derived(bySortKey(s.todos.filter((t) => t.projectId === id && isClosed(t))));
   let openCount = $derived(allSections.loose.length + allSections.headings.reduce((n, h) => n + h.todos.length, 0));
@@ -278,7 +281,7 @@
     onchange={(e) => repo.updateProject(id, { notes: (e.currentTarget as HTMLTextAreaElement).value })}
   ></textarea>
 
-  <TagBar tags={offered} />
+  <TagBar tags={offered} contexts={offeredContexts} />
 
   <TodoList todos={sections.loose} {ref} zone={looseZone} />
 

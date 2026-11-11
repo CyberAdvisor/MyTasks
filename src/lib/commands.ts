@@ -32,7 +32,7 @@ const CARD: Partial<Record<Command, CardCommand>> = {
   checklist: 'checklist',
 };
 
-const GROUPING_CYCLE: TodayGrouping[] = ['none', 'project', 'priority'];
+const GROUPING_CYCLE: TodayGrouping[] = ['none', 'project', 'priority', 'context'];
 
 /** The rows of the current view, in screen order. */
 function rows(): HTMLElement[] {

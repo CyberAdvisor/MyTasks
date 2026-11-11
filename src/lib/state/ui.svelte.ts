@@ -30,6 +30,8 @@ class UiState {
   newHeadingId = $state<ID | null>(null);
   /** Tag selected in the current view's tag bar (FR-6.3); reset on navigation. */
   tagFilter = $state<ID | null>(null);
+  /** Context selected in the filter bar (FR-18.5); reset on navigation. */
+  contextFilter = $state<ID | null>(null);
   /** Rows checked off but not yet written, mapped to their pending status. */
   pending = $state<Record<ID, 'completed' | 'canceled'>>({});
   /** Quick Find is open (FR-9.1), starting with `findText`. */
@@ -119,6 +121,7 @@ class UiState {
     this.close();
     this.selectedId = null;
     this.tagFilter = null;
+    this.contextFilter = null;
     const r = this.reveal;
     this.reveal = null;
     if (!r) return;

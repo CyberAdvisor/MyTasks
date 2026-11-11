@@ -15,6 +15,7 @@ import type {
   SavedSearch,
   SettingEntry,
   Tag,
+  Context,
   Todo,
 } from '../model/types';
 
@@ -25,6 +26,7 @@ export class MyTasksDB extends Dexie {
   todos!: Table<Todo, string>;
   checklistItems!: Table<ChecklistItem, string>;
   tags!: Table<Tag, string>;
+  contexts!: Table<Context, string>;
   savedSearches!: Table<SavedSearch, string>;
   changeLog!: Table<ChangeLogEntry, number>;
   settings!: Table<SettingEntry, string>;
@@ -43,6 +45,20 @@ export class MyTasksDB extends Dexie {
       changeLog: '++seq, entity, entityId, at',
       settings: 'key',
     });
+    // Version 2: contexts (FR-18). Existing to-dos and saved searches get no context.
+    this.version(2)
+      .stores({
+        todos: 'id, projectId, areaId, headingId, status, startDate, deadline, sortKey, contextId',
+        contexts: 'id, sortKey',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('todos').toCollection().modify((t) => {
+          t.contextId ??= null;
+        });
+        await tx.table('savedSearches').toCollection().modify((x) => {
+          x.contextId ??= null;
+        });
+      });
   }
 }
 

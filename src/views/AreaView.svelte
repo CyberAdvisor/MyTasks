@@ -16,6 +16,7 @@
   import TagBar from '../components/TagBar.svelte';
   import { bySortKey } from '../lib/model/order';
   import { activeTag, filterByTag, projectTagIds, tagTitles, tagsInUse } from '../lib/model/tags';
+  import { activeContext, contextsInUse, filterByContext } from '../lib/model/contexts';
   import { snapshot, todayDate } from '../lib/state/live';
   import { go, hrefFor } from '../lib/state/route';
   import { ui } from '../lib/state/ui.svelte';
@@ -40,15 +41,20 @@
   let tagsOpen = $state(false);
   let areaTags = $derived(area ? tagTitles(area.tagIds, s) : []);
 
-  // Tag filter (FR-6.3) over the area's loose to-dos and projects.
+  // Filter bar (FR-6.3, FR-18.5) over the area's loose to-dos and projects.
+  // Projects have no context, so a context filter hides the project rows.
   let offered = $derived.by(() => {
     const ids = new Set(tagsInUse(allTodos, s).map((t) => t.id));
     allProjects.forEach((p) => projectTagIds(p, s).forEach((t) => ids.add(t)));
     return bySortKey(s.tags.filter((t) => ids.has(t.id)));
   });
+  let offeredContexts = $derived(contextsInUse(allTodos, s));
   let tag = $derived(activeTag(ui.tagFilter, offered));
-  let projects = $derived(tag ? allProjects.filter((p) => projectTagIds(p, s).has(tag!)) : allProjects);
-  let todos = $derived(filterByTag(allTodos, tag, s));
+  let ctx = $derived(activeContext(ui.contextFilter, offeredContexts));
+  let projects = $derived(
+    ctx ? [] : tag ? allProjects.filter((p) => projectTagIds(p, s).has(tag!)) : allProjects,
+  );
+  let todos = $derived(filterByContext(filterByTag(allTodos, tag, s), ctx));
   let askDelete = $state(false);
 
   // Projects here belong with the sidebar's project lists (same group), so the
@@ -137,7 +143,7 @@
     </div>
   {/if}
 
-  <TagBar tags={offered} />
+  <TagBar tags={offered} contexts={offeredContexts} />
 
   {#if projects.length}
     <ul class="projects" use:dropZone={projectZone}>

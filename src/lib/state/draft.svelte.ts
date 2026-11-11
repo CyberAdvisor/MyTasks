@@ -27,6 +27,7 @@ export class TodoDraft {
   /** The user's priority choice; `undefined` until they choose (None is `null`). */
   priority = $state<Priority | null | undefined>(undefined);
   tagIds = $state<ID[]>([]);
+  contextId = $state<ID | null>(null);
   checklist = new DraftChecklist();
 
   constructor(init: DraftStart = {}) {
@@ -57,6 +58,7 @@ export class TodoDraft {
       deferred: this.deferred,
       deadline: this.deadline,
       tagIds: [...this.tagIds],
+      contextId: this.contextId,
       checklist: this.checklist.toSave(),
       ...(this.priority === undefined ? {} : { priority: this.priority }),
     };
