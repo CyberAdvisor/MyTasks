@@ -210,21 +210,23 @@ export class KeyResolver {
   resolve(e: KeyInput, ctx: KeyContext): KeyResult {
     const prefix = this.prefix && ctx.now - this.prefix.at <= SEQUENCE_MS ? this.prefix.key : null;
     this.prefix = null;
-    let startsSequence = false;
+    const all = BINDINGS.flatMap((b) =>
+      keysFor(b, ctx.standalone).map((keys) => ({ b, steps: keys.split(' '), chords: keys.split(' ').map(parseChord) })),
+    );
+    const sequences = ctx.focus === 'text' ? [] : all.filter((x) => x.chords.length === 2);
 
-    for (const b of BINDINGS) {
-      for (const keys of keysFor(b, ctx.standalone)) {
-        const steps = keys.split(' ').map(parseChord);
-        const [first, second] = steps;
-        if (second) {
-          if (ctx.focus === 'text') continue;
-          if (prefix === keys.split(' ')[0] && matches(second, e, ctx.mac)) return { command: b.command };
-          if (!prefix && matches(first, e, ctx.mac)) startsSequence = true;
-        } else if (matches(first, e, ctx.mac) && allowedHere(first, b, ctx.focus)) {
-          return { command: b.command };
-        }
+    // The second key of a sequence comes first: after G, T means "go to
+    // Today", not the single-key Today command.
+    if (prefix) {
+      const hit = sequences.find((x) => x.steps[0] === prefix && matches(x.chords[1], e, ctx.mac));
+      if (hit) return { command: hit.b.command };
+    }
+    for (const { b, chords } of all) {
+      if (chords.length === 1 && matches(chords[0], e, ctx.mac) && allowedHere(chords[0], b, ctx.focus)) {
+        return { command: b.command };
       }
     }
+    const startsSequence = sequences.some((x) => matches(x.chords[0], e, ctx.mac));
     if (startsSequence) {
       this.prefix = { key: e.key.toUpperCase(), at: ctx.now };
       return { pending: true };

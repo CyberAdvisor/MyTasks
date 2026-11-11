@@ -7,7 +7,7 @@
     | 'inbox' | 'star' | 'calendar' | 'layers' | 'archive' | 'logbook' | 'trash'
     | 'search' | 'chevron-down' | 'chevron-right' | 'chevron-left' | 'area' | 'plus'
     | 'settings' | 'flag' | 'note' | 'move' | 'more' | 'x' | 'check' | 'heading'
-    | 'tag' | 'checklist' | 'priority' | 'arrow-up' | 'arrow-down' | 'heading-add' | 'copy';
+    | 'tag' | 'checklist' | 'priority' | 'arrow-up' | 'arrow-down' | 'heading-add' | 'copy' | 'group';
 
   let { name, size = 18, color = 'currentColor', label = '', weight = 2 }: {
     name: Name; size?: number; color?: string; label?: string;
@@ -44,6 +44,7 @@
     'arrow-down': 'M12 5v14 M19 12l-7 7-7-7',
     copy: 'M9 9h11v11H9z M5 15H4V4h11v1',
     'heading-add': 'M3 6h12.5l5 6-5 6H3z M7.5 12h6 M10.5 9v6',
+    group: 'M3 4h7 M7 8h14 M7 12h14 M3 16h7 M7 20h14',
   };
 </script>
 

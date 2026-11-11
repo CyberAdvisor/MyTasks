@@ -68,6 +68,7 @@
   ];
   let grouping = $derived(list === 'today' ? $settings.todayGrouping : 'none');
   let groupOpen = $state(false);
+  let groupingLabel = $derived(GROUPINGS.find((g) => g.value === grouping)?.label ?? 'None');
   let todayGroups = $derived(grouping === 'none' ? [] : L.todayGroups(flat, grouping, s, $settings.priorityLabels));
 
   function chooseGrouping(value: L.TodayGrouping) {
@@ -117,13 +118,23 @@
       <button type="button" class="btn-plain" onclick={() => (confirmEmpty = true)}>Empty Trash</button>
     {/if}
     {#if list === 'today'}
+      <!-- An icon on the title line; blue while Today is grouped (FR-16.1). -->
       <Popover bind:open={groupOpen} label="Group Today">
         {#snippet trigger(toggle, open)}
-          <button type="button" class="btn-plain" aria-haspopup="menu" aria-expanded={open} onclick={toggle}>
-            Group: {GROUPINGS.find((g) => g.value === grouping)?.label}
+          <button
+            type="button"
+            class="btn-plain"
+            aria-haspopup="menu"
+            aria-expanded={open}
+            aria-label="Group Today by {groupingLabel}"
+            title="Group by: {groupingLabel}"
+            onclick={toggle}
+          >
+            <Icon name="group" size={20} color={grouping === 'none' ? 'currentColor' : 'var(--accent)'} />
           </button>
         {/snippet}
         <div role="menu" aria-label="Group Today by">
+          <div class="menu-head">Group by</div>
           {#each GROUPINGS as g (g.value)}
             <button type="button" class="menu-item" role="menuitemradio" aria-checked={grouping === g.value} onclick={() => chooseGrouping(g.value)}>
               <span class="grow">{g.label}</span>
@@ -232,6 +243,12 @@
   }
   .grow {
     flex: 1;
+  }
+  .menu-head {
+    padding: 4px 10px 2px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-3);
   }
   .empty {
     color: var(--text-3);

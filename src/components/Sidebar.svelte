@@ -3,7 +3,8 @@
   lists with counts, collapsible Saved Searches, then areas and projects.
   Drag saved searches, areas and projects to reorder them; drag a project
   onto another area to move it there, or below the last area to take it out
-  of any area (FR-10.8, FR-10.9, FR-15.5).
+  of any area (FR-10.8, FR-10.9, FR-15.5). Drop a to-do onto a project or an
+  area to move it there (FR-10.11).
 -->
 <script lang="ts">
   import Icon from './Icon.svelte';
@@ -17,7 +18,7 @@
   import { ui } from '../lib/state/ui.svelte';
   import { readFlag, writeFlag } from '../lib/state/flags';
   import * as repo from '../lib/db/repo';
-  import { dragItem, dropZone, type DropZone } from '../lib/drag/drag';
+  import { dragItem, dropTarget, dropZone, type DropTarget, type DropZone } from '../lib/drag/drag';
   import type { ID } from '../lib/model/types';
 
   const SAVED_KEY = 'mytasks.savedSearchesCollapsed';
@@ -60,6 +61,20 @@
     drop: (id, order) => repo.placeProject(id, { order, areaId }),
   });
 
+  /**
+   * A to-do dropped on a project or area moves there, at the end of its to-dos
+   * with no heading, as the Move dialog does. Not offered where it already is.
+   */
+  const moveHere = (to: { projectId: ID } | { areaId: ID }): DropTarget => ({
+    type: 'todo',
+    accepts: (id) => {
+      const t = $snapshot.todos.find((x) => x.id === id);
+      if (!t) return false;
+      return 'projectId' in to ? t.projectId !== to.projectId : t.projectId !== null || t.areaId !== to.areaId;
+    },
+    drop: (id) => repo.moveTodo(id, to),
+  });
+
   const groups: BuiltInList[][] = [['inbox'], ['today', 'scheduled', 'unscheduled', 'deferred'], ['logbook', 'trash']];
 </script>
 
@@ -87,7 +102,7 @@
           {@const r = { kind: 'list', list } as Route}
           <li>
             <a href={hrefFor(r)} class="item" class:active={isActive(r)} aria-current={isActive(r) ? 'page' : undefined}>
-              <Icon name={meta.icon} color={meta.color} />
+              <Icon name={meta.icon} color={meta.color} size={16} />
               <span class="label">{meta.title}</span>
               {#if list === 'inbox' && counts.inbox}<span class="count">{counts.inbox}</span>{/if}
               {#if list === 'today' && counts.today}
@@ -113,7 +128,7 @@
             {@const count = openMatchCount($snapshot, x)}
             <li use:dragItem={{ type: 'saved', id: x.id }}>
               <a href={hrefFor(r)} class="item" class:active={isActive(r)} aria-current={isActive(r) ? 'page' : undefined}>
-                <Icon name="search" color="var(--text-2)" />
+                <Icon name="search" color="var(--text-2)" size={16} />
                 <span class="label">{x.title || 'Saved Search'}</span>
                 {#if count}<span class="count">{count}</span>{/if}
               </a>
@@ -130,16 +145,16 @@
       {#each areas as area (area.id)}
         {@const r = { kind: 'area', id: area.id } as Route}
         <div use:dragItem={{ type: 'area', id: area.id }} use:dropZone={projectZone(area.id)}>
-          <a href={hrefFor(r)} class="item area" class:active={isActive(r)}>
-            <Icon name="area" color="var(--text-2)" />
+          <a href={hrefFor(r)} class="item area" class:active={isActive(r)} use:dropTarget={moveHere({ areaId: area.id })}>
+            <Icon name="area" color="var(--text-2)" size={16} />
             <span class="label">{area.title || 'New Area'}</span>
           </a>
           <ul class="lists">
             {#each areaProjects($snapshot, area.id) as project (project.id)}
               {@const pr = { kind: 'project', id: project.id } as Route}
               <li use:dragItem={{ type: 'project', id: project.id }}>
-                <a href={hrefFor(pr)} class="item project" class:active={isActive(pr)}>
-                  <ProgressPie fraction={projectProgress($snapshot, project.id)} />
+                <a href={hrefFor(pr)} class="item project" class:active={isActive(pr)} use:dropTarget={moveHere({ projectId: project.id })}>
+                  <ProgressPie fraction={projectProgress($snapshot, project.id)} size={14} />
                   <span class="label">{project.title || 'New Project'}</span>
                 </a>
               </li>
@@ -154,8 +169,8 @@
       {#each looseProjects as project (project.id)}
         {@const pr = { kind: 'project', id: project.id } as Route}
         <li use:dragItem={{ type: 'project', id: project.id }}>
-          <a href={hrefFor(pr)} class="item" class:active={isActive(pr)}>
-            <ProgressPie fraction={projectProgress($snapshot, project.id)} />
+          <a href={hrefFor(pr)} class="item" class:active={isActive(pr)} use:dropTarget={moveHere({ projectId: project.id })}>
+            <ProgressPie fraction={projectProgress($snapshot, project.id)} size={14} />
             <span class="label">{project.title || 'New Project'}</span>
           </a>
         </li>
@@ -195,13 +210,14 @@
     height: 100%;
     background: var(--sidebar-bg);
     border-right: 1px solid var(--sidebar-border);
-    font-size: 14px;
+    /* Compact, as in Things for Mac: 13 px text on 28 px rows. */
+    font-size: 13px;
   }
   .brand {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 18px 20px 14px;
+    padding: 16px 18px 10px;
   }
   .brand-text {
     display: flex;
@@ -242,17 +258,17 @@
     padding: 0;
   }
   .lists.gap {
-    margin-top: 12px;
+    margin-top: 8px;
   }
   .item {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 6px 10px;
+    gap: 8px;
+    padding: 4px 8px;
     border-radius: var(--radius);
     color: var(--text);
     text-decoration: none;
-    min-height: 32px;
+    min-height: 28px;
   }
   .item:hover {
     background: var(--hover-bg);
@@ -263,10 +279,10 @@
   }
   .item.area {
     font-weight: 600;
-    margin-top: 10px;
+    margin-top: 8px;
   }
   .item.project {
-    padding-left: 20px;
+    padding-left: 18px;
   }
   .label {
     flex: 1;
@@ -277,7 +293,7 @@
   }
   .count {
     font-size: 12px;
-    color: var(--text-3);
+    color: var(--text-2);
     font-weight: 400;
   }
   .count.due {
@@ -291,7 +307,7 @@
     border: 0;
     height: 1px;
     background: #d9d9de;
-    margin: 10px 6px;
+    margin: 8px 6px;
   }
   .section-label {
     display: flex;
@@ -300,14 +316,14 @@
     border: 0;
     background: transparent;
     color: var(--text-2);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
-    padding: 4px 10px;
+    padding: 2px 8px;
   }
   .empty {
     margin: 2px 0 0;
-    padding: 4px 10px 4px 28px;
-    font-size: 13px;
+    padding: 2px 8px 2px 26px;
+    font-size: 12px;
     color: var(--text-3);
   }
   .footer {
