@@ -151,10 +151,10 @@ dialog .btn-plain {
   font-weight: 600;
 }
 /* Menu icons are blue, as in Things; destructive items stay red
-   (a deviation from Things, design doc Section 6). */
+   (a deviation from Things, design doc Section 6). Icons given their own
+   colour, such as the When picker's star, keep it. */
 .menu-item > svg {
   color: var(--accent);
-  stroke: currentColor;
 }
 .menu-item.danger,
 .menu-item.danger > svg {
