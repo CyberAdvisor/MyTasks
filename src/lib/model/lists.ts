@@ -352,13 +352,17 @@ export function areaLooseTodos(s: Snapshot, areaId: ID): Todo[] {
   return bySortKey(visibleTodos(s).filter((t) => isOpen(t) && t.areaId === areaId && !t.projectId));
 }
 
-/** Badge counts for the sidebar. */
+/**
+ * Badge counts for the sidebar. As in Things, Today's two numbers add up to
+ * the list: `due` (red) counts due and overdue to-dos, `today` (grey) the rest.
+ */
 export function sidebarCounts(s: Snapshot, ref: LocalDate): { inbox: number; today: number; due: number } {
   const todos = visibleTodos(s);
   const today = todos.filter((t) => inToday(t, ref));
+  const due = today.filter((t) => isDue(t, ref)).length;
   return {
     inbox: todos.filter(inInbox).length,
-    today: today.length,
-    due: today.filter((t) => isDue(t, ref)).length,
+    today: today.length - due,
+    due,
   };
 }
