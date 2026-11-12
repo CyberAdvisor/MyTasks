@@ -88,5 +88,4 @@ v1 is built in milestones, each a pull request.
 | 4a | Area ⋯ menu, contexts, project link under the open card | Done |
 | 4b | To-do right-click menu | Done |
 | 5 | 5a Completed list and subtitle; 5b themes; 5c when completed items move; 5e encrypted gist sync; 5f install and offline; 5g hosting at mytasks.fyi | Done |
-| 5 | 5h accessibility | Next |
-| 6 | Finishing touches: empty-state illustrations, phone gestures, resizable sidebar, sidebar blur, title-bar area, long-list speed | Planned |
+| 6 | Finishing touches: empty-state illustrations, phone gestures, resizable sidebar, sidebar blur, title-bar area, long-list speed | Next |
