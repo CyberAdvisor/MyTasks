@@ -19,9 +19,9 @@ A better task manager that is **free**, **private** and **secure**. My Tasks giv
 
 **On every device.** It runs in any modern browser on iPhone, iPad, Mac, Windows, Linux and Android, and installs like an app on each of them. Your list keeps working without a connection, and your devices stay in step whenever they're online.
 
-**Familiar.** Inbox, Today, Scheduled, areas, projects, headings and checklists work the way Things users expect, with the same keyboard shortcuts where the browser allows.
+**Familiar.** Inbox, Today, Scheduled, areas, projects, headings and checklists work the way users expect, with familiar keyboard shortcuts where the browser allows.
 
-## How it compares
+## How it compares to other popular task managers
 
 |  | **My Tasks** | **Things 3** | **Todoist** |
 | --- | :---: | :---: | :---: |
@@ -50,7 +50,8 @@ A better task manager that is **free**, **private** and **secure**. My Tasks giv
 | Repeating to-dos | Planned | ✅ | ✅ |
 | Typed dates ("next fri") | Planned | ✅ | ✅ |
 | Reminders and notifications | — ⁶ | ✅ | ✅ |
-| Calendar, widgets, Siri, Apple Watch | — ⁶ | ✅ | ✅ |
+| Today's calendar events (Google and Microsoft) | Planned | ✅ | ✅ |
+| Widgets, Siri, Apple Watch | — ⁶ | ✅ | ✅ |
 | Sharing lists with other people | — | — | ✅ |
 
 ¹ Things and Todoist encrypt your data on their servers, but they hold the keys, so the company could read it.
