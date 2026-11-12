@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { VitePWA } from 'vite-plugin-pwa';
+import type { Plugin } from 'vite';
+import { CSP } from './src/lib/csp';
 
 /** The version in package.json, shown in the app (src/lib/version.ts). */
 const version: string = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version;
@@ -16,10 +18,28 @@ function commit(): string {
   }
 }
 
+/**
+ * Put the Content Security Policy (src/lib/csp.ts) in the built page, right
+ * after the charset and before any script. Builds only: the dev server needs
+ * its own live-reload connection.
+ */
+function contentSecurityPolicy(): Plugin {
+  const charset = '<meta charset="UTF-8" />';
+  return {
+    name: 'mytasks-csp',
+    apply: 'build',
+    transformIndexHtml(html) {
+      if (!html.includes(charset)) throw new Error('index.html: charset tag not found for the CSP');
+      return html.replace(charset, `${charset}\n    <meta http-equiv="Content-Security-Policy" content="${CSP}" />`);
+    },
+  };
+}
+
 // Vite configuration for the My Tasks PWA.
 export default defineConfig({
   plugins: [
     svelte(),
+    contentSecurityPolicy(),
     // Install and offline (FR-0.1, NFR-1, NFR-8): the web app manifest, the
     // icons and a service worker that precaches the whole app.
     VitePWA({
