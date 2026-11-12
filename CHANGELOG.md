@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org): until the first release at mytasks.fyi (1.0.0), the middle number goes up for new features and the last number for fixes. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v0.4.2"></a>
+
+## 0.4.2 — 2026-11-12
+
+### Fixed
+
+- Duplicate Project no longer fails when the project's to-dos have no checklist. Before, the copy was made but could not be undone, and it was not synced until the next change. (#27)
+
 <a id="v0.4.1"></a>
 
 ## 0.4.1 — 2026-11-12

@@ -43,6 +43,10 @@ tests/          Unit tests; tests/fakeGitHub.ts fakes the gist API
 ## Data
 
 - Every change runs in one IndexedDB transaction and is written to a local change log.
+- Inside a transaction, Dexie loses track of it, and commits it too early (`PrematureCommitError`), in two cases:
+  - awaiting a plain `async` helper before the first database request (load settings first);
+  - a read awaited through two levels of `async` helpers more than once (for example a helper that calls a read helper, in a loop).
+  So helpers that only read (`liveChecklist`, `siblingKeys`, `shiftedKey`, `loadSettings` in `repo.ts`) return Dexie's own promise with `then` and are not `async`. The unit tests' in-memory database does not show this; check multi-record operations in a browser.
 - Records are never removed: a deletion sets `deletedAt`, so it syncs like any other change.
 - Sync merges record by record; the later `modifiedAt` wins.
 - This device's token, gist id and encryption key live in a separate database, `mytasks-device`, and never sync.
