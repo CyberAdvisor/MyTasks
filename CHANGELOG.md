@@ -10,7 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org): until the first relea
 
 ### Fixed
 
-- Duplicate Project no longer fails when the project's to-dos have no checklist. Before, the copy was made but could not be undone, and it was not synced until the next change. (#PR)
+- Duplicate Project no longer fails when the project's to-dos have no checklist. Before, the copy was made but could not be undone, and it was not synced until the next change. (#27)
 
 <a id="v0.4.1"></a>
 
