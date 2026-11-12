@@ -4,6 +4,18 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org): until the first release at mytasks.fyi (1.0.0), the middle number goes up for new features and the last number for fixes. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v0.4.0"></a>
+
+## 0.4.0 — 2026-11-12
+
+### Added
+
+- My Tasks is published at [mytasks.fyi](https://mytasks.fyi). Every change merged to main is tested, built and published automatically. (#23)
+
+### Security
+
+- A strict Content Security Policy: the app runs only its own scripts, never `eval`, and connects to nothing but itself and GitHub's gist API. (#23)
+
 <a id="v0.3.0"></a>
 
 ## 0.3.0 — 2026-11-12

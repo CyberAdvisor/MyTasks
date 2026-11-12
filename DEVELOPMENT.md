@@ -33,7 +33,8 @@ src/
   lib/pwa/      Install and offline: which browser, the install prompt, updates
   lib/state/    Live data, routing and transient UI state
   lib/          shortcuts.ts (key bindings), commands.ts (what they do),
-                actions.ts (shared actions) and version.ts (the version stamp)
+                actions.ts (shared actions), version.ts (the version stamp)
+                and csp.ts (the Content Security Policy)
   components/   Sidebar, rows, the to-do card, menus, dialogs, Setup
   views/        Built-in lists, project and area pages, Settings
 tests/          Unit tests; tests/fakeGitHub.ts fakes the gist API
@@ -60,6 +61,14 @@ The dev server has no service worker. To try install, offline or updates, run `n
 
 Press `?` in the app for the full list. Installed, My Tasks uses the Things shortcuts. In a browser tab, keys the browser keeps for itself (Cmd/Ctrl+N, T, R and others) are replaced by single-letter fallbacks, and `/` opens Quick Find.
 
+## Hosting and security
+
+My Tasks is served as static files from GitHub Pages at https://mytasks.fyi. Every push to main runs `.github/workflows/deploy.yml`: unit tests, type check and build, then publish `dist/`. A failing step stops the deploy. `public/CNAME` names the domain.
+
+The domain is where each device keeps its data (the browser's storage belongs to the site's address), so it must never change.
+
+The built page carries a strict Content Security Policy in a `<meta>` tag (`src/lib/csp.ts`, added by `vite.config.ts`): scripts only from the app, no `eval`, and no connections except the app and GitHub's gist API. GitHub Pages can't send headers, so `frame-ancestors` and violation reports are not available. The dev server leaves the policy out, because it needs its own live-reload connection; `npm run preview` serves a build with it.
+
 ## Versions
 
 The app shows its version and commit at the bottom of the sidebar, for example `v0.2.0 (a1b2c3d)`, and links it to that version's section of [CHANGELOG.md](CHANGELOG.md). Each pull request that changes the app adds a changelog section and sets the version in `package.json`: the middle number for new features, the last for fixes. 1.0.0 is the first release at mytasks.fyi.
@@ -78,6 +87,6 @@ v1 is built in milestones, each a pull request.
 | 4 | Drag and drop, keyboard shortcuts, undo | Done |
 | 4a | Area ⋯ menu, contexts, project link under the open card | Done |
 | 4b | To-do right-click menu | Done |
-| 5 | 5a Completed list and subtitle; 5b themes; 5c when completed items move; 5e encrypted gist sync; 5f install and offline | Done |
-| 5 | 5g hosting at mytasks.fyi; 5h accessibility | Next |
+| 5 | 5a Completed list and subtitle; 5b themes; 5c when completed items move; 5e encrypted gist sync; 5f install and offline; 5g hosting at mytasks.fyi | Done |
+| 5 | 5h accessibility | Next |
 | 6 | Finishing touches: empty-state illustrations, phone gestures, resizable sidebar, sidebar blur, title-bar area, long-list speed | Planned |
