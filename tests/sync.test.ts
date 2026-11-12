@@ -40,6 +40,9 @@ async function newDevice(): Promise<void> {
   await clearConfig();
 }
 
+/** Setup's risks and limitations checkbox, ticked. */
+const ACK = { at: '2026-11-12T20:00:00.000Z', limitationsUpdated: '2026-11-12' };
+
 const titles = async () => (await db.todos.toArray()).filter((t) => !t.deletedAt).map((t) => t.title).sort();
 
 /** An empty payload with some records. */
@@ -154,7 +157,7 @@ describe('setup (FR-19.1 to FR-19.3)', () => {
   it('first device: creates a secret gist from this device’s list, encrypted', async () => {
     await repo.createTodo({ title: 'Buy milk' });
     expect(await lookUp('good')).toEqual({ kind: 'none' });
-    const config = await createList('good', 'correct horse');
+    const config = await createList('good', 'correct horse', ACK);
     const g = gh.gists.get(config.gistId)!;
     expect(g.description).toBe('My Tasks');
     expect(g.files['mytasks.json'].content).not.toContain('Buy milk');
@@ -162,31 +165,41 @@ describe('setup (FR-19.1 to FR-19.3)', () => {
     expect((await loadConfig())?.gistId).toBe(config.gistId);
   });
 
+  it('keeps the risks and limitations acknowledgment on this device, through syncs, and never in the gist', async () => {
+    const config = await createList('good', 'correct horse', ACK);
+    expect((await loadConfig())?.acknowledged).toEqual(ACK);
+    await sync.connected(config);
+    await repo.createTodo({ title: 'after setup' });
+    await sync.syncNow();
+    expect((await loadConfig())?.acknowledged).toEqual(ACK);
+    expect(gh.gists.get(config.gistId)!.files['mytasks.json'].content).not.toContain('limitationsUpdated');
+  });
+
   it('second device: a wrong passphrase changes nothing; the right one loads and merges the list', async () => {
     await repo.createTodo({ title: 'from first device' });
-    await createList('good', 'correct horse');
+    await createList('good', 'correct horse', ACK);
     await newDevice();
     await repo.createTodo({ title: 'already here' });
 
     const found = await lookUp('good');
     expect(found.kind).toBe('found');
     const id = found.kind === 'found' ? found.lists[0].id : '';
-    await expect(joinList('good', id, 'wrong')).rejects.toMatchObject({ code: 'wrong-passphrase' });
+    await expect(joinList('good', id, 'wrong', ACK)).rejects.toMatchObject({ code: 'wrong-passphrase' });
     expect(await loadConfig()).toBeNull();
 
-    const config = await joinList('good', id, 'correct horse');
+    const config = await joinList('good', id, 'correct horse', ACK);
     expect(await titles()).toEqual(['already here', 'from first device']);
     // This device's to-do was pushed: a third device sees both.
     await newDevice();
-    await joinList('good', config.gistId, 'correct horse');
+    await joinList('good', config.gistId, 'correct horse', ACK);
     expect(await titles()).toEqual(['already here', 'from first device']);
   });
 
   it('lists several gists newest first, and reports gists that hold only invalid files', async () => {
     gh.add({ 'mytasks.json': 'garbage' });
     expect(await lookUp('good')).toEqual({ kind: 'invalid' });
-    const a = await createList('good', 'passphrase one');
-    const b = await createList('good', 'passphrase two');
+    const a = await createList('good', 'passphrase one', ACK);
+    const b = await createList('good', 'passphrase two', ACK);
     const found = await lookUp('good');
     expect(found.kind === 'found' && found.lists.map((l) => l.id)).toEqual([b.gistId, a.gistId]);
   });
@@ -196,25 +209,25 @@ describe('setup (FR-19.1 to FR-19.3)', () => {
     const key = await deriveKey('correct horse', salt);
     const future = { ...payload(), schema: 99 };
     const id = gh.add({ 'mytasks.json': JSON.stringify(await seal(key, { salt, iterations: 600_000 }, JSON.stringify(future), 'x')) });
-    await expect(joinList('good', id, 'correct horse')).rejects.toMatchObject({ code: 'newer' });
+    await expect(joinList('good', id, 'correct horse', ACK)).rejects.toMatchObject({ code: 'newer' });
   });
 });
 
 describe('syncing a connected device (FR-19.4, FR-19.5)', () => {
   it('pushes local changes and pulls the gist’s', async () => {
-    const config = await createList('good', 'correct horse');
+    const config = await createList('good', 'correct horse', ACK);
     await repo.createTodo({ title: 'new here' });
     await syncOnce(config);
     // Another device adds one.
     await newDevice();
-    const other = await joinList('good', config.gistId, 'correct horse');
+    const other = await joinList('good', config.gistId, 'correct horse', ACK);
     await repo.createTodo({ title: 'from other device' });
     await syncOnce(other);
     expect(await titles()).toEqual(['from other device', 'new here']);
   });
 
   it('never applies a damaged file', async () => {
-    const config = await createList('good', 'correct horse');
+    const config = await createList('good', 'correct horse', ACK);
     await repo.createTodo({ title: 'keep me' });
     gh.gists.get(config.gistId)!.files['mytasks.json'].content = '{"app":"mytasks"}';
     await expect(syncOnce(config)).rejects.toMatchObject({ code: 'malformed' });
@@ -225,7 +238,7 @@ describe('syncing a connected device (FR-19.4, FR-19.5)', () => {
 describe('Settings › Sync (FR-19.6 to FR-19.8)', () => {
   let config: DeviceConfig;
   beforeEach(async () => {
-    config = await createList('good', 'correct horse');
+    config = await createList('good', 'correct horse', ACK);
     sync.connected(config);
   });
 
@@ -264,7 +277,7 @@ describe('Settings › Sync (FR-19.6 to FR-19.8)', () => {
     expect(sync.problem).toBe('notfound');
     await sync.recreateGist();
     await newDevice();
-    await joinList('good', sync.config!.gistId, 'correct horse');
+    await joinList('good', sync.config!.gistId, 'correct horse', ACK);
     expect(await titles()).toEqual(['survivor']);
   });
 
@@ -284,7 +297,7 @@ describe('coming back online (FR-19.5)', () => {
   });
 
   it('keeps trying while offline, so the status clears without Sync Now', async () => {
-    const config = await createList('good', 'correct horse');
+    const config = await createList('good', 'correct horse', ACK);
     sync.connected(config);
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     gh.offline = true;

@@ -8,6 +8,7 @@
   - Priority Settings: P1–P5 labels and the two automatic-rule switches.
   - Tags: create, rename, reorder and delete (the Manage Tags window).
   - Contexts (FR-18.2): the same, for the contexts a to-do can be in.
+  - About My Tasks: links to the website's pages, each in a new tab.
   Changes save as soon as a field is left or a switch is flipped.
 -->
 <script lang="ts">
@@ -28,6 +29,7 @@
   import * as repo from '../lib/db/repo';
   import type { ID, Priority } from '../lib/model/types';
   import SyncDialog, { type SyncForm } from '../components/SyncDialog.svelte';
+  import SiteLink from '../components/SiteLink.svelte';
   import { sync } from '../lib/sync/sync.svelte';
   import { errorText, problemText, whenSynced } from '../lib/sync/messages';
 
@@ -267,6 +269,18 @@
   />
 </section>
 
+<section aria-labelledby="about-heading">
+  <h2 id="about-heading">About My Tasks</h2>
+  <p class="help">Each opens on mytasks.fyi in a new tab.</p>
+  <ul class="about">
+    <li><SiteLink page="home">Website</SiteLink></li>
+    <li><SiteLink page="guide">Guide</SiteLink></li>
+    <li><SiteLink page="limitations">Risks and limitations</SiteLink></li>
+    <li><SiteLink page="privacy">Privacy</SiteLink></li>
+    <li><SiteLink page="security">Security</SiteLink></li>
+  </ul>
+</section>
+
 {#if syncForm}
   <SyncDialog form={syncForm} onclose={() => (syncForm = null)} />
 {/if}
@@ -297,6 +311,22 @@
 {/if}
 
 <style>
+  .about {
+    list-style: none;
+    padding: 0;
+    margin: 4px 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    font-size: 14px;
+  }
+  .about :global(a) {
+    color: var(--accent-text);
+    text-decoration: none;
+  }
+  .about :global(a:hover) {
+    text-decoration: underline;
+  }
   .sync-state,
   .sync-problem {
     display: flex;

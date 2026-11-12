@@ -1,6 +1,6 @@
 /**
  * This device's sync settings (FR-19.2, FR-19.6): the token, the gist's id
- * and the encryption key. They live in their own small IndexedDB database,
+ * and the encryption key, and the acknowledgment given at Setup. They live in their own small IndexedDB database,
  * never in the synced data, and are removed by Disconnect.
  *
  * The key is a non-extractable CryptoKey: IndexedDB can store it, the app can
@@ -19,6 +19,19 @@ export interface DeviceConfig {
   key: CryptoKey;
   /** When this device last finished a sync. */
   lastSyncedAt: string | null;
+  /**
+   * The risks and limitations the user acknowledged at Setup on this device.
+   * Missing on devices connected before Setup asked (v0.6.0); they aren't asked again.
+   */
+  acknowledged?: Acknowledgment;
+}
+
+/** Setup's "I have read and understand the risks and limitations" checkbox, as ticked. */
+export interface Acknowledgment {
+  /** When the box was ticked. */
+  at: string;
+  /** The Limitations page's "Last updated" date at the time (LIMITATIONS_UPDATED). */
+  limitationsUpdated: string;
 }
 
 type Row = DeviceConfig & { id: 'sync' };

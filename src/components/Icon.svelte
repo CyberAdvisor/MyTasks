@@ -8,7 +8,7 @@
     | 'search' | 'chevron-down' | 'chevron-right' | 'chevron-left' | 'area' | 'plus'
     | 'settings' | 'flag' | 'note' | 'move' | 'more' | 'x' | 'check' | 'heading'
     | 'tag' | 'checklist' | 'priority' | 'arrow-up' | 'arrow-down' | 'heading-add' | 'copy'
-    | 'project' | 'pencil' | 'cancel' | 'context' | 'cloud' | 'cloud-off' | 'alert' | 'sync'
+    | 'project' | 'pencil' | 'cancel' | 'context' | 'cloud' | 'cloud-off' | 'alert' | 'help' | 'sync'
     | 'download' | 'share';
 
   let { name, size = 18, color = 'currentColor', label = '', weight = 2 }: {
@@ -53,6 +53,7 @@
     cloud: 'M17.5 19H7a5 5 0 1 1 1.1-9.88A6 6 0 0 1 19.6 11.1 4 4 0 0 1 17.5 19z',
     'cloud-off': 'M17.5 19H7a5 5 0 0 1-1.8-9.67 M10.2 6.6A6 6 0 0 1 19.6 11.1a4 4 0 0 1 1.3 6.6 M3 3l18 18',
     alert: 'M12 3 2 20h20z M12 10v4 M12 17h.01',
+    help: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3 M12 17h.01',
     download: 'M12 3v12 M7 10l5 5 5-5 M5 21h14',
     share: 'M12 3v13 M8 7l4-4 4 4 M7 11H5v10h14V11h-2',
     sync: 'M20 11a8 8 0 0 0-14.3-4.9L4 8 M4 4v4h4 M4 13a8 8 0 0 0 14.3 4.9L20 16 M20 20v-4h-4',

@@ -5,6 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { SITE_CSP } from '../src/lib/csp';
+import { LIMITATIONS_UPDATED, SITE_PAGES } from '../src/lib/website';
 
 /** Every page's HTML, by path under site/ (e.g. "guide/index.html"). */
 const sources = import.meta.glob<string>('../site/**/*.html', { query: '?raw', import: 'default', eager: true });
@@ -75,6 +76,19 @@ describe('website pages', () => {
 
   it('never names a version', () => {
     for (const { name, html } of pages) expect(html, name).not.toMatch(/\bv?\d+\.\d+\.\d+\b|version \d/i);
+  });
+});
+
+describe('links from the app (src/lib/website.ts)', () => {
+  it('point only at pages that exist', () => {
+    for (const path of Object.values(SITE_PAGES)) expect(siteFiles.has(fileFor(path)), path).toBe(true);
+  });
+
+  it('record the Limitations page\'s own "Last updated" date with the acknowledgment', () => {
+    const shown = sources['../site/limitations/index.html'].match(/Last updated ([A-Z][a-z]+ \d{1,2}, \d{4})/)?.[1];
+    const [y, m, d] = LIMITATIONS_UPDATED.split('-').map(Number);
+    const expected = new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    expect(shown).toBe(expected);
   });
 });
 
