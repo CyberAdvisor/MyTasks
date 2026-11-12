@@ -11,6 +11,8 @@ import { ui } from '../state/ui.svelte';
 
 /** How often a long-open window checks for a new version. */
 const CHECK_EVERY_MS = 60 * 60 * 1000;
+/** Checks closer together than this are skipped (focus and visibility often fire together). */
+const MIN_GAP_MS = 10 * 1000;
 
 class Update {
   /** Whether a new version is waiting. */
@@ -35,11 +37,20 @@ class Update {
       },
       onRegisteredSW: (_url, registration) => {
         if (!registration) return;
-        const check = () => void registration.update().catch(() => {});
+        let lastCheck = Date.now();
+        const check = () => {
+          if (Date.now() - lastCheck < MIN_GAP_MS) return;
+          lastCheck = Date.now();
+          void registration.update().catch(() => {});
+        };
         setInterval(check, CHECK_EVERY_MS);
+        // Check on coming back to the app: when its window becomes visible
+        // again, or gains focus. On a Mac, switching to another app often
+        // leaves the window visible, so focus is what catches that.
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible') check();
         });
+        window.addEventListener('focus', check);
       },
     });
   }

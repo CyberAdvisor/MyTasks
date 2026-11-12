@@ -14,7 +14,7 @@ Versions follow [Semantic Versioning](https://semver.org): until the first relea
 - Install My Tasks at the bottom of the sidebar in Chrome, Edge and Firefox. In Chrome and Edge it opens the browser's install prompt; in Firefox it explains that Firefox can't install web apps. (#22)
 - In a Safari tab, on iPhone, iPad or Mac, the sidebar warns that Safari clears a tab's data after 7 days unused, with a link to the install steps. (#22)
 - On iPhone and iPad, Setup asks you to install My Tasks first, because the Home Screen app keeps its own data, separate from Safari. (#22)
-- When a new version is ready, an "Update available" banner offers Restart. Restart saves what you're typing first; the app never reloads by itself. (#22)
+- When a new version is ready, an "Update available" banner offers Restart. The app checks for a new version when you switch back to it. Restart saves what you're typing first; the app never reloads by itself. (#22)
 - App icons for the Home Screen, Dock and taskbar, made from the logo. (#22)
 
 ### Changed

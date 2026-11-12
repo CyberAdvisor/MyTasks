@@ -53,7 +53,7 @@ tests/          Unit tests; tests/fakeGitHub.ts fakes the gist API
 The dev server has no service worker. To try install, offline or updates, run `npm run build` then `npm run preview`.
 
 - **Install.** Chrome and Edge show their own install prompt; on Safari and in Firefox, Install My Tasks opens a guide with the steps. In a Safari tab, the sidebar warns that data can be cleared, because Safari clears a site's storage after 7 days unused unless it is installed.
-- **Updates.** A new version installs in the background and waits. The "Update available" banner's Restart saves any edit in progress, then switches; nothing reloads by itself.
+- **Updates.** The app checks for a new version on start, hourly, and when you switch back to it. A new version installs in the background and waits. The "Update available" banner's Restart saves any edit in progress, then switches; nothing reloads by itself.
 - **Title bar.** The `theme-color` tags in `index.html` give the installed window the sidebar's grey; `src/lib/theme.ts` keeps them in step with Appearance.
 
 ## Keyboard
