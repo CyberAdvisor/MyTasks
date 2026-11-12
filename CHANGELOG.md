@@ -10,11 +10,11 @@ Versions follow [Semantic Versioning](https://semver.org): until the first relea
 
 ### Added
 
-- A website at [mytasks.fyi](https://mytasks.fyi): what My Tasks is, its risks and limitations, a guide, and how it handles your privacy and security. (#PR)
+- A website at [mytasks.fyi](https://mytasks.fyi): what My Tasks is, its risks and limitations, a guide, and how it handles your privacy and security. (#29)
 
 ### Changed
 
-- The app moved to [mytasks.fyi/app](https://mytasks.fyi/app/). Your list stays on your devices: nothing to reconnect. Old links and apps installed before the move open the app at its new address. (#PR)
+- The app moved to [mytasks.fyi/app](https://mytasks.fyi/app/). Your list stays on your devices: nothing to reconnect. Old links and apps installed before the move open the app at its new address. (#29)
 
 <a id="v0.4.2"></a>
 
