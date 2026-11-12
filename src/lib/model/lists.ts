@@ -406,7 +406,7 @@ export function sidebarCounts(s: Snapshot, ref: LocalDate): { inbox: number; tod
 // Move to Completed (FR-12.2)
 // ---------------------------------------------------------------------------
 
-/** A view with its own Move to Completed button: a built-in list, a project or an area. */
+/** A view that Move to Completed can act on: a built-in list, a project or an area. */
 export type ViewRef = { kind: 'list'; list: BuiltInList } | { kind: 'project'; id: ID } | { kind: 'area'; id: ID };
 
 /** The to-dos and projects that a Move to Completed command moves. */
@@ -417,8 +417,8 @@ export interface WaitingItems {
 
 /**
  * Items shown in `view` that are closed and still waiting to move to
- * Completed. Move to Completed moves just these, so the button shows only
- * when there are some.
+ * Completed. Move to Completed (the to-do menu and Quick Find) moves just
+ * these, and is offered only when there are some.
  */
 export function waitingInView(s: Snapshot, view: ViewRef, ref: LocalDate): WaitingItems {
   const ids = (items: (Todo | Project)[]) => items.filter(isWaiting).map((x) => x.id);

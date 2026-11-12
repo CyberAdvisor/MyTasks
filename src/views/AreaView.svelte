@@ -10,7 +10,6 @@
   import TodoList from '../components/TodoList.svelte';
   import EditableTitle from '../components/EditableTitle.svelte';
   import ViewHeader from '../components/ViewHeader.svelte';
-  import MoveToCompleted from '../components/MoveToCompleted.svelte';
   import ChoiceDialog from '../components/ChoiceDialog.svelte';
   import Popover from '../components/Popover.svelte';
   import TagPicker from '../components/TagPicker.svelte';
@@ -130,7 +129,6 @@
         {/if}
       </Popover>
     {/snippet}
-    {#snippet actions()}<MoveToCompleted view={{ kind: 'area', id }} />{/snippet}
   </ViewHeader>
 
   {#if areaTags.length}

@@ -13,7 +13,6 @@
   import TodoList from '../components/TodoList.svelte';
   import EditableTitle from '../components/EditableTitle.svelte';
   import ViewHeader from '../components/ViewHeader.svelte';
-  import MoveToCompleted from '../components/MoveToCompleted.svelte';
   import ChoiceDialog from '../components/ChoiceDialog.svelte';
   import Popover from '../components/Popover.svelte';
   import WhenPicker from '../components/WhenPicker.svelte';
@@ -235,7 +234,6 @@
         {/if}
       </Popover>
     {/snippet}
-    {#snippet actions()}<MoveToCompleted view={{ kind: 'project', id }} />{/snippet}
   </ViewHeader>
 
   {#if project.status !== 'open' || hasWhen || project.deadline || projectTags.length}
