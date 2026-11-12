@@ -20,7 +20,7 @@
   import TagPicker from './TagPicker.svelte';
   import WhenPicker from './WhenPicker.svelte';
   import * as repo from '../lib/db/repo';
-  import { containerLink, convertTodo, goToContainer, moveWaiting, trashTodo } from '../lib/actions';
+  import { containerLink, convertTodo, deleteTodoForever, goToContainer, moveWaiting, trashTodo } from '../lib/actions';
   import { formatTimestamp } from '../lib/model/dates';
   import { waitingInView } from '../lib/model/lists';
   import { completeChoices, todoMenuItems, type TodoMenuAction, type TodoSubmenu } from '../lib/model/todoMenu';
@@ -373,7 +373,7 @@
     message={`“${deleting.title || 'New To-Do'}” will be deleted permanently. This cannot be undone.`}
     choices={[{ label: 'Delete', value: 'delete', danger: true }]}
     onchoose={(v) => {
-      if (v === 'delete') void repo.deleteTodoForever(deleting!.id);
+      if (v === 'delete') void deleteTodoForever(deleting!.id);
       deleting = null;
     }}
   />

@@ -139,6 +139,14 @@ describe('undo (FR-1.6)', () => {
     expect(await undo()).toBe(false);
   });
 
+  it('cannot undo Empty Trash, nor the move to Trash before it (FR-12.3)', async () => {
+    const t = await repo.createTodo({ title: 'a' });
+    await repo.setTodoTrashed(t, true);
+    await repo.emptyTrash();
+    expect(await undo()).toBe(false);
+    expect((await db.todos.get(t))?.deletedAt).not.toBeNull();
+  });
+
   it('removes a record the step created, as a tombstone that can sync', async () => {
     const t = await repo.createTodo({ title: 'a' });
     await undo();
@@ -359,6 +367,28 @@ describe('keyboard bindings (Section 7)', async () => {
     expect(formatKeys('Mod+Shift+/', true)).toBe('⌘?');
     expect(formatKeys('G I', false)).toBe('G then I');
     expect(formatKeys('Alt+1', true)).toBe('⌥1');
+  });
+});
+
+describe('type-ahead after New To-Do (FR-1.1)', async () => {
+  const { typeAheadKey } = await import('../src/lib/shortcuts');
+  const key = (k: string, mods: Partial<KeyboardEvent> = {}) => ({ key: k, ctrlKey: false, metaKey: false, ...mods });
+
+  it('adds printable characters, capitals, spaces and Opt characters', () => {
+    const typed = ['B', 'u', 'y', ' ', 'é', '€'].reduce((t, k) => typeAheadKey(t, key(k)), '');
+    expect(typed).toBe('Buy é€');
+  });
+
+  it('removes the last character with Backspace, even an emoji', () => {
+    expect(typeAheadKey('ab', key('Backspace'))).toBe('a');
+    expect(typeAheadKey('a😀', key('Backspace'))).toBe('a');
+    expect(typeAheadKey('', key('Backspace'))).toBe('');
+  });
+
+  it('ignores Cmd and Ctrl chords and named keys', () => {
+    for (const k of [key('z', { metaKey: true }), key('a', { ctrlKey: true }), key('Enter'), key('Shift'), key('Dead'), key('ArrowLeft')]) {
+      expect(typeAheadKey('x', k)).toBe('x');
+    }
   });
 });
 

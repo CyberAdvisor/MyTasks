@@ -100,9 +100,15 @@
     ui.close();
   }
 
-  // Focus the title of a new (empty) to-do so the user can type at once.
+  // Focus the title of a new (empty) to-do so the user can type at once, and
+  // put in any keys typed since New To-Do (FR-1.1).
   $effect(() => {
-    if (!todo.title) titleInput.focus();
+    if (todo.title) return;
+    titleInput.focus();
+    const typed = ui.takeTypeAhead();
+    if (!typed) return;
+    title = titleInput.value = typed;
+    scheduleSave();
   });
 
   // Show the picker a keyboard command asked for (Section 7).

@@ -88,4 +88,6 @@ v1 is built in milestones, each a pull request.
 | 4a | Area ⋯ menu, contexts, project link under the open card | Done |
 | 4b | To-do right-click menu | Done |
 | 5 | 5a Completed list and subtitle; 5b themes; 5c when completed items move; 5e encrypted gist sync; 5f install and offline; 5g hosting at mytasks.fyi | Done |
-| 6 | Finishing touches: empty-state illustrations, phone gestures, resizable sidebar, sidebar blur, title-bar area, long-list speed | Next |
+| 6 | Finishing v1.0, one pull request at a time: 6a fixes (keys typed right after N, final Empty Trash); 6b calendar events in Today, after a throwaway sign-in prototype; 6c empty-state illustrations; 6d phone gestures; 6e resizable sidebar and sidebar blur; 6f three logo candidates | Next: 6a |
+
+The title-bar area and long-list speed moved to v1.1.

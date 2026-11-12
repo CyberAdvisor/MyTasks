@@ -135,7 +135,7 @@ export async function undo(): Promise<boolean> {
   return true;
 }
 
-/** Forget the last step, so tests start clean. */
+/** Forget the last step: after a change that cannot be undone (Empty Trash, Delete Immediately), and in tests. */
 export function clearUndo(): void {
   last = null;
 }
