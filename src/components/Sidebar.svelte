@@ -10,6 +10,7 @@
   import Icon from './Icon.svelte';
   import Logo from './Logo.svelte';
   import SyncStatus from './SyncStatus.svelte';
+  import VersionLink from './VersionLink.svelte';
   import ProgressPie from './ProgressPie.svelte';
   import { snapshot, todayDate } from '../lib/state/live';
   import { route, go, hrefFor, type Route } from '../lib/state/route';
@@ -86,7 +87,7 @@
     <Logo />
     <div class="brand-text">
       <span class="brand-name">My Tasks</span>
-      <span class="brand-sub">Plan. Do. Track</span>
+      <span class="brand-sub">Plan. Do. Succeed.</span>
     </div>
     <!-- Phones have no toolbar, so Quick Find opens from here. -->
     <button type="button" class="find" aria-label="Quick Find" title="Quick Find" onclick={() => ui.openFind()}>
@@ -178,7 +179,7 @@
     </ul>
   </div>
 
-  <SyncStatus />
+  <SyncStatus><VersionLink /></SyncStatus>
   <div class="footer">
     <div class="menu-wrap">
       <button type="button" class="btn-plain" aria-haspopup="menu" aria-expanded={menuOpen} onclick={() => (menuOpen = !menuOpen)}>

@@ -1,6 +1,6 @@
 # My Tasks
 
-**Plan. Do. Track.** A free, open-source task manager in the style of Things, built as an installable web app (PWA). All data stays on your device.
+**Plan. Do. Succeed.** A free, open-source task manager in the style of Things, built as an installable web app (PWA). All data stays on your device.
 
 - Live app: https://mytasks.fyi (from Milestone 5)
 - License: MIT
@@ -28,6 +28,12 @@ npm test         # unit tests (Vitest)
 npm run check    # type-check (svelte-check)
 npm run build    # production build in dist/
 ```
+
+## Versions
+
+The app shows its version and commit beside the sync status at the bottom of the sidebar, for example `v0.2.0 (a1b2c3d)`, and links it to that version's section of [CHANGELOG.md](CHANGELOG.md). Each pull request that changes the app adds a changelog section and sets the version in `package.json`: the middle number for new features, the last for fixes. 1.0.0 is the first release at mytasks.fyi.
+
+The commit is read when the dev server starts or the app is built, so restart `npm run dev` after switching branches.
 
 ## Project layout
 
