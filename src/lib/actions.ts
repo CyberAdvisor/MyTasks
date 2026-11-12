@@ -49,6 +49,9 @@ export function inlineStart(r: Route, ref: LocalDate, selected?: Todo): repo.New
  * New To-Do from the keyboard (FR-1.1): add a to-do below the selected row,
  * or at the end of Today, and open it with the title focused. Views without
  * a list of their own (search results) open Quick Entry instead.
+ *
+ * Creating the to-do takes a moment, so keys typed meanwhile are collected
+ * (`ui.typeAhead`) and the card puts them in the title.
  */
 export async function newTodoInline(r: Route, ref: LocalDate): Promise<void> {
   if (!canAddHere(r)) return;
@@ -56,6 +59,17 @@ export async function newTodoInline(r: Route, ref: LocalDate): Promise<void> {
     openQuickEntry(draftStartFor(r, ref));
     return;
   }
+  ui.typeAhead = '';
+  try {
+    ui.open(await createInline(r, ref));
+  } catch (err) {
+    ui.typeAhead = null;
+    throw err;
+  }
+}
+
+/** Create the keyboard's new to-do and place it below the selected row (or at the end of Today). */
+async function createInline(r: Route, ref: LocalDate): Promise<ID> {
   const selected = get(snapshot).todos.find((t) => t.id === ui.selectedId && isOpen(t));
   const rows = document.querySelectorAll('main [data-row-id]');
   const anchor = selected
@@ -64,7 +78,7 @@ export async function newTodoInline(r: Route, ref: LocalDate): Promise<void> {
       ? rows[rows.length - 1]
       : null;
   const zone = anchor ? zoneOf(anchor, 'todo') : null;
-  const id = await undoGroup(async () => {
+  return undoGroup(async () => {
     const newId = await repo.createTodo(inlineStart(r, ref, selected));
     if (zone) {
       const after = zone.ids.indexOf((anchor as HTMLElement).dataset.rowId!);
@@ -72,7 +86,21 @@ export async function newTodoInline(r: Route, ref: LocalDate): Promise<void> {
     }
     return newId;
   });
-  ui.open(id);
+}
+
+/**
+ * Empty the Trash (FR-12.3). It is final, so an Undo toast still showing
+ * from an earlier change is hidden: there is nothing left for it to undo.
+ */
+export async function emptyTrash(): Promise<void> {
+  await repo.emptyTrash();
+  ui.dismissUndo();
+}
+
+/** Delete one to-do in the Trash permanently (Delete Immediately, FR-1.7); final, like Empty Trash. */
+export async function deleteTodoForever(id: ID): Promise<void> {
+  await repo.deleteTodoForever(id);
+  ui.dismissUndo();
 }
 
 /** Open Quick Entry with a fresh draft (FR-8.1). */

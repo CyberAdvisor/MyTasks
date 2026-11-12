@@ -24,6 +24,7 @@
   import { containerLabel } from '../lib/labels';
   import * as L from '../lib/model/lists';
   import * as repo from '../lib/db/repo';
+  import { emptyTrash } from '../lib/actions';
   import type { DropZone } from '../lib/drag/drag';
   import type { Todo } from '../lib/model/types';
 
@@ -104,7 +105,7 @@
 
   function onEmptyChoice(v: string | null) {
     confirmEmpty = false;
-    if (v === 'empty') void repo.emptyTrash();
+    if (v === 'empty') void emptyTrash();
   }
 </script>
 

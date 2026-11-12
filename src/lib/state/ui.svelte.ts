@@ -59,6 +59,12 @@ class UiState {
   private toastTimer: ReturnType<typeof setTimeout> | undefined;
   /** A to-do to select, and maybe open, once the next view has loaded. */
   private reveal: { id: ID; open: boolean } | null = null;
+  /**
+   * Keys typed after New To-Do, before its card's title has focus (FR-1.1);
+   * null when not waiting. Not reactive: the key handler writes it and the
+   * card takes it once (`takeTypeAhead`).
+   */
+  typeAhead: string | null = null;
 
   private timers = new Map<ID, ReturnType<typeof setTimeout>>();
 
@@ -66,6 +72,13 @@ class UiState {
   open(id: ID): void {
     this.expandedId = id;
     this.selectedId = id;
+  }
+
+  /** Return the keys typed after New To-Do and stop collecting them. */
+  takeTypeAhead(): string {
+    const text = this.typeAhead ?? '';
+    this.typeAhead = null;
+    return text;
   }
 
   /** Close any open card. */
@@ -97,13 +110,18 @@ class UiState {
     this.toastTimer = setTimeout(() => (this.toast = null), TOAST_MS);
   }
 
+  /** Hide the Undo toast, as after a change that cannot be undone, where its Undo would do nothing. */
+  dismissUndo(): void {
+    clearTimeout(this.toastTimer);
+    this.toast = null;
+  }
+
   /**
    * Undo the last change (FR-1.6). A check-off still waiting to be written is
    * the last change, so it is taken back first.
    */
   async undoLast(): Promise<void> {
-    clearTimeout(this.toastTimer);
-    this.toast = null;
+    this.dismissUndo();
     const waiting = Object.keys(this.pending);
     if (waiting.length) this.toggleDone(waiting[waiting.length - 1]);
     else await undo();
@@ -126,6 +144,7 @@ class UiState {
    */
   enterView(): void {
     this.close();
+    this.typeAhead = null;
     this.selectedId = null;
     this.tagFilter = null;
     this.contextFilter = null;

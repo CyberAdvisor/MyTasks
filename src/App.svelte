@@ -32,7 +32,7 @@
   import { ui } from './lib/state/ui.svelte';
   import { canAddHere, draftStartFor, openQuickEntry } from './lib/actions';
   import { runCommand } from './lib/commands';
-  import { KeyResolver, focusKind, isMac } from './lib/shortcuts';
+  import { KeyResolver, focusKind, isMac, typeAheadKey } from './lib/shortcuts';
   import { install } from './lib/pwa/install.svelte';
   import { update } from './lib/pwa/update.svelte';
 
@@ -62,9 +62,17 @@
 
   // App-wide keys. Keys a component already handled (defaultPrevented) and
   // keys pressed while a dialog, Quick Find or Quick Entry is open are left alone.
+  // Right after New To-Do, until its title has focus, every key is held for
+  // the title instead (FR-1.1); this listener runs first, in the capture phase.
   $effect(() => {
     const resolver = new KeyResolver();
     const mac = isMac();
+    const onTypeAhead = (e: KeyboardEvent) => {
+      if (ui.typeAhead === null || e.isComposing) return;
+      e.preventDefault();
+      e.stopPropagation();
+      ui.typeAhead = typeAheadKey(ui.typeAhead, e);
+    };
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing || !sync.config) return;
       if (ui.findOpen || ui.draft !== null || document.querySelector('dialog[open]')) return;
@@ -77,8 +85,12 @@
         ui.openFind(result.find);
       } else if (runCommand(result.command)) e.preventDefault();
     };
+    window.addEventListener('keydown', onTypeAhead, true);
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onTypeAhead, true);
+      document.removeEventListener('keydown', onKey);
+    };
   });
 
   let showSidebar = $derived(isPhone ? $route.kind === 'home' : !ui.sidebarHidden);

@@ -733,19 +733,42 @@ export function deleteArea(id: ID, contents: 'keep' | 'trash'): Promise<void> {
 // Trash
 // ---------------------------------------------------------------------------
 
-/** Permanently delete everything in Trash (FR-12.3). Tombstones stay for sync. */
-export function emptyTrash(): Promise<void> {
-  return tx(async () => {
-    const at = nowIso();
-    const todos = (await db.todos.toArray()).filter((t) => t.trashedAt && !t.deletedAt);
-    const projects = (await db.projects.toArray()).filter((p) => p.trashedAt && !p.deletedAt);
-    for (const p of projects) {
-      await patch<Project>('projects', p.id, { deletedAt: at });
-      const inside = await db.todos.where('projectId').equals(p.id).toArray();
-      for (const t of inside.filter((x) => !x.deletedAt)) await deleteTodoRecords(t.id, at);
-    }
-    for (const t of todos) await deleteTodoRecords(t.id, at);
-  });
+/**
+ * Permanently delete everything in Trash (FR-12.3). Tombstones stay for sync.
+ * It cannot be undone, as in Things: the change is not tracked and the undo
+ * step is cleared, so undoing an earlier change (such as a move to Trash)
+ * cannot bring the items back either.
+ */
+export async function emptyTrash(): Promise<void> {
+  await tx(
+    async () => {
+      // Read everything first, then write with bulk calls. Awaiting the
+      // nested per-record helpers in a loop here made Dexie commit the
+      // transaction too early (PrematureCommitError) with several items.
+      const at = nowIso();
+      const projects = (await db.projects.toArray()).filter((p) => p.trashedAt && !p.deletedAt);
+      const inTrashedProject = new Set(projects.map((p) => p.id));
+      const todos = (await db.todos.toArray()).filter(
+        (t) => !t.deletedAt && (t.trashedAt || (t.projectId && inTrashedProject.has(t.projectId))),
+      );
+      const todoIds = new Set(todos.map((t) => t.id));
+      const items = (await db.checklistItems.toArray()).filter((c) => !c.deletedAt && todoIds.has(c.todoId));
+      const gone = { deletedAt: at, modifiedAt: at };
+      const changes = (rows: { id: ID }[]) => rows.map((r) => ({ key: r.id, changes: gone }));
+      await db.projects.bulkUpdate(changes(projects));
+      await db.todos.bulkUpdate(changes(todos));
+      await db.checklistItems.bulkUpdate(changes(items));
+      const logged = (entity: EntityName, rows: { id: ID }[]) =>
+        rows.map((r) => ({ entity, entityId: r.id, fields: ['deletedAt'], at }));
+      await db.changeLog.bulkAdd([
+        ...logged('projects', projects),
+        ...logged('todos', todos),
+        ...logged('checklistItems', items),
+      ]);
+    },
+    { track: false },
+  );
+  clearUndo();
 }
 
 /** Mark a to-do and its checklist deleted (tombstones, so the deletion syncs). Call inside a transaction. */

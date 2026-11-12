@@ -90,6 +90,22 @@ describe('to-dos', () => {
     expect(row?.deletedAt).not.toBeNull(); // tombstone kept for future sync
   });
 
+  it('empties a trashed project with its to-dos and checklists, logging each deletion', async () => {
+    const p = await repo.createProject({ title: 'P' });
+    const inside = await repo.createTodo({ title: 'in', projectId: p, checklist: [{ title: 'c', completed: false }] });
+    const loose = await repo.createTodo({ title: 'loose' });
+    const kept = await repo.createTodo({ title: 'kept' });
+    await repo.setProjectTrashed(p, true);
+    await repo.setTodoTrashed(loose, true);
+    const before = await db.changeLog.count();
+    await repo.emptyTrash();
+    expect((await db.projects.get(p))?.deletedAt).not.toBeNull();
+    for (const id of [inside, loose]) expect((await db.todos.get(id))?.deletedAt).not.toBeNull();
+    expect((await db.todos.get(kept))?.deletedAt).toBeNull();
+    expect((await db.checklistItems.toArray()).every((c) => c.deletedAt)).toBe(true);
+    expect((await db.changeLog.count()) - before).toBe(4); // project, two to-dos, one checklist item
+  });
+
   it('duplicates a to-do right after the original', async () => {
     const a = await repo.createTodo({ title: 'a' });
     await repo.createTodo({ title: 'b' });

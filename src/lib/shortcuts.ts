@@ -256,6 +256,19 @@ export function formatKeys(keys: string, mac: boolean): string {
     .join(' then ');
 }
 
+/**
+ * Type-ahead for New To-Do (FR-1.1): the text typed so far, after one more
+ * key. Between the New To-Do command and its card's title taking focus, keys
+ * are kept here instead of running commands. A printable character (Opt
+ * characters on the Mac included) is added and Backspace removes the last
+ * one; any other key leaves the text as it is.
+ */
+export function typeAheadKey(text: string, e: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey'>): string {
+  if (e.key === 'Backspace') return Array.from(text).slice(0, -1).join('');
+  if (e.ctrlKey || e.metaKey || Array.from(e.key).length !== 1) return text;
+  return text + e.key;
+}
+
 /** Classify the focused element. */
 export function focusKind(el: Element | null): FocusKind {
   if (!el || el === document.body || el === document.documentElement) return 'none';

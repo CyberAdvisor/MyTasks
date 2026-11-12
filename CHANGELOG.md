@@ -4,6 +4,15 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org): until the first release at mytasks.fyi (1.0.0), the middle number goes up for new features and the last number for fixes. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v0.4.1"></a>
+
+## 0.4.1 — 2026-11-12
+
+### Fixed
+
+- Keys typed right after New To-Do (N, Space or Cmd+N) go into the new to-do's title. Before, the first few were lost or ran as commands. (#PR)
+- Empty Trash is final, as its confirmation says: Cmd+Z no longer brings the items back. On touch devices, an Undo toast still showing is hidden. Empty Trash also no longer fails with an error when the Trash holds several items. (#PR)
+
 <a id="v0.4.0"></a>
 
 ## 0.4.0 — 2026-11-12
