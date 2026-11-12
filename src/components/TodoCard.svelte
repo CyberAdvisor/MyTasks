@@ -19,8 +19,8 @@
   import Checklist from './Checklist.svelte';
   import { ui } from '../lib/state/ui.svelte';
   import ProgressPie from './ProgressPie.svelte';
-  import { go, route } from '../lib/state/route';
-  import { containerLink, goToContainer } from '../lib/actions';
+  import { route } from '../lib/state/route';
+  import { containerLink, convertTodo, goToContainer, trashTodo } from '../lib/actions';
   import { projectProgress } from '../lib/model/lists';
   import { settings, snapshot } from '../lib/state/live';
   import { deadlineLabel, formatRelative } from '../lib/model/dates';
@@ -172,20 +172,16 @@
     [checklistFocus] = await checklistOps.add([''], null);
   }
 
-  async function convert() {
+  function convert() {
     moreOpen = false;
     flush();
-    const id = await repo.convertTodoToProject(todo.id);
-    ui.close();
-    if (id) go({ kind: 'project', id });
+    void convertTodo(todo.id);
   }
 
-  async function remove() {
+  function remove() {
     moreOpen = false;
     flush();
-    ui.close();
-    await repo.setTodoTrashed(todo.id, true);
-    ui.offerUndo('Moved to Trash');
+    void trashTodo(todo.id);
   }
 
   async function duplicate() {

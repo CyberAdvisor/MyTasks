@@ -4,6 +4,7 @@
   project or area underneath; the context, deadline and priority on the right.
   Shows the expanded card in place when this to-do is open. Open rows can be
   selected with the arrow keys and dragged within their list (FR-10.3).
+  Right-click or Control-click opens the to-do menu (FR-1.7, RowMenu).
 -->
 <script lang="ts">
   import Icon from './Icon.svelte';
@@ -75,6 +76,25 @@
     else ui.selectedId = todo.id;
   }
 
+  /**
+   * Open the to-do menu at the pointer (FR-1.7). A touch long press drags
+   * instead (FR-10.3). Opened from the keyboard, it sits under the row.
+   */
+  function onContextMenu(e: MouseEvent) {
+    if ((e as PointerEvent).pointerType === 'touch') return;
+    e.preventDefault();
+    if (mode === 'open') ui.selectedId = todo.id;
+    const fromKeyboard = e.clientX === 0 && e.clientY === 0;
+    const r = item!.getBoundingClientRect();
+    ui.rowMenu = {
+      id: todo.id,
+      mode,
+      x: fromKeyboard ? r.left + 40 : e.clientX,
+      y: fromKeyboard ? r.bottom - 4 : e.clientY,
+      keyboard: fromKeyboard,
+    };
+  }
+
   function onKey(e: KeyboardEvent) {
     if (mode === 'open' && e.key === 'Enter') {
       e.preventDefault();
@@ -93,6 +113,7 @@
     class:done
     data-row-id={mode === 'open' ? todo.id : undefined}
     use:dragItem={mode === 'open' ? { type: 'todo', id: todo.id } : null}
+    oncontextmenu={onContextMenu}
   >
     <button
       type="button"

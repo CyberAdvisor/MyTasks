@@ -2,6 +2,7 @@
  * Sync messages in plain words (FR-19.3, FR-19.8): the one-line status in
  * the sidebar, and the full explanation in Settings and the dialogs.
  */
+import { formatTimestamp } from '../model/dates';
 import { SyncError } from './cycle';
 import { GistError } from './github';
 import type { SyncCode, SyncStatus } from './sync.svelte';
@@ -11,11 +12,9 @@ export function clock(d: Date): string {
   return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
-/** "today at 2:41 PM", or a date and time for older syncs. */
+/** "today at 2:41 PM", or a date and time for older syncs, mid-sentence. */
 export function whenSynced(iso: string, now = new Date()): string {
-  const d = new Date(iso);
-  if (d.toDateString() === now.toDateString()) return `today at ${clock(d)}`;
-  return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} at ${clock(d)}`;
+  return formatTimestamp(iso, now).replace(/^(Today|Yesterday)/, (w) => w.toLowerCase());
 }
 
 /** The full explanation of a sync problem. */

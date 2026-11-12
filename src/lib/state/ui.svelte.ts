@@ -43,6 +43,13 @@ class UiState {
   scrollId = $state<ID | null>(null);
   /** Picker for the open card to show once it renders. */
   cardCommand = $state<CardCommand | null>(null);
+  /**
+   * The to-do right-click menu (FR-1.7): the row, its list, where it opened,
+   * and whether the keyboard opened it (then its first item takes focus).
+   */
+  rowMenu = $state<{ id: ID; mode: 'open' | 'logbook' | 'trash'; x: number; y: number; keyboard?: boolean } | null>(
+    null,
+  );
   /** Keyboard Help is open (FR-7.1k). */
   helpOpen = $state(false);
   /** The sidebar is hidden on wider screens (Cmd/Ctrl+/); remembered. */
