@@ -1,0 +1,71 @@
+# Developing My Tasks
+
+Technical notes for running My Tasks locally and finding your way around the code. For what the app is, see the [README](README.md).
+
+## Run it
+
+Requires Node 20 or later.
+
+```bash
+npm install
+npm run dev      # local dev server
+npm test         # unit tests (Vitest)
+npm run check    # type-check (svelte-check)
+npm run build    # production build in dist/
+```
+
+The app shows only its Setup screen until it is connected to a GitHub Gist, so you need a personal access token (classic, `gist` scope) to get past it.
+
+## Tech
+
+Svelte 5 and TypeScript, built with Vite. Data lives in IndexedDB through Dexie. Sync goes to the user's own GitHub Gist, encrypted in the browser with Web Crypto (PBKDF2-SHA-256 and AES-256-GCM). There is no server.
+
+## Project layout
+
+```
+src/
+  lib/model/    Types, dates, ids, ordering and the list membership rules (pure functions)
+  lib/db/       IndexedDB schema (Dexie), all data operations (repo.ts), and
+                transactions, the change log and undo (history.ts)
+  lib/sync/     Sync through the user's GitHub Gist: setup, encryption, merging
+  lib/drag/     Pointer-events drag and drop, and its pure calculations
+  lib/state/    Live data, routing and transient UI state
+  lib/          shortcuts.ts (key bindings), commands.ts (what they do),
+                actions.ts (shared actions) and version.ts (the version stamp)
+  components/   Sidebar, rows, the to-do card, menus, dialogs, Setup
+  views/        Built-in lists, project and area pages, Settings
+tests/          Unit tests; tests/fakeGitHub.ts fakes the gist API
+```
+
+## Data
+
+- Every change runs in one IndexedDB transaction and is written to a local change log.
+- Records are never removed: a deletion sets `deletedAt`, so it syncs like any other change.
+- Sync merges record by record; the later `modifiedAt` wins.
+- This device's token, gist id and encryption key live in a separate database, `mytasks-device`, and never sync.
+
+## Keyboard
+
+Press `?` in the app for the full list. Installed, My Tasks uses the Things shortcuts. In a browser tab, keys the browser keeps for itself (Cmd/Ctrl+N, T, R and others) are replaced by single-letter fallbacks, and `/` opens Quick Find.
+
+## Versions
+
+The app shows its version and commit at the bottom of the sidebar, for example `v0.2.0 (a1b2c3d)`, and links it to that version's section of [CHANGELOG.md](CHANGELOG.md). Each pull request that changes the app adds a changelog section and sets the version in `package.json`: the middle number for new features, the last for fixes. 1.0.0 is the first release at mytasks.fyi.
+
+The commit is read when the dev server starts or the app is built, so restart `npm run dev` after switching branches.
+
+## Milestones
+
+v1 is built in milestones, each a pull request.
+
+| Milestone | Scope | Status |
+| --- | --- | --- |
+| 1 | Data model, sidebar, the seven lists, to-dos, areas, projects and headings | Done |
+| 2 | Tags, When and deadline pickers, checklists and notes, priority and its automatic rules, Settings | Done |
+| 3 | Saved searches, Today grouping, search and Quick Find, Quick Entry | Done |
+| 4 | Drag and drop, keyboard shortcuts, undo | Done |
+| 4a | Area ⋯ menu, contexts, project link under the open card | Done |
+| 4b | To-do right-click menu | Done |
+| 5 | 5a Completed list and subtitle; 5b themes; 5c when completed items move; 5e encrypted gist sync | Done |
+| 5 | 5f install and offline; 5g hosting at mytasks.fyi; 5h accessibility | Next |
+| 6 | Finishing touches: empty-state illustrations, phone gestures, resizable sidebar, sidebar blur, title-bar area, long-list speed | Planned |

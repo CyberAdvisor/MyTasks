@@ -1,59 +1,88 @@
 # My Tasks
 
-**Plan. Do. Succeed.** A free, open-source task manager in the style of Things, built as an installable web app (PWA). All data stays on your device.
+**Plan. Do. Succeed.**
 
-- Live app: https://mytasks.fyi (from Milestone 5)
-- License: MIT
+A better task manager that is **free**, **private** and **secure**. My Tasks gives you the calm, focused way of working that made Things popular, on every device you own, without a subscription, an account with us, or anyone else able to read your list.
+
+> [!WARNING]
+> **Work in progress — not ready for real use.** My Tasks is still being built. Features are missing, things will change, and data could be lost between versions. Please don't keep anything important or critical in it yet. You're welcome to try it and follow along.
+
+![The Today list in My Tasks, with to-dos from several projects, their contexts, deadlines and priorities](docs/images/today.png)
+
+## Why My Tasks
+
+**Free, for good.** Every feature, on every device, at no cost. No trial, no paid tier, no limits on projects or lists. My Tasks is open source under the MIT license.
+
+**Private by design.** There is no My Tasks server and no My Tasks account. Your list lives on your devices and in your own GitHub account, and nowhere else. No analytics, no tracking, no ads.
+
+**Secure.** Before your list leaves a device, it is encrypted with a passphrase that only you know. The copy in your GitHub account can't be read by GitHub, by us, or by anyone who finds it. Your passphrase is never stored or sent anywhere.
+
+**On every device.** It runs in any modern browser on iPhone, iPad, Mac, Windows, Linux and Android, and will install like an app on each of them. Your list keeps working without a connection, and your devices stay in step whenever they're online.
+
+**Familiar.** Inbox, Today, Scheduled, areas, projects, headings and checklists work the way Things users expect, with the same keyboard shortcuts where the browser allows.
+
+## How it compares
+
+|  | **My Tasks** | **Things 3** | **Todoist** |
+| --- | :---: | :---: | :---: |
+| **Price** | Free | $49.99 Mac, $19.99 iPad, $9.99 iPhone (each bought separately) | Free for up to 5 projects; paid plan for more |
+| Open source | ✅ | — | — |
+| Encrypted so only you can read your list (end to end) | ✅ | — ¹ | — ¹ |
+| Your data stays in your own account, not the maker's servers | ✅ | — | — |
+| No account with the maker needed | ✅ ² | — | — |
+| iPhone, iPad and Mac | ✅ | ✅ | ✅ |
+| Windows, Linux, Android and the web | ✅ | — | ✅ |
+| Works offline | In progress ⁷ | ✅ | ✅ |
+| Syncs between your devices | ✅ | ✅ | ✅ |
+| Five priority levels, with your own names for them | ✅ | — | — ³ |
+| Priorities set automatically for due and overdue to-dos | ✅ | — | — |
+| Contexts (where or how a to-do gets done) | ✅ | — | — |
+| Group Today by project, priority or context | ✅ | — | ✅ |
+| Saved searches in the sidebar | ✅ | — | ✅ |
+| Inbox, Today and upcoming lists | ✅ | ✅ | ✅ |
+| Areas, projects and headings | ✅ | ✅ | ✅ ⁴ |
+| Checklists inside a to-do | ✅ | ✅ | ✅ ⁵ |
+| Tags | ✅ | ✅ | ✅ |
+| Dates and deadlines | ✅ | ✅ | ✅ |
+| Deferred (Someday) list | ✅ | ✅ | — |
+| Quick Entry, Quick Find and keyboard shortcuts | ✅ | ✅ | ✅ |
+| Drag and drop, undo, light and dark themes | ✅ | ✅ | ✅ |
+| Repeating to-dos | Planned | ✅ | ✅ |
+| Typed dates ("next fri") | Planned | ✅ | ✅ |
+| Reminders and notifications | — ⁶ | ✅ | ✅ |
+| Calendar, widgets, Siri, Apple Watch | — ⁶ | ✅ | ✅ |
+| Sharing lists with other people | — | — | ✅ |
+
+¹ Things and Todoist encrypt your data on their servers, but they hold the keys, so the company could read it.
+
+² You need a free GitHub account, where your encrypted list is kept.
+
+³ Todoist has four priority levels with fixed names.
+
+⁴ Todoist uses projects, sub-projects and sections.
+
+⁵ Todoist uses sub-tasks.
+
+⁶ Not possible for a web app without a server, so My Tasks leaves these out.
+
+⁷ Your list already keeps working without a connection. Installing as an app and opening it fully offline arrive before the first release.
+
+Comparison as of November 2026. Prices are in US dollars and can change.
+
+## How it works
+
+1. Open My Tasks in your browser. (Installing it to your Home Screen, Dock or Start menu comes before the first release.)
+2. Connect it to your free GitHub account with a token (the app shows you how), and choose a passphrase.
+3. My Tasks creates a secret, encrypted gist in your account to hold your list. Connect your other devices with the same token and passphrase, and they all stay in step.
+
+Every device keeps its own working copy, so the app is fast and works without a connection. Changes are encrypted and sent to your gist a moment after you make them.
 
 ## Status
 
-v1 is being built in milestones. Each milestone is a pull request.
+My Tasks is being built in milestones, one pull request at a time. The core of the app is done: lists, projects, tags, priorities, contexts, search, drag and drop, keyboard shortcuts, themes and encrypted sync. Still to come before the first release: installing as an app and working fully offline, hosting at [mytasks.fyi](https://mytasks.fyi), and accessibility. See [CHANGELOG.md](CHANGELOG.md) for what has changed so far.
 
-| Milestone | Scope | Status |
-| --- | --- | --- |
-| 1 | Data model, sidebar, the seven lists, to-dos, areas, projects and headings | Done |
-| 2 | Tags, When and deadline pickers, checklists and notes, priority and its automatic rules, Settings | Done |
-| 3 | Saved searches, Today grouping, search and Quick Find, Quick Entry | Done |
-| 4 | Drag and drop, keyboard shortcuts (including Cmd/Ctrl+G to cycle Today grouping), undo | Done |
-| 5 | Install, export/import and backups, themes, hosting at mytasks.fyi, accessibility | Planned |
+The version you're using is shown at the bottom of the sidebar. Click it to see what changed in that version.
 
-## Develop
+## Contributing
 
-Requires Node 20 or later.
-
-```bash
-npm install
-npm run dev      # local dev server
-npm test         # unit tests (Vitest)
-npm run check    # type-check (svelte-check)
-npm run build    # production build in dist/
-```
-
-## Versions
-
-The app shows its version and commit beside the sync status at the bottom of the sidebar, for example `v0.2.0 (a1b2c3d)`, and links it to that version's section of [CHANGELOG.md](CHANGELOG.md). Each pull request that changes the app adds a changelog section and sets the version in `package.json`: the middle number for new features, the last for fixes. 1.0.0 is the first release at mytasks.fyi.
-
-The commit is read when the dev server starts or the app is built, so restart `npm run dev` after switching branches.
-
-## Project layout
-
-```
-src/
-  lib/model/    Types, dates, ids, ordering and the list membership rules (pure functions)
-  lib/db/       IndexedDB schema (Dexie), all data operations (repo.ts), and
-                transactions, the change log and undo (history.ts)
-  lib/drag/     Pointer-events drag and drop, and its pure calculations
-  lib/state/    Live data, routing and transient UI state
-  lib/          shortcuts.ts (key bindings) and commands.ts (what they do)
-  components/   Sidebar, rows, the to-do card, dialogs
-  views/        Built-in lists, project and area pages
-tests/          Unit tests for the model and data operations
-```
-
-## Keyboard
-
-Press `?` in the app for the full list. Installed, My Tasks uses the Things shortcuts. In a browser tab, keys the browser keeps for itself (Cmd/Ctrl+N, T, R and others) are replaced by single-letter fallbacks, and `/` opens Quick Find.
-
-## Data
-
-Data rules follow the design document: every change runs in one transaction and is written to a local change log, so sync can be added later without a schema rewrite.
+My Tasks is open source under the [MIT license](LICENSE). To run it locally or find your way around the code, see [DEVELOPMENT.md](DEVELOPMENT.md).
