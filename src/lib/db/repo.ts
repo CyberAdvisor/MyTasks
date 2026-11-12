@@ -7,7 +7,7 @@
  * database directly.
  */
 import { db } from './database';
-import { log, tx } from './history';
+import { clearUndo, log, tx } from './history';
 import { nowIso, uuidv7 } from '../model/ids';
 import { localDay, today } from '../model/dates';
 import { bySortKey, keyAtEnd, keyAtStart, keyBetween, placementKeys } from '../model/order';
@@ -739,19 +739,30 @@ export function emptyTrash(): Promise<void> {
     const at = nowIso();
     const todos = (await db.todos.toArray()).filter((t) => t.trashedAt && !t.deletedAt);
     const projects = (await db.projects.toArray()).filter((p) => p.trashedAt && !p.deletedAt);
-    const removeTodo = async (todoId: ID) => {
-      await patch<Todo>('todos', todoId, { deletedAt: at });
-      for (const c of await liveChecklist(todoId)) await patch<ChecklistItem>('checklistItems', c.id, { deletedAt: at });
-    };
     for (const p of projects) {
       await patch<Project>('projects', p.id, { deletedAt: at });
       const inside = await db.todos.where('projectId').equals(p.id).toArray();
-      for (const t of inside.filter((x) => !x.deletedAt)) await removeTodo(t.id);
+      for (const t of inside.filter((x) => !x.deletedAt)) await deleteTodoRecords(t.id, at);
     }
-    for (const t of todos) await removeTodo(t.id);
+    for (const t of todos) await deleteTodoRecords(t.id, at);
   });
 }
 
+/** Mark a to-do and its checklist deleted (tombstones, so the deletion syncs). Call inside a transaction. */
+async function deleteTodoRecords(todoId: ID, at: string): Promise<void> {
+  await patch<Todo>('todos', todoId, { deletedAt: at });
+  for (const c of await liveChecklist(todoId)) await patch<ChecklistItem>('checklistItems', c.id, { deletedAt: at });
+}
+
+/**
+ * Delete one to-do in the Trash permanently (Delete Immediately, FR-1.7).
+ * It asks first and cannot be undone: the undo step is cleared too, so
+ * undoing an earlier change (such as the move to Trash) cannot restore it.
+ */
+export async function deleteTodoForever(id: ID): Promise<void> {
+  await tx(() => deleteTodoRecords(id, nowIso()), { track: false });
+  clearUndo();
+}
 
 // ---------------------------------------------------------------------------
 // Tags (FR-6.1, FR-6.2)

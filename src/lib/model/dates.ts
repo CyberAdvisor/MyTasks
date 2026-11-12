@@ -20,6 +20,23 @@ export function localDay(iso: string): LocalDate {
   return toLocalDate(new Date(iso));
 }
 
+/**
+ * A moment as "Today at 6:02 AM", "Yesterday at 9:14 PM" or
+ * "Nov 10, 2026 at 9:14 AM" (Get Info, Settings › Sync).
+ */
+export function formatTimestamp(iso: string, now = new Date()): string {
+  const d = new Date(iso);
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const days = Math.round(
+    (new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() -
+      new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()) /
+      86_400_000,
+  );
+  if (days === 0) return `Today at ${time}`;
+  if (days === 1) return `Yesterday at ${time}`;
+  return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} at ${time}`;
+}
+
 /** Today's local date. */
 export function today(): LocalDate {
   return toLocalDate(new Date());

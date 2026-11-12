@@ -22,6 +22,7 @@
   import SearchView from './views/SearchView.svelte';
   import FilterView from './views/FilterView.svelte';
   import Setup from './components/Setup.svelte';
+  import RowMenu from './components/RowMenu.svelte';
   import { sync } from './lib/sync/sync.svelte';
   import { route, go, hrefFor } from './lib/state/route';
   import { settings, todayDate } from './lib/state/live';
@@ -124,6 +125,8 @@
       </main>
     {/if}
   </div>
+
+  <RowMenu />
 
   {#if ui.movingId}
     <MoveDialog todoId={ui.movingId} />

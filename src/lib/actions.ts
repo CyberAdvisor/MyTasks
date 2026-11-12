@@ -8,7 +8,7 @@ import { zoneOf } from './drag/drag';
 import { orderWith } from './drag/plan';
 import { addDays } from './model/dates';
 import { inInbox, inScheduled, inToday, isClosed, isLogged, isOpen, type BuiltInList, type WaitingItems } from './model/lists';
-import type { LocalDate, Todo } from './model/types';
+import type { ID, LocalDate, Todo } from './model/types';
 import { TodoDraft, type DraftStart } from './state/draft.svelte';
 import { snapshot } from './state/live';
 import { go, hrefFor, type Route } from './state/route';
@@ -151,4 +151,18 @@ export function canAddHere(r: Route): boolean {
 export async function moveWaiting(items: WaitingItems): Promise<void> {
   await repo.moveToCompleted(items);
   ui.offerUndo('Moved to Completed');
+}
+
+/** Move a to-do to Trash, with the Undo toast on touch (FR-1.5, FR-1.6). */
+export async function trashTodo(id: ID): Promise<void> {
+  if (ui.expandedId === id) ui.close();
+  await repo.setTodoTrashed(id, true);
+  ui.offerUndo('Moved to Trash');
+}
+
+/** Turn a to-do into a project and open the project (FR-1.5). */
+export async function convertTodo(id: ID): Promise<void> {
+  const projectId = await repo.convertTodoToProject(id);
+  ui.close();
+  if (projectId) go({ kind: 'project', id: projectId });
 }
