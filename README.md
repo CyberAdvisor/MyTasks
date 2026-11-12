@@ -50,7 +50,8 @@ A better task manager that is **free**, **private** and **secure**. My Tasks giv
 | Repeating to-dos | Planned | ✅ | ✅ |
 | Typed dates ("next fri") | Planned | ✅ | ✅ |
 | Reminders and notifications | — ⁶ | ✅ | ✅ |
-| Calendar, widgets, Siri, Apple Watch | — ⁶ | ✅ | ✅ |
+| Today's calendar events (Google and Microsoft) | Planned | ✅ | ✅ |
+| Widgets, Siri, Apple Watch | — ⁶ | ✅ | ✅ |
 | Sharing lists with other people | — | — | ✅ |
 
 ¹ Things and Todoist encrypt your data on their servers, but they hold the keys, so the company could read it.
