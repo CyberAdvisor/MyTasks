@@ -77,7 +77,7 @@ Every device keeps its own working copy, so the app is fast and works without a 
 
 ## Status
 
-My Tasks is being built in milestones, one pull request at a time. The core of the app is done: lists, projects, tags, priorities, contexts, search, drag and drop, keyboard shortcuts, themes, encrypted sync, installing as an app that works fully offline, and hosting at [mytasks.fyi](https://mytasks.fyi). Still to come before the first release: accessibility. See [CHANGELOG.md](CHANGELOG.md) for what has changed so far.
+My Tasks is being built in milestones, one pull request at a time. The core of the app is done: lists, projects, tags, priorities, contexts, search, drag and drop, keyboard shortcuts, themes, encrypted sync, installing as an app that works fully offline, and hosting at [mytasks.fyi](https://mytasks.fyi). Still to come before the first release: finishing touches, such as empty-list illustrations, phone gestures and a resizable sidebar. See [CHANGELOG.md](CHANGELOG.md) for what has changed so far.
 
 The version you're using is shown at the bottom of the sidebar. Click it to see what changed in that version.
 
