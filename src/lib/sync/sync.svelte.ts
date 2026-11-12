@@ -9,7 +9,9 @@
  * - Failures never block or lose local changes. Problems the user must fix
  *   (token, passphrase, a missing or invalid gist, a newer app) stop the
  *   automatic syncs until Sync Now or the fix; a rate limit waits for its
- *   reset time; being offline just retries on the next trigger.
+ *   reset time; while offline it tries again every 15 seconds, because the
+ *   browser can report being back online before GitHub can be reached.
+ *   Those tries are quiet: the status stays Offline until one gets through.
  */
 import { db } from '../db/database';
 import { onLocalChange } from '../db/history';
@@ -22,6 +24,9 @@ import { readLocal } from './local';
 
 /** Delay between a local change and the sync that pushes it. */
 export const PUSH_DELAY_MS = 2000;
+
+/** While offline, how long to wait before trying again. */
+export const OFFLINE_RETRY_MS = 15_000;
 
 export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline' | 'error';
 export type SyncCode = GistErrorCode | SyncProblem;
@@ -68,11 +73,11 @@ class SyncEngine {
     this.problem = null;
   }
 
-  /** Sync about 2 seconds after the last local change. */
-  private schedule(): void {
+  /** Sync after `delay`: about 2 seconds after the last local change, or the next try while offline. */
+  private schedule(delay = PUSH_DELAY_MS): void {
     if (!this.config) return;
     clearTimeout(this.timer);
-    this.timer = setTimeout(() => this.auto(), PUSH_DELAY_MS);
+    this.timer = setTimeout(() => this.auto(), delay);
   }
 
   /** An automatic sync, skipped while a problem needs the user or a rate limit lasts. */
@@ -81,11 +86,14 @@ class SyncEngine {
     this.timer = undefined;
     if (this.status === 'error' && this.problem && NEEDS_USER.includes(this.problem)) return;
     if (this.retryAt && Date.now() < this.retryAt.getTime()) return;
-    void this.syncNow();
+    void this.syncNow(this.status === 'offline');
   }
 
-  /** Sync now (also the Sync Now button). Resolves when this request has been served. */
-  syncNow(): Promise<void> {
+  /**
+   * Sync now (also the Sync Now button). Resolves when this request has been
+   * served. A `quiet` sync leaves the status as it is until it finishes.
+   */
+  syncNow(quiet = false): Promise<void> {
     if (!this.config) return Promise.resolve();
     if (this.running) {
       this.again = true;
@@ -94,15 +102,15 @@ class SyncEngine {
     this.running = (async () => {
       do {
         this.again = false;
-        await this.attempt(() => syncOnce(this.config!));
+        await this.attempt(() => syncOnce(this.config!), quiet);
       } while (this.again && this.config);
     })().finally(() => (this.running = null));
     return this.running;
   }
 
   /** Run one sync action, recording success or failure in the status. */
-  private async attempt(action: () => Promise<void>): Promise<void> {
-    this.status = 'syncing';
+  private async attempt(action: () => Promise<void>, quiet = false): Promise<void> {
+    if (!quiet) this.status = 'syncing';
     try {
       await action();
       await this.saved({ ...this.config!, lastSyncedAt: nowIso() });
@@ -124,6 +132,7 @@ class SyncEngine {
     if (e instanceof GistError && e.code === 'offline') {
       this.status = 'offline';
       this.problem = null;
+      this.schedule(OFFLINE_RETRY_MS);
       return;
     }
     this.status = 'error';
