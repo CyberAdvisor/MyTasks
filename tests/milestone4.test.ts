@@ -139,10 +139,10 @@ describe('undo (FR-1.6)', () => {
     expect(await undo()).toBe(false);
   });
 
-  it('removes a record the step created', async () => {
+  it('removes a record the step created, as a tombstone that can sync', async () => {
     const t = await repo.createTodo({ title: 'a' });
     await undo();
-    expect(await db.todos.get(t)).toBeUndefined();
+    expect((await db.todos.get(t))?.deletedAt).not.toBeNull();
   });
 
   it('undoes only the last change, with every record it touched', async () => {
@@ -181,8 +181,8 @@ describe('undo (FR-1.6)', () => {
       return id;
     });
     await undo();
-    expect(await db.todos.get(b)).toBeUndefined();
-    expect(await db.todos.get(a)).toBeDefined();
+    expect((await db.todos.get(b))?.deletedAt).not.toBeNull();
+    expect((await db.todos.get(a))?.deletedAt).toBeNull();
   });
 
   it('logs the restore for future sync', async () => {

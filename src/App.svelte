@@ -4,6 +4,7 @@
   Home screen of lists, or one view) with a round + button instead.
   Also hosts Quick Find, Quick Entry, Keyboard Help, the Undo toast and the
   app-wide keyboard handler (Section 7).
+  Until this device is connected to a GitHub Gist, only Setup shows (FR-19.1).
 -->
 <script lang="ts">
   import Sidebar from './components/Sidebar.svelte';
@@ -20,6 +21,8 @@
   import SettingsView from './views/SettingsView.svelte';
   import SearchView from './views/SearchView.svelte';
   import FilterView from './views/FilterView.svelte';
+  import Setup from './components/Setup.svelte';
+  import { sync } from './lib/sync/sync.svelte';
   import { route, go, hrefFor } from './lib/state/route';
   import { settings, todayDate } from './lib/state/live';
   import { applyTheme } from './lib/theme';
@@ -58,7 +61,7 @@
     const resolver = new KeyResolver();
     const mac = isMac();
     const onKey = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.isComposing) return;
+      if (e.defaultPrevented || e.isComposing || !sync.config) return;
       if (ui.findOpen || ui.draft !== null || document.querySelector('dialog[open]')) return;
       const ctx = { focus: focusKind(document.activeElement), standalone: isStandalone(), mac, now: Date.now() };
       const result = resolver.resolve(e, ctx);
@@ -77,64 +80,70 @@
   let showMain = $derived(!isPhone || $route.kind !== 'home');
 </script>
 
-<div class="app">
-  {#if showSidebar}
-    <div class="side"><Sidebar /></div>
-  {/if}
+{#if !sync.ready}
+  <!-- Reading this device's sync settings: a moment, so nothing flashes. -->
+{:else if !sync.config}
+  <Setup />
+{:else}
+  <div class="app">
+    {#if showSidebar}
+      <div class="side"><Sidebar /></div>
+    {/if}
 
-  {#if showMain}
-    <main>
-      <div class="scroll">
-        <div class="column">
-          {#if $route.kind === 'list'}
-            {#key $route.list}<ListView list={$route.list} />{/key}
-          {:else if $route.kind === 'project'}
-            {#key $route.id}<ProjectView id={$route.id} />{/key}
-          {:else if $route.kind === 'area'}
-            {#key $route.id}<AreaView id={$route.id} />{/key}
-          {:else if $route.kind === 'settings'}
-            <SettingsView />
-          {:else if $route.kind === 'search'}
-            {#key hrefFor($route)}<SearchView query={$route.query} tagIds={$route.tagIds} />{/key}
-          {:else if $route.kind === 'saved'}
-            {#key $route.id}<SearchView savedId={$route.id} />{/key}
-          {:else if $route.kind === 'filter'}
-            {#key $route.filter}<FilterView filter={$route.filter} />{/key}
-          {/if}
+    {#if showMain}
+      <main>
+        <div class="scroll">
+          <div class="column">
+            {#if $route.kind === 'list'}
+              {#key $route.list}<ListView list={$route.list} />{/key}
+            {:else if $route.kind === 'project'}
+              {#key $route.id}<ProjectView id={$route.id} />{/key}
+            {:else if $route.kind === 'area'}
+              {#key $route.id}<AreaView id={$route.id} />{/key}
+            {:else if $route.kind === 'settings'}
+              <SettingsView />
+            {:else if $route.kind === 'search'}
+              {#key hrefFor($route)}<SearchView query={$route.query} tagIds={$route.tagIds} />{/key}
+            {:else if $route.kind === 'saved'}
+              {#key $route.id}<SearchView savedId={$route.id} />{/key}
+            {:else if $route.kind === 'filter'}
+              {#key $route.filter}<FilterView filter={$route.filter} />{/key}
+            {/if}
+          </div>
         </div>
-      </div>
 
-      {#if isPhone}
-        {#if canAddHere($route)}
-          <button type="button" class="plus" aria-label="New To-Do" onclick={() => openQuickEntry(draftStartFor($route, $todayDate))}>
-            <Icon name="plus" size={22} color="#fff" />
-          </button>
+        {#if isPhone}
+          {#if canAddHere($route)}
+            <button type="button" class="plus" aria-label="New To-Do" onclick={() => openQuickEntry(draftStartFor($route, $todayDate))}>
+              <Icon name="plus" size={22} color="#fff" />
+            </button>
+          {/if}
+        {:else if $route.kind !== 'settings'}
+          <Toolbar />
         {/if}
-      {:else if $route.kind !== 'settings'}
-        <Toolbar />
-      {/if}
-    </main>
+      </main>
+    {/if}
+  </div>
+
+  {#if ui.movingId}
+    <MoveDialog todoId={ui.movingId} />
   {/if}
-</div>
 
-{#if ui.movingId}
-  <MoveDialog todoId={ui.movingId} />
-{/if}
+  {#if ui.findOpen}
+    <QuickFind />
+  {/if}
 
-{#if ui.findOpen}
-  <QuickFind />
-{/if}
+  {#if ui.draft}
+    {#key ui.draft}<QuickEntry draft={ui.draft} />{/key}
+  {/if}
 
-{#if ui.draft}
-  {#key ui.draft}<QuickEntry draft={ui.draft} />{/key}
-{/if}
+  {#if ui.helpOpen}
+    <KeyboardHelp />
+  {/if}
 
-{#if ui.helpOpen}
-  <KeyboardHelp />
-{/if}
-
-{#if ui.toast}
-  <UndoToast message={ui.toast.message} />
+  {#if ui.toast}
+    <UndoToast message={ui.toast.message} />
+  {/if}
 {/if}
 
 <style>

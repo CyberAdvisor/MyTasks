@@ -132,7 +132,7 @@ export function sweepPriorities(): Promise<void> {
  * it off leaves the priorities it already set (FR-14.14).
  */
 export async function setSetting<K extends SettingKey>(key: K, value: AppSettings[K]): Promise<void> {
-  await tx(() => db.settings.put({ key, value }), { track: false });
+  await tx(() => db.settings.put({ key, value, modifiedAt: nowIso() }), { track: false });
   if (key === 'moveToCompleted') await sweepCompleted();
   else if (value === true && (key === 'autoP1' || key === 'defaultP2')) await sweepPriorities();
 }

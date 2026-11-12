@@ -1,5 +1,7 @@
 <!--
   Settings (design doc, Section 5.10 FR-14.13 and Section 5.4 FR-6.1).
+  - Sync (FR-19.6 to FR-19.8): the gist connection, its problems and their
+    fixes, Sync Now, Change Token, Change Passphrase, Disconnect.
   - Appearance (FR-V.3): System, Light or Dark.
   - Completed Items: when completed items move to Completed (FR-12.2) and
     the two "move to the bottom" switches (FR-12.7, FR-7.5).
@@ -25,6 +27,9 @@
   } from '../lib/model/settings';
   import * as repo from '../lib/db/repo';
   import type { ID, Priority } from '../lib/model/types';
+  import SyncDialog, { type SyncForm } from '../components/SyncDialog.svelte';
+  import { sync } from '../lib/sync/sync.svelte';
+  import { errorText, problemText, whenSynced } from '../lib/sync/messages';
 
   const THEME_OPTIONS: { value: Theme; label: string }[] = [
     { value: 'system', label: 'System' },
@@ -42,6 +47,33 @@
   let contexts = $derived(bySortKey($snapshot.contexts));
   /** The tag or context waiting for delete confirmation. */
   let deleting = $state<{ kind: 'tag' | 'context'; id: ID; title: string } | null>(null);
+
+  /** The sync form open, if any. */
+  let syncForm = $state<SyncForm | null>(null);
+  let confirmDisconnect = $state(false);
+  let syncBusy = $state(false);
+  let syncError = $state('');
+
+  /** Run a Sync button's action, showing an error under the buttons. */
+  async function syncAction(action: () => Promise<void>) {
+    syncError = '';
+    syncBusy = true;
+    try {
+      await action();
+    } catch (e) {
+      syncError = errorText(e);
+    } finally {
+      syncBusy = false;
+    }
+  }
+
+  /** Disconnect clears this device, then the app restarts at Setup. */
+  async function onDisconnectChoice(v: string | null) {
+    confirmDisconnect = false;
+    if (v !== 'disconnect') return;
+    await sync.disconnect();
+    location.replace(location.pathname);
+  }
 
   /** Save one priority label; an empty label returns to its default (FR-14.3). */
   function saveLabel(p: Priority, input: HTMLInputElement) {
@@ -74,6 +106,40 @@
 <ViewHeader title="Settings">
   {#snippet icon()}<Icon name="settings" size={26} color="var(--text-2)" />{/snippet}
 </ViewHeader>
+
+<section aria-labelledby="sync-heading">
+  <h2 id="sync-heading">Sync</h2>
+  {#if sync.status === 'error' && sync.problem}
+    <p class="sync-problem" role="alert"><Icon name="alert" size={15} color="var(--danger)" /> {problemText(sync.problem, sync.retryAt)}</p>
+    {#if sync.problem === 'passphrase'}
+      <p><button type="button" class="btn-primary" onclick={() => (syncForm = 'enter-passphrase')}>Enter New Passphrase</button></p>
+    {:else if sync.problem === 'notfound'}
+      <p><button type="button" class="btn-primary" disabled={syncBusy} onclick={() => syncAction(() => sync.recreateGist())}>Recreate Gist</button></p>
+    {/if}
+  {:else if sync.status === 'offline'}
+    <p class="sync-state"><Icon name="cloud-off" size={16} /> Offline — changes are saved on this device and sync when you’re back online.</p>
+  {:else}
+    <p class="sync-state"><Icon name="check" size={16} color="var(--c-logbook)" /> Connected to GitHub Gist</p>
+  {/if}
+  {#if sync.config}
+    <p class="help">
+      Gist {sync.config.gistId.slice(0, 8)}…{#if sync.config.lastSyncedAt}&nbsp;· Last synced {whenSynced(sync.config.lastSyncedAt)}{/if}
+    </p>
+  {/if}
+  <div class="sync-buttons">
+    <button type="button" class="outline" disabled={sync.status === 'syncing'} onclick={() => syncAction(() => sync.syncNow())}>
+      {sync.status === 'syncing' ? 'Syncing…' : 'Sync Now'}
+    </button>
+    <button type="button" class="outline" onclick={() => (syncForm = 'token')}>Change Token</button>
+    <button type="button" class="outline" onclick={() => (syncForm = 'change-passphrase')}>Change Passphrase</button>
+    <button type="button" class="outline danger" onclick={() => (confirmDisconnect = true)}>Disconnect This Device</button>
+  </div>
+  {#if syncError}<p class="form-error" role="alert">⚠ {syncError}</p>{/if}
+  <p class="help">
+    Your list is encrypted with your passphrase before it reaches GitHub. Disconnecting removes your to-dos, token
+    and key from this device; your list stays in your gist.
+  </p>
+</section>
 
 <section aria-labelledby="appearance-heading">
   <h2 id="appearance-heading">Appearance</h2>
@@ -201,6 +267,19 @@
   />
 </section>
 
+{#if syncForm}
+  <SyncDialog form={syncForm} onclose={() => (syncForm = null)} />
+{/if}
+
+{#if confirmDisconnect}
+  <ChoiceDialog
+    title="Disconnect this device?"
+    message="Your to-dos, token and key are removed from this device. Your list stays in your gist, and you can connect again with your token and passphrase."
+    choices={[{ label: 'Disconnect', value: 'disconnect', danger: true }]}
+    onchoose={onDisconnectChoice}
+  />
+{/if}
+
 {#if deleting?.kind === 'tag'}
   <ChoiceDialog
     title={`Delete the tag “${deleting.title}”?`}
@@ -218,6 +297,38 @@
 {/if}
 
 <style>
+  .sync-state,
+  .sync-problem {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 4px 0 6px;
+    font-size: 15px;
+  }
+  .sync-problem {
+    color: var(--danger);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .sync-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 4px 0 2px;
+  }
+  .outline {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--field);
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+  .outline:hover:not(:disabled) {
+    background: var(--hover-bg);
+  }
+  .outline.danger {
+    color: var(--danger);
+  }
   section {
     margin: 0 0 32px 38px;
   }

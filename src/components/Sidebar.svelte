@@ -8,6 +8,8 @@
 -->
 <script lang="ts">
   import Icon from './Icon.svelte';
+  import Logo from './Logo.svelte';
+  import SyncStatus from './SyncStatus.svelte';
   import ProgressPie from './ProgressPie.svelte';
   import { snapshot, todayDate } from '../lib/state/live';
   import { route, go, hrefFor, type Route } from '../lib/state/route';
@@ -81,10 +83,7 @@
 
 <nav class="sidebar" aria-label="Lists">
   <div class="brand">
-    <svg width="32" height="32" viewBox="0 0 32 32" role="img" aria-label="My Tasks logo">
-      <rect width="32" height="32" rx="8" fill="var(--accent)" />
-      <path d="M9 16.5l4.5 4.5L23 11" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-    </svg>
+    <Logo />
     <div class="brand-text">
       <span class="brand-name">My Tasks</span>
       <span class="brand-sub">Plan. Do. Track</span>
@@ -179,6 +178,7 @@
     </ul>
   </div>
 
+  <SyncStatus />
   <div class="footer">
     <div class="menu-wrap">
       <button type="button" class="btn-plain" aria-haspopup="menu" aria-expanded={menuOpen} onclick={() => (menuOpen = !menuOpen)}>

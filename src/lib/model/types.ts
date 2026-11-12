@@ -153,4 +153,6 @@ export interface ChangeLogEntry {
 export interface SettingEntry {
   key: string;
   value: unknown;
+  /** When it was last changed, so settings merge like records when synced (FR-19.4). */
+  modifiedAt?: Timestamp;
 }
