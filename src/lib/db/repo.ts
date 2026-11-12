@@ -44,10 +44,12 @@ async function patch<T extends BaseRecord>(entity: EntityName, id: ID, changes: 
   await log(entity, id, fields);
 }
 
-/** Sort keys of siblings matching `filter`, used to append at the end. */
-async function siblingKeys<T extends BaseRecord>(entity: EntityName, filter: (r: T) => boolean): Promise<string[]> {
-  const rows = (await db.table(entity).toArray()) as T[];
-  return rows.filter((r) => r.deletedAt === null && filter(r)).map((r) => r.sortKey);
+/** Sort keys of siblings matching `filter`, used to append at the end. A read helper: see `liveChecklist`. */
+function siblingKeys<T extends BaseRecord>(entity: EntityName, filter: (r: T) => boolean): Promise<string[]> {
+  return db
+    .table(entity)
+    .toArray()
+    .then((rows) => (rows as T[]).filter((r) => r.deletedAt === null && filter(r)).map((r) => r.sortKey));
 }
 
 /**
@@ -77,15 +79,23 @@ async function place<T extends BaseRecord>(
 
 /**
  * Sort key that moves record `id` one place up or down among the siblings
- * matching `filter`, or `null` when it is already at that end.
+ * matching `filter`, or `null` when it is already at that end. A read helper:
+ * see `liveChecklist`.
  */
-async function shiftedKey<T extends BaseRecord>(
+function shiftedKey<T extends BaseRecord>(
   entity: EntityName,
   id: ID,
   filter: (r: T) => boolean,
   direction: 'up' | 'down',
 ): Promise<string | null> {
-  const rows = bySortKey(((await db.table(entity).toArray()) as T[]).filter((r) => r.deletedAt === null && filter(r)));
+  return db
+    .table(entity)
+    .toArray()
+    .then((all) => keyShifted(bySortKey((all as T[]).filter((r) => r.deletedAt === null && filter(r))), id, direction));
+}
+
+/** The sort key that moves `id` one place within `rows` (in order), or `null` at that end. */
+function keyShifted(rows: BaseRecord[], id: ID, direction: 'up' | 'down'): string | null {
   const i = rows.findIndex((r) => r.id === id);
   if (i < 0) return null;
   const others = rows.filter((r) => r.id !== id);
@@ -101,9 +111,9 @@ async function shiftedKey<T extends BaseRecord>(
 // Settings and automatic priority (FR-14.9 to FR-14.14)
 // ---------------------------------------------------------------------------
 
-/** Current settings, read inside the caller's transaction. */
-async function loadSettings(): Promise<AppSettings> {
-  return readSettings(await db.settings.toArray());
+/** Current settings, read inside the caller's transaction. A read helper: see `liveChecklist`. */
+function loadSettings(): Promise<AppSettings> {
+  return db.settings.toArray().then(readSettings);
 }
 
 /** Apply the automatic priority rules to one to-do after a change. */
@@ -894,10 +904,20 @@ async function copyChecklist(fromTodoId: ID, toTodoId: ID): Promise<void> {
   }
 }
 
-/** A to-do's live checklist items in order. */
-async function liveChecklist(todoId: ID): Promise<ChecklistItem[]> {
-  const rows = await db.checklistItems.where('todoId').equals(todoId).toArray();
-  return bySortKey(rows.filter((c) => c.deletedAt === null));
+/**
+ * A to-do's live checklist items in order.
+ *
+ * Read helpers like this one return Dexie's own promise (`then`) instead of
+ * being `async`. Inside a transaction, a read awaited through two levels of
+ * `async` helpers more than once (here: `copyChecklist` in a loop) makes Dexie
+ * commit the transaction too early (PrematureCommitError).
+ */
+function liveChecklist(todoId: ID): Promise<ChecklistItem[]> {
+  return db.checklistItems
+    .where('todoId')
+    .equals(todoId)
+    .toArray()
+    .then((rows) => bySortKey(rows.filter((c) => c.deletedAt === null)));
 }
 
 /**
