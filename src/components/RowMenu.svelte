@@ -397,13 +397,6 @@
   .rowmenu > .menu-item {
     justify-content: space-between;
   }
-  .rowmenu .menu-item:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-  .rowmenu .menu-item:disabled:hover {
-    background: none;
-  }
   .info {
     padding: 8px 10px 6px;
     font-size: 13px;

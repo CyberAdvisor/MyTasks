@@ -1,6 +1,6 @@
 <!--
-  Header for every main view: phone back link, icon, title and optional
-  actions on the right.
+  Header for every main view: phone back link, icon, title, an optional ⋯
+  menu right after a plain title, and optional actions on the right.
 -->
 <script lang="ts">
   import type { Snippet } from 'svelte';
@@ -10,6 +10,7 @@
     title = '',
     icon,
     heading,
+    menu,
     actions,
   }: {
     /** Plain title text; ignored when `heading` is given. */
@@ -18,6 +19,8 @@
     icon?: Snippet;
     /** Custom title content, e.g. an editable title field. */
     heading?: Snippet;
+    /** The ⋯ menu after a plain title (built-in lists). */
+    menu?: Snippet;
     /** Buttons shown on the right. */
     actions?: Snippet;
   } = $props();
@@ -27,7 +30,7 @@
 <header>
   <div class="title">
     {@render icon?.()}
-    {#if heading}{@render heading()}{:else}<h1>{title}</h1>{/if}
+    {#if heading}{@render heading()}{:else}<h1>{title}</h1>{@render menu?.()}{/if}
   </div>
   {#if actions}<div class="actions">{@render actions()}</div>{/if}
 </header>

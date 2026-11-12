@@ -1,7 +1,7 @@
 <!--
   Project page (FR-2.1 to FR-2.4), laid out as in Things: the ⋯ menu right
   after the title holds the project actions (complete, When, tags, deadline,
-  move, duplicate, delete). Values that are set show as chips under the title;
+  move, duplicate, Move to Completed (FR-12.2), delete). Values that are set show as chips under the title;
   clicking a chip reopens its picker.
   Drag to-dos to reorder them, to move them under another heading, or above
   the first heading to take them out of any heading; drag headings to reorder
@@ -15,6 +15,7 @@
   import ViewHeader from '../components/ViewHeader.svelte';
   import ChoiceDialog from '../components/ChoiceDialog.svelte';
   import Popover from '../components/Popover.svelte';
+  import MoveToCompletedItem from '../components/MoveToCompletedItem.svelte';
   import WhenPicker from '../components/WhenPicker.svelte';
   import DeadlinePicker from '../components/DeadlinePicker.svelte';
   import TagPicker from '../components/TagPicker.svelte';
@@ -225,6 +226,7 @@
             <hr class="menu-sep" />
             <button type="button" class="menu-item" role="menuitem" onclick={startMove}><Icon name="move" size={15} /> Move</button>
             <button type="button" class="menu-item" role="menuitem" onclick={duplicate}><Icon name="copy" size={15} /> Duplicate Project</button>
+            <MoveToCompletedItem view={{ kind: 'project', id }} onchoose={() => (menuOpen = false)} />
             <button type="button" class="menu-item danger" role="menuitem" onclick={trashProject}><Icon name="trash" size={15} /> Delete Project</button>
             {#if project!.status === 'open'}
               <!-- Desktop adds headings from the bottom toolbar. -->

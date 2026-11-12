@@ -199,6 +199,26 @@ dialog .btn-plain {
   background: transparent;
   padding: 0;
 }
+/* An item that can't be chosen right now, e.g. Move to Completed with nothing waiting. */
+.menu-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.menu-item:disabled:hover {
+  background: none;
+}
+/* A small heading inside a menu, e.g. Today's "Group By". */
+.menu-label {
+  padding: 6px 10px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+/* Keeps a label in line when its menu item shows no icon. */
+.menu-icon-space {
+  width: 15px;
+  flex: none;
+}
 .menu-sep {
   height: 1px;
   background: var(--rule);
