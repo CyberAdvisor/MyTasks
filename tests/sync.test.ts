@@ -14,7 +14,7 @@ import { applyRemote, readLocal } from '../src/lib/sync/local';
 import { mergePayloads, type Payload } from '../src/lib/sync/payload';
 import { createList, joinList, lookUp } from '../src/lib/sync/setup';
 import { clock, syncMessage, syncedLine } from '../src/lib/sync/messages';
-import { sync } from '../src/lib/sync/sync.svelte';
+import { OFFLINE_RETRY_MS, sync } from '../src/lib/sync/sync.svelte';
 import { FakeGitHub } from './fakeGitHub';
 import { todo } from './helpers';
 
@@ -275,6 +275,35 @@ describe('Settings › Sync (FR-19.6 to FR-19.8)', () => {
     await db.open();
     expect(await db.todos.count()).toBe(0);
     expect(gh.file(config.gistId)).toBeDefined();
+  });
+});
+
+describe('coming back online (FR-19.5)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('keeps trying while offline, so the status clears without Sync Now', async () => {
+    const config = await createList('good', 'correct horse');
+    sync.connected(config);
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    gh.offline = true;
+    await sync.syncNow();
+    expect(sync.status).toBe('offline');
+    // Still offline at the first retry: it stays offline and tries again.
+    await vi.advanceTimersByTimeAsync(OFFLINE_RETRY_MS);
+    await vi.waitFor(() => expect(sync.status).toBe('offline'));
+    // Back online, with no event and no change: the next retry gets through.
+    // The retry is quiet, so the status never flickers to Syncing….
+    gh.offline = false;
+    const seen: string[] = [];
+    const watch = setInterval(() => seen.push(sync.status), 1);
+    await vi.advanceTimersByTimeAsync(OFFLINE_RETRY_MS);
+    await vi.waitFor(() => expect(sync.status).toBe('synced'));
+    clearInterval(watch);
+    expect(seen).not.toContain('syncing');
+    // Once synced, nothing more is scheduled.
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
 
