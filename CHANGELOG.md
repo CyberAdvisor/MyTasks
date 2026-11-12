@@ -10,8 +10,8 @@ Versions follow [Semantic Versioning](https://semver.org): until the first relea
 
 ### Added
 
-- Setup asks you to confirm you've read the [risks and limitations](https://mytasks.fyi/limitations/) before connecting, and links to the website. Devices already connected aren't asked. (#PR)
-- A ? button at the bottom of the sidebar opens the website, and Settings › About My Tasks links to its guide, limitations, privacy and security pages. (#PR)
+- Setup asks you to confirm you've read the [risks and limitations](https://mytasks.fyi/limitations/) before connecting, and links to the website. Devices already connected aren't asked. (#30)
+- A ? button at the bottom of the sidebar opens the website, and Settings › About My Tasks links to its guide, limitations, privacy and security pages. (#30)
 
 <a id="v0.5.0"></a>
 
