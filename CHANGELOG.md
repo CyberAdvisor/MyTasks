@@ -10,7 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org): until the first relea
 
 ### Changed
 
-- The README now describes what My Tasks is: free, private and secure, with a screenshot of Today and a comparison with Things 3 and Todoist. It warns that the app is a work in progress and not yet for important data. The technical notes and milestone table moved to DEVELOPMENT.md. (#20)
+- The README now describes what My Tasks is: free, private and secure, with a screenshot of Today and a comparison with Things 3 and Todoist. It warns that the app is a work in progress and not yet for important data. The technical notes and milestone table moved to DEVELOPMENT.md. (#21)
 
 <a id="v0.2.1"></a>
 
