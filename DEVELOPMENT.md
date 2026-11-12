@@ -12,6 +12,7 @@ npm run dev      # local dev server
 npm test         # unit tests (Vitest)
 npm run check    # type-check (svelte-check)
 npm run build    # production build in dist/
+npm run preview  # serve the build, with its service worker
 ```
 
 The app shows only its Setup screen until it is connected to a GitHub Gist, so you need a personal access token (classic, `gist` scope) to get past it.
@@ -29,6 +30,7 @@ src/
                 transactions, the change log and undo (history.ts)
   lib/sync/     Sync through the user's GitHub Gist: setup, encryption, merging
   lib/drag/     Pointer-events drag and drop, and its pure calculations
+  lib/pwa/      Install and offline: which browser, the install prompt, updates
   lib/state/    Live data, routing and transient UI state
   lib/          shortcuts.ts (key bindings), commands.ts (what they do),
                 actions.ts (shared actions) and version.ts (the version stamp)
@@ -43,6 +45,16 @@ tests/          Unit tests; tests/fakeGitHub.ts fakes the gist API
 - Records are never removed: a deletion sets `deletedAt`, so it syncs like any other change.
 - Sync merges record by record; the later `modifiedAt` wins.
 - This device's token, gist id and encryption key live in a separate database, `mytasks-device`, and never sync.
+
+## Install and offline
+
+`vite-plugin-pwa` writes the web app manifest and a Workbox service worker that precaches the whole app, so it opens with no connection. The icons are made at build time from `public/favicon.svg` (`pwa-assets.config.ts`). The service worker handles only the app's own files: requests to GitHub always go to the network.
+
+The dev server has no service worker. To try install, offline or updates, run `npm run build` then `npm run preview`.
+
+- **Install.** Chrome and Edge show their own install prompt; on Safari and in Firefox, Install My Tasks opens a guide with the steps. In a Safari tab, the sidebar warns that data can be cleared, because Safari clears a site's storage after 7 days unused unless it is installed.
+- **Updates.** The app checks for a new version on start, hourly, and when you switch back to it. A new version installs in the background and waits. The "Update available" banner's Restart saves any edit in progress, then switches; nothing reloads by itself.
+- **Title bar.** The `theme-color` tags in `index.html` give the installed window the sidebar's grey; `src/lib/theme.ts` keeps them in step with Appearance.
 
 ## Keyboard
 
@@ -66,6 +78,6 @@ v1 is built in milestones, each a pull request.
 | 4 | Drag and drop, keyboard shortcuts, undo | Done |
 | 4a | Area ⋯ menu, contexts, project link under the open card | Done |
 | 4b | To-do right-click menu | Done |
-| 5 | 5a Completed list and subtitle; 5b themes; 5c when completed items move; 5e encrypted gist sync | Done |
-| 5 | 5f install and offline; 5g hosting at mytasks.fyi; 5h accessibility | Next |
+| 5 | 5a Completed list and subtitle; 5b themes; 5c when completed items move; 5e encrypted gist sync; 5f install and offline | Done |
+| 5 | 5g hosting at mytasks.fyi; 5h accessibility | Next |
 | 6 | Finishing touches: empty-state illustrations, phone gestures, resizable sidebar, sidebar blur, title-bar area, long-list speed | Planned |

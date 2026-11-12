@@ -17,7 +17,7 @@ A better task manager that is **free**, **private** and **secure**. My Tasks giv
 
 **Secure.** Before your list leaves a device, it is encrypted with a passphrase that only you know. The copy in your GitHub account can't be read by GitHub, by us, or by anyone who finds it. Your passphrase is never stored or sent anywhere.
 
-**On every device.** It runs in any modern browser on iPhone, iPad, Mac, Windows, Linux and Android, and will install like an app on each of them. Your list keeps working without a connection, and your devices stay in step whenever they're online.
+**On every device.** It runs in any modern browser on iPhone, iPad, Mac, Windows, Linux and Android, and installs like an app on each of them. Your list keeps working without a connection, and your devices stay in step whenever they're online.
 
 **Familiar.** Inbox, Today, Scheduled, areas, projects, headings and checklists work the way Things users expect, with the same keyboard shortcuts where the browser allows.
 
@@ -32,7 +32,7 @@ A better task manager that is **free**, **private** and **secure**. My Tasks giv
 | No account with the maker needed | ✅ ² | — | — |
 | iPhone, iPad and Mac | ✅ | ✅ | ✅ |
 | Windows, Linux, Android and the web | ✅ | — | ✅ |
-| Works offline | In progress ⁷ | ✅ | ✅ |
+| Works offline | ✅ | ✅ | ✅ |
 | Syncs between your devices | ✅ | ✅ | ✅ |
 | Five priority levels, with your own names for them | ✅ | — | — ³ |
 | Priorities set automatically for due and overdue to-dos | ✅ | — | — |
@@ -65,13 +65,11 @@ A better task manager that is **free**, **private** and **secure**. My Tasks giv
 
 ⁶ Not possible for a web app without a server, so My Tasks leaves these out.
 
-⁷ Your list already keeps working without a connection. Installing as an app and opening it fully offline arrive before the first release.
-
 Comparison as of November 2026. Prices are in US dollars and can change.
 
 ## How it works
 
-1. Open My Tasks in your browser. (Installing it to your Home Screen, Dock or Start menu comes before the first release.)
+1. Open My Tasks in your browser and install it: to your Home Screen on iPhone and iPad, to the Dock from Safari on a Mac, or with Chrome's or Edge's install button. The app shows you how.
 2. Connect it to your free GitHub account with a token (the app shows you how), and choose a passphrase.
 3. My Tasks creates a secret, encrypted gist in your account to hold your list. Connect your other devices with the same token and passphrase, and they all stay in step.
 
@@ -79,7 +77,7 @@ Every device keeps its own working copy, so the app is fast and works without a 
 
 ## Status
 
-My Tasks is being built in milestones, one pull request at a time. The core of the app is done: lists, projects, tags, priorities, contexts, search, drag and drop, keyboard shortcuts, themes and encrypted sync. Still to come before the first release: installing as an app and working fully offline, hosting at [mytasks.fyi](https://mytasks.fyi), and accessibility. See [CHANGELOG.md](CHANGELOG.md) for what has changed so far.
+My Tasks is being built in milestones, one pull request at a time. The core of the app is done: lists, projects, tags, priorities, contexts, search, drag and drop, keyboard shortcuts, themes, encrypted sync, and installing as an app that works fully offline. Still to come before the first release: hosting at [mytasks.fyi](https://mytasks.fyi), and accessibility. See [CHANGELOG.md](CHANGELOG.md) for what has changed so far.
 
 The version you're using is shown at the bottom of the sidebar. Click it to see what changed in that version.
 

@@ -2,6 +2,7 @@ import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { VitePWA } from 'vite-plugin-pwa';
 
 /** The version in package.json, shown in the app (src/lib/version.ts). */
 const version: string = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version;
@@ -16,9 +17,39 @@ function commit(): string {
 }
 
 // Vite configuration for the My Tasks PWA.
-// The PWA plugin (service worker, manifest) is added in Milestone 5.
 export default defineConfig({
-  plugins: [svelte()],
+  plugins: [
+    svelte(),
+    // Install and offline (FR-0.1, NFR-1, NFR-8): the web app manifest, the
+    // icons and a service worker that precaches the whole app.
+    VitePWA({
+      // An update waits for the user's Restart (src/lib/pwa/update.svelte.ts).
+      registerType: 'prompt',
+      injectRegister: false,
+      manifest: {
+        name: 'My Tasks',
+        short_name: 'My Tasks',
+        description: 'Plan. Do. Succeed. A free, open-source task manager.',
+        display: 'standalone',
+        start_url: '/',
+        scope: '/',
+        // The sidebar grey; the page itself switches it for dark mode (src/lib/theme.ts).
+        theme_color: '#f2f2f4',
+        background_color: '#ffffff',
+      },
+      // Icons are made at build time from the logo (pwa-assets.config.ts).
+      pwaAssets: { config: true, overrideManifestIcons: true, injectThemeColor: false },
+      workbox: {
+        // The manifest is added by the plugin itself; listing it here too breaks the precache.
+        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        // Only the app's own files are cached. Requests to GitHub
+        // (api.github.com, gist.githubusercontent.com) are never handled by
+        // the service worker: no runtime caching is configured for them.
+        navigateFallback: 'index.html',
+        cleanupOutdatedCaches: true,
+      },
+    }),
+  ],
   define: {
     __APP_VERSION__: JSON.stringify(version),
     __APP_COMMIT__: JSON.stringify(commit()),

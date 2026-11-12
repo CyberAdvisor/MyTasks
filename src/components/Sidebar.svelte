@@ -10,6 +10,7 @@
   import Icon from './Icon.svelte';
   import Logo from './Logo.svelte';
   import SyncStatus from './SyncStatus.svelte';
+  import InstallNotice from './InstallNotice.svelte';
   import VersionLink from './VersionLink.svelte';
   import ProgressPie from './ProgressPie.svelte';
   import { snapshot, todayDate } from '../lib/state/live';
@@ -179,6 +180,7 @@
     </ul>
   </div>
 
+  <InstallNotice />
   <SyncStatus><VersionLink /></SyncStatus>
   <div class="footer">
     <div class="menu-wrap">

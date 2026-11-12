@@ -4,11 +4,12 @@
   browser keeps for itself.
 -->
 <script lang="ts">
-  import { BINDINGS, formatKeys, isMac, isStandalone, keysFor } from '../lib/shortcuts';
+  import { BINDINGS, formatKeys, isMac, keysFor } from '../lib/shortcuts';
+  import { install } from '../lib/pwa/install.svelte';
   import { ui } from '../lib/state/ui.svelte';
 
   const mac = isMac();
-  const standalone = isStandalone();
+  const standalone = install.standalone;
   const rows = BINDINGS.map((b) => ({ label: b.label, keys: keysFor(b, standalone).map((k) => formatKeys(k, mac)) })).filter(
     (r) => r.keys.length,
   );

@@ -4,6 +4,23 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org): until the first release at mytasks.fyi (1.0.0), the middle number goes up for new features and the last number for fixes. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v0.3.0"></a>
+
+## 0.3.0 — 2026-11-12
+
+### Added
+
+- My Tasks installs as an app and opens with no connection. Every file it needs is kept on the device. (#22)
+- Install My Tasks at the bottom of the sidebar in Chrome, Edge and Firefox. In Chrome and Edge it opens the browser's install prompt; in Firefox it explains that Firefox can't install web apps. (#22)
+- In a Safari tab, on iPhone, iPad or Mac, the sidebar warns that Safari clears a tab's data after 7 days unused, with a link to the install steps. (#22)
+- On iPhone and iPad, Setup asks you to install My Tasks first, because the Home Screen app keeps its own data, separate from Safari. (#22)
+- When a new version is ready, an "Update available" banner offers Restart. The app checks for a new version when you switch back to it. Restart saves what you're typing first; the app never reloads by itself. (#22)
+- App icons for the Home Screen, Dock and taskbar, made from the logo. (#22)
+
+### Changed
+
+- The installed app's title bar is the sidebar's grey, light or dark with the theme, instead of blue. (#22)
+
 <a id="v0.2.2"></a>
 
 ## 0.2.2 — 2026-11-12

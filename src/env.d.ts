@@ -1,3 +1,5 @@
+/// <reference types="vite-plugin-pwa/vanillajs" />
+
 // Constants Vite fills in at build time (vite.config.ts `define`).
 
 /** The version in package.json. */
