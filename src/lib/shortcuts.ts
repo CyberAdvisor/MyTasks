@@ -269,11 +269,6 @@ export function focusKind(el: Element | null): FocusKind {
   return 'other';
 }
 
-/** Whether the app runs installed (Home Screen, Dock or a Chromium app window). */
-export function isStandalone(): boolean {
-  return matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
-}
-
 /** Whether Mod means Cmd on this device. */
 export function isMac(): boolean {
   return /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent);

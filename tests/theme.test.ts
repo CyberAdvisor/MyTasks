@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { readSettings } from '../src/lib/model/settings';
-import { applyTheme } from '../src/lib/theme';
+import { TITLE_BAR, applyTheme } from '../src/lib/theme';
 import tokensCss from '../src/tokens.css?raw';
 
 type Mode = 'light' | 'dark';
@@ -97,5 +97,22 @@ describe('Appearance setting', () => {
     expect(root.dataset.theme).toBe('light');
     applyTheme('system', root);
     expect(root.dataset.theme).toBeUndefined();
+  });
+
+  it('colors the title bar with the sidebar grey, following a pinned theme', () => {
+    expect(TITLE_BAR.light).toBe(tokens('light').get('--sidebar-bg'));
+    expect(TITLE_BAR.dark).toBe(tokens('dark').get('--sidebar-bg'));
+    document.head.innerHTML =
+      '<meta name="theme-color" media="(prefers-color-scheme: light)" content="">' +
+      '<meta name="theme-color" media="(prefers-color-scheme: dark)" content="">';
+    const [light, dark] = document.head.querySelectorAll('meta');
+    const root = document.createElement('html');
+    applyTheme('system', root);
+    expect([light.content, dark.content]).toEqual([TITLE_BAR.light, TITLE_BAR.dark]);
+    applyTheme('dark', root);
+    expect([light.content, dark.content]).toEqual([TITLE_BAR.dark, TITLE_BAR.dark]);
+    applyTheme('light', root);
+    expect([light.content, dark.content]).toEqual([TITLE_BAR.light, TITLE_BAR.light]);
+    document.head.innerHTML = '';
   });
 });

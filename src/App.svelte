@@ -15,6 +15,8 @@
   import QuickEntry from './components/QuickEntry.svelte';
   import KeyboardHelp from './components/KeyboardHelp.svelte';
   import UndoToast from './components/UndoToast.svelte';
+  import UpdateBanner from './components/UpdateBanner.svelte';
+  import InstallGuide from './components/InstallGuide.svelte';
   import ListView from './views/ListView.svelte';
   import ProjectView from './views/ProjectView.svelte';
   import AreaView from './views/AreaView.svelte';
@@ -30,7 +32,9 @@
   import { ui } from './lib/state/ui.svelte';
   import { canAddHere, draftStartFor, openQuickEntry } from './lib/actions';
   import { runCommand } from './lib/commands';
-  import { KeyResolver, focusKind, isMac, isStandalone } from './lib/shortcuts';
+  import { KeyResolver, focusKind, isMac } from './lib/shortcuts';
+  import { install } from './lib/pwa/install.svelte';
+  import { update } from './lib/pwa/update.svelte';
 
   const phoneQuery = window.matchMedia('(max-width: 767px)');
   let isPhone = $state(phoneQuery.matches);
@@ -64,7 +68,7 @@
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing || !sync.config) return;
       if (ui.findOpen || ui.draft !== null || document.querySelector('dialog[open]')) return;
-      const ctx = { focus: focusKind(document.activeElement), standalone: isStandalone(), mac, now: Date.now() };
+      const ctx = { focus: focusKind(document.activeElement), standalone: install.standalone, mac, now: Date.now() };
       const result = resolver.resolve(e, ctx);
       if (!result) return;
       if ('pending' in result) e.preventDefault();
@@ -146,7 +150,14 @@
 
   {#if ui.toast}
     <UndoToast message={ui.toast.message} />
+  {:else if update.available && !update.dismissed}
+    <!-- Shares the toast's place, so it waits while an Undo toast shows. -->
+    <UpdateBanner />
   {/if}
+{/if}
+
+{#if install.guideOpen}
+  <InstallGuide />
 {/if}
 
 <style>

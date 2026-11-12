@@ -9,6 +9,9 @@
 <script lang="ts">
   import Logo from './Logo.svelte';
   import VersionLink from './VersionLink.svelte';
+  import InstallFirst from './InstallFirst.svelte';
+  import { install } from '../lib/pwa/install.svelte';
+  import { installFirst } from '../lib/pwa/platform';
   import { errorText } from '../lib/sync/messages';
   import { createList, joinList, lookUp, type FoundList } from '../lib/sync/setup';
   import { sync } from '../lib/sync/sync.svelte';
@@ -99,6 +102,7 @@
     </div>
 
     {#if step === 'token'}
+      {#if installFirst(install.browser, install.standalone)}<InstallFirst />{/if}
       <form onsubmit={connect}>
         <p>
           Welcome. My Tasks keeps your to-dos in your own GitHub Gist, so they’re the same on all your devices.
