@@ -8,6 +8,7 @@
 -->
 <script lang="ts">
   import Logo from './Logo.svelte';
+  import VersionLink from './VersionLink.svelte';
   import { errorText } from '../lib/sync/messages';
   import { createList, joinList, lookUp, type FoundList } from '../lib/sync/setup';
   import { sync } from '../lib/sync/sync.svelte';
@@ -93,7 +94,7 @@
       <Logo size={44} />
       <div>
         <h1>My Tasks</h1>
-        <p class="sub">Plan. Do. Track</p>
+        <p class="sub">Plan. Do. Succeed.</p>
       </div>
     </div>
 
@@ -183,10 +184,14 @@
     {#if step !== 'token'}
       <button type="button" class="link back" onclick={() => ((step = 'token'), (error = ''))}>‹ Use a different token</button>
     {/if}
+    <p class="version-line"><VersionLink /></p>
   </div>
 </div>
 
 <style>
+  .version-line {
+    margin: 28px 0 0;
+  }
   .setup {
     height: 100%;
     overflow-y: auto;

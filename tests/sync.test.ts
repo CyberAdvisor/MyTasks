@@ -13,6 +13,7 @@ import { GistError, checkToken, readGist } from '../src/lib/sync/github';
 import { applyRemote, readLocal } from '../src/lib/sync/local';
 import { mergePayloads, type Payload } from '../src/lib/sync/payload';
 import { createList, joinList, lookUp } from '../src/lib/sync/setup';
+import { clock, syncMessage, syncedLine } from '../src/lib/sync/messages';
 import { sync } from '../src/lib/sync/sync.svelte';
 import { FakeGitHub } from './fakeGitHub';
 import { todo } from './helpers';
@@ -274,5 +275,26 @@ describe('Settings › Sync (FR-19.6 to FR-19.8)', () => {
     await db.open();
     expect(await db.todos.count()).toBe(0);
     expect(gh.file(config.gistId)).toBeDefined();
+  });
+});
+
+describe('sidebar sync status (FR-19.8)', () => {
+  it('keeps the bottom line to the last sync, or Syncing…', () => {
+    const at = '2026-11-12T14:40:00Z';
+    expect(syncedLine('synced', at)).toBe(`Synced ${clock(new Date(at))}`);
+    expect(syncedLine('idle', at)).toBe(`Synced ${clock(new Date(at))}`);
+    expect(syncedLine('offline', at)).toBe(`Synced ${clock(new Date(at))}`);
+    expect(syncedLine('error', at)).toBe(`Synced ${clock(new Date(at))}`);
+    expect(syncedLine('syncing', at)).toBe('Syncing…');
+    expect(syncedLine('idle', null)).toBe('Not synced yet');
+  });
+
+  it('puts being offline or a problem in a message above it', () => {
+    expect(syncMessage('idle', null)).toBeNull();
+    expect(syncMessage('synced', null)).toBeNull();
+    expect(syncMessage('syncing', null)).toBeNull();
+    expect(syncMessage('offline', null)).toBe('Offline — changes saved on this device');
+    expect(syncMessage('error', 'token')).toBe('Sync error — token rejected');
+    expect(syncMessage('error', 'passphrase')).toBe('Passphrase changed');
   });
 });

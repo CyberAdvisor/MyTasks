@@ -54,11 +54,15 @@ export function errorText(e: unknown): string {
   return 'Something went wrong. Try again.';
 }
 
-/** The sidebar's one-line status. */
-export function statusLine(status: SyncStatus, problem: SyncCode | null, lastSyncedAt: string | null): string {
+/** The sidebar's sync line (FR-19.8): Syncing… while a sync runs, otherwise the last sync. */
+export function syncedLine(status: SyncStatus, lastSyncedAt: string | null): string {
+  if (status === 'syncing') return 'Syncing…';
+  return lastSyncedAt ? `Synced ${clock(new Date(lastSyncedAt))}` : 'Not synced yet';
+}
+
+/** The message above the sync line: being offline, or the problem; null when there is none. */
+export function syncMessage(status: SyncStatus, problem: SyncCode | null): string | null {
   switch (status) {
-    case 'syncing':
-      return 'Syncing…';
     case 'offline':
       return 'Offline — changes saved on this device';
     case 'error':
@@ -69,6 +73,6 @@ export function statusLine(status: SyncStatus, problem: SyncCode | null, lastSyn
       if (problem === 'newer') return 'Update needed — reload the app';
       return 'Sync error';
     default:
-      return lastSyncedAt ? `Synced ${clock(new Date(lastSyncedAt))}` : 'Synced';
+      return null;
   }
 }
