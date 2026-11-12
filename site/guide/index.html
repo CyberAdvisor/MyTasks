@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide — My Tasks</title>
+<meta name="description" content="How to set up My Tasks, add your devices and use it day to day.">
+<link rel="icon" href="/app/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+<!-- Shared header: keep the same on every page (tests/website.test.ts). -->
+<header class="site"><div class="wrap">
+  <a class="brand" href="/"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#2f6fdb"/><path d="M9 16.5l4.5 4.5L23 11" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>My Tasks</a>
+  <nav class="main">
+    <a href="/#features">Features</a><a href="/#how">How it works</a><a href="/guide/">Guide</a><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a>
+    <a class="btn" href="/app/">Open the app</a>
+  </nav>
+</div></header>
+
+<main class="page">
+  <h1>Guide</h1>
+  <p>How to set up My Tasks, add your other devices, and use it day to day. Please read the <a href="/limitations/">risks and limitations</a> first.</p>
+  <div class="toc"><strong>On this page</strong>
+    <ol>
+      <li><a href="#before">Before you start</a></li>
+      <li><a href="#install">Install My Tasks</a></li>
+      <li><a href="#token">Create a GitHub token</a></li>
+      <li><a href="#passphrase">Choose a passphrase</a></li>
+      <li><a href="#another-device">Add another device</a></li>
+      <li><a href="#everyday">Everyday use</a></li>
+      <li><a href="#keyboard">Keyboard shortcuts</a></li>
+      <li><a href="#troubleshooting">Troubleshooting</a></li>
+    </ol>
+  </div>
+
+  <h2 id="before">Before you start</h2>
+  <ul>
+    <li>A free <a href="https://github.com/signup">GitHub account</a>. My Tasks keeps your list, encrypted, in a secret gist there: a file in your account that isn't listed or searchable.</li>
+    <li>Safari on iPhone or iPad (iOS 18.4 or later) or on a Mac (macOS 14 or later), or Chrome or Edge on Mac, Windows or Linux. Android works but isn't tested.</li>
+    <li>About five minutes for your first device.</li>
+  </ul>
+
+  <h2 id="install">Install My Tasks</h2>
+  <p>Open <a href="/app/">mytasks.fyi/app</a>. Installed, My Tasks opens in its own window, works offline and keeps its data safe. On iPhone and iPad, install it <strong>before</strong> you connect: the Home Screen app keeps its own copy, separate from Safari.</p>
+  <table>
+    <tr><th>Device</th><th>How to install</th></tr>
+    <tr><td>iPhone, iPad</td><td>In Safari, tap the Share button, then <strong>Add to Home Screen</strong>, then <strong>Add</strong>. Open My Tasks from your Home Screen.</td></tr>
+    <tr><td>Mac (Safari)</td><td>Choose <strong>File › Add to Dock…</strong>, then <strong>Add</strong>. Open My Tasks from the Dock.</td></tr>
+    <tr><td>Chrome or Edge</td><td>Click <strong>Install My Tasks</strong> at the bottom of the sidebar, or the install button at the right of the address bar.</td></tr>
+    <tr><td>Firefox</td><td>Firefox can't install web apps. My Tasks works in a tab, or use Chrome, Edge or Safari.</td></tr>
+  </table>
+
+  <h2 id="token">Create a GitHub token</h2>
+  <p>The first screen asks for a personal access token, which lets My Tasks keep your list in a gist in your account.</p>
+  <ol>
+    <li>Click <strong>How to get a token</strong>, then the link to <a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=My%20Tasks">GitHub's new token page</a>, and sign in. It opens with the name "My Tasks" and the <strong>gist</strong> box ticked.</li>
+    <li>Choose when it expires. GitHub also removes tokens that go unused for a year.</li>
+    <li>Leave only <strong>gist</strong> ticked, then click <strong>Generate token</strong>.</li>
+    <li>Copy the token (it starts with <code>ghp_</code>), paste it into My Tasks and click <strong>Connect</strong>.</li>
+  </ol>
+  <p>A token with the gist permission can read and change all of your gists. It stays on your device and is used only with GitHub.</p>
+
+  <h2 id="passphrase">Choose a passphrase</h2>
+  <p>On your first device, choose a passphrase of at least 8 characters and type it twice. My Tasks encrypts your list with it before anything leaves your device, and creates a secret gist named "My Tasks".</p>
+  <p><strong>Write it down or keep it in a password manager.</strong> It can't be recovered. If you forget it and no device is still connected, your data is lost.</p>
+
+  <h2 id="another-device">Add another device</h2>
+  <ol>
+    <li>Open <a href="/app/">mytasks.fyi/app</a> on the device and install it.</li>
+    <li>Paste a token: the same one, or a new one made the same way.</li>
+    <li>My Tasks finds your "My Tasks" gist. Enter your passphrase.</li>
+  </ol>
+  <p>Anything already on that device is merged in. From then on, each device syncs a few seconds after every change, and when you open it.</p>
+
+  <h2 id="everyday">Everyday use</h2>
+  <ul>
+    <li><strong>Lists.</strong> Inbox holds new to-dos. Today shows what's due today, Scheduled what's coming, Unscheduled what's open with no date, and Deferred what you've set aside. Completed and Trash hold the rest.</li>
+    <li><strong>Adding to-dos.</strong> Use the + button, or press <kbd>N</kbd> or <kbd>Space</kbd> in a list. Quick Entry (<kbd>Ctrl</kbd> <kbd>Space</kbd>) adds one to the Inbox from anywhere in the app.</li>
+    <li><strong>When and deadlines.</strong> Give a to-do a day and it moves to Today when that day comes. A deadline shows the days left and turns red when it's due.</li>
+    <li><strong>Areas, projects and headings.</strong> Create them with <strong>New List</strong> at the bottom of the sidebar. Drag to-dos and projects to rearrange them.</li>
+    <li><strong>Priorities.</strong> Set P1 to P5 on any to-do. In Settings you can rename the levels, and turn off the automatic P1 for due to-dos and P2 for to-dos added to Today.</li>
+    <li><strong>Contexts and tags.</strong> Add contexts (where or how something gets done) in Settings, and tags on any to-do. The bar under each list's title filters by them.</li>
+    <li><strong>Today grouping.</strong> Click the ⋯ after the Today title and choose Group By: All, Projects, Priorities or Contexts.</li>
+    <li><strong>Saved searches.</strong> Search with Quick Find, then <strong>Save Search</strong> to keep it in the sidebar.</li>
+    <li><strong>Completed to-dos</strong> move to Completed daily by default. Change it in Settings › Completed Items.</li>
+    <li><strong>Undo.</strong> Press <kbd>Cmd</kbd> <kbd>Z</kbd> to undo your last change. On touch devices, tap Undo in the message that follows a delete or move.</li>
+    <li><strong>Sync.</strong> The bottom of the sidebar shows when your list last synced. Settings › Sync has Sync Now, Change Passphrase and Disconnect This Device.</li>
+  </ul>
+
+  <h2 id="keyboard">Keyboard shortcuts</h2>
+  <p>The installed app uses the shortcuts in the first column. In a browser tab, some of those belong to the browser, so the second column applies. On Windows and Linux, use <kbd>Ctrl</kbd> for <kbd>Cmd</kbd>. Press <kbd>?</kbd> in the app for the full list.</p>
+  <table>
+    <tr><th>Action</th><th>Installed app</th><th>Browser tab</th></tr>
+    <tr><td>New to-do</td><td><kbd>Cmd</kbd> <kbd>N</kbd> or <kbd>Space</kbd></td><td><kbd>N</kbd> or <kbd>Space</kbd></td></tr>
+    <tr><td>Quick Entry</td><td><kbd>Ctrl</kbd> <kbd>Space</kbd></td><td><kbd>Ctrl</kbd> <kbd>Space</kbd></td></tr>
+    <tr><td>Quick Find</td><td><kbd>Cmd</kbd> <kbd>F</kbd>, or just start typing</td><td><kbd>/</kbd> or <kbd>Cmd</kbd> <kbd>F</kbd></td></tr>
+    <tr><td>Complete</td><td><kbd>Cmd</kbd> <kbd>K</kbd></td><td><kbd>X</kbd></td></tr>
+    <tr><td>When</td><td><kbd>Cmd</kbd> <kbd>S</kbd></td><td><kbd>W</kbd></td></tr>
+    <tr><td>Deadline</td><td><kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>D</kbd></td><td><kbd>D</kbd></td></tr>
+    <tr><td>Move</td><td><kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>M</kbd></td><td><kbd>M</kbd></td></tr>
+    <tr><td>Priority 1 to 5, or clear</td><td><kbd>Opt</kbd> <kbd>1</kbd>–<kbd>5</kbd>, <kbd>Opt</kbd> <kbd>0</kbd></td><td>the same</td></tr>
+    <tr><td>Go to Today</td><td><kbd>Cmd</kbd> <kbd>2</kbd></td><td><kbd>G</kbd> then <kbd>T</kbd></td></tr>
+    <tr><td>Undo</td><td><kbd>Cmd</kbd> <kbd>Z</kbd></td><td><kbd>Cmd</kbd> <kbd>Z</kbd></td></tr>
+    <tr><td>All shortcuts</td><td><kbd>?</kbd></td><td><kbd>?</kbd></td></tr>
+  </table>
+
+  <h2 id="troubleshooting">Troubleshooting</h2>
+  <table>
+    <tr><th>You see</th><th>What to do</th></tr>
+    <tr><td>Token not valid, or it is missing the gist scope.</td><td>Create a new token with only <strong>gist</strong> ticked, then use Change Token in Settings › Sync.</td></tr>
+    <tr><td>Offline — changes saved on this device</td><td>Nothing: your changes are kept and sync when GitHub can be reached again.</td></tr>
+    <tr><td>Passphrase changed</td><td>The passphrase was changed on another device. Click <strong>Enter it</strong> and type the new one.</td></tr>
+    <tr><td>Your My Tasks gist was not found.</td><td>It may have been deleted on GitHub. Click <strong>Recreate Gist</strong> to make it again from this device's list.</td></tr>
+    <tr><td>Update available</td><td>Click <strong>Restart</strong> to load the new version. What you're typing is saved first.</td></tr>
+    <tr><td>Your list was saved by a newer version of My Tasks.</td><td>Reload the app to update it.</td></tr>
+    <tr><td>A list looks different on iPhone and in Safari</td><td>The installed app and Safari keep separate copies. Use the installed app.</td></tr>
+  </table>
+  <p>Something else? <a href="https://github.com/CyberAdvisor/MyTasks/issues">Report it on GitHub</a>.</p>
+</main>
+
+<!-- Shared footer: keep the same on every page (tests/website.test.ts). -->
+<footer class="site"><div class="wrap">
+  <a href="/guide/">Guide</a><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a>
+  <a href="https://github.com/CyberAdvisor/MyTasks/blob/main/CHANGELOG.md">Changelog</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a>
+</div></footer>
+</body>
+</html>

@@ -30,3 +30,25 @@ const DIRECTIVES: Record<string, string[]> = {
 export const CSP = Object.entries(DIRECTIVES)
   .map(([name, sources]) => `${name} ${sources.join(' ')}`)
   .join('; ');
+
+/**
+ * The website's policy (site/, the pages around the app). Stricter than the
+ * app's: its own scripts and styles only, no inline styles, and no
+ * connections at all. Each page carries it in a meta tag;
+ * tests/csp.test.ts checks every page.
+ */
+const SITE_DIRECTIVES: Record<string, string[]> = {
+  'default-src': ["'self'"],
+  'script-src': ["'self'"],
+  'style-src': ["'self'"],
+  'img-src': ["'self'"],
+  'connect-src': ["'none'"],
+  'object-src': ["'none'"],
+  'base-uri': ["'none'"],
+  'form-action': ["'none'"],
+};
+
+/** The website's policy, as the content of the meta tag. */
+export const SITE_CSP = Object.entries(SITE_DIRECTIVES)
+  .map(([name, sources]) => `${name} ${sources.join(' ')}`)
+  .join('; ');

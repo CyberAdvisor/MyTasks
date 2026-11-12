@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security — My Tasks</title>
+<meta name="description" content="How My Tasks protects your list, and what it can’t protect against.">
+<link rel="icon" href="/app/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+<!-- Shared header: keep the same on every page (tests/website.test.ts). -->
+<header class="site"><div class="wrap">
+  <a class="brand" href="/"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#2f6fdb"/><path d="M9 16.5l4.5 4.5L23 11" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>My Tasks</a>
+  <nav class="main">
+    <a href="/#features">Features</a><a href="/#how">How it works</a><a href="/guide/">Guide</a><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a>
+    <a class="btn" href="/app/">Open the app</a>
+  </nav>
+</div></header>
+
+<main class="page">
+  <h1>Security</h1>
+  <p class="updated">Last updated November 12, 2026</p>
+  <p>How My Tasks protects your list, and what it can't protect against. The code is open source, so you can <a href="https://github.com/CyberAdvisor/MyTasks">check it yourself</a>.</p>
+
+  <h2>Encryption</h2>
+  <ul>
+    <li>Your list is encrypted on your device before it is sent to your gist, using the browser's built-in Web Crypto.</li>
+    <li>The key is derived from your passphrase with PBKDF2-SHA-256, 600,000 rounds and a random 16-byte salt.</li>
+    <li>The list is encrypted with AES-256-GCM, with a fresh 12-byte IV every time it's saved. GCM also detects any change to the encrypted file.</li>
+    <li>Each device asks for your passphrase once and keeps the key in a form the browser won't let any script read out. The passphrase itself is never stored or sent anywhere.</li>
+    <li>Change Passphrase re-encrypts your gist with a new salt. Your other devices then ask for the new passphrase.</li>
+  </ul>
+
+  <h2>Your GitHub token</h2>
+  <ul>
+    <li>My Tasks uses a classic personal access token with only the <strong>gist</strong> permission. That permission covers all of your gists, not only My Tasks'.</li>
+    <li>Each device keeps its token in the browser's storage, unencrypted, and uses it only with GitHub's API.</li>
+    <li>If a device is lost, revoke its token at <a href="https://github.com/settings/tokens">github.com/settings/tokens</a>.</li>
+  </ul>
+
+  <h2>The app and this website</h2>
+  <ul>
+    <li>Both are static files served over HTTPS by GitHub Pages. There is no My Tasks server.</li>
+    <li>A strict Content Security Policy lets the app run only its own scripts, never <code>eval</code>, and connect only to itself and GitHub's gist API. This website may not connect anywhere.</li>
+    <li>Notes are always shown as plain text, never as HTML, so pasted text can't run in the app.</li>
+  </ul>
+
+  <h2>What it can't protect against</h2>
+  <ul>
+    <li>Anyone who can use your unlocked device: each device's working copy is not encrypted.</li>
+    <li>Anyone who has both your token and your passphrase.</li>
+    <li>Malicious browser extensions, or malware on your device.</li>
+    <li>Someone with access to your GitHub account deleting your gist. They can't read it without your passphrase.</li>
+    <li>A forgotten passphrase: if no device is still connected, your data is lost.</li>
+  </ul>
+
+  <h2 id="report">Reporting a vulnerability</h2>
+  <p>Please report security problems privately, through <a href="https://github.com/CyberAdvisor/MyTasks/security/advisories/new">GitHub's private vulnerability reporting</a>, not in a public issue. Include what you found and how to reproduce it.</p>
+</main>
+
+<!-- Shared footer: keep the same on every page (tests/website.test.ts). -->
+<footer class="site"><div class="wrap">
+  <a href="/guide/">Guide</a><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a>
+  <a href="https://github.com/CyberAdvisor/MyTasks/blob/main/CHANGELOG.md">Changelog</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a>
+</div></footer>
+</body>
+</html>

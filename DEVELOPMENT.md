@@ -8,12 +8,14 @@ Requires Node 20 or later.
 
 ```bash
 npm install
-npm run dev      # local dev server
+npm run dev      # local dev server: the app at http://localhost:5173/app/
 npm test         # unit tests (Vitest)
 npm run check    # type-check (svelte-check)
-npm run build    # production build in dist/
-npm run preview  # serve the build, with its service worker
+npm run build    # production build in dist/: the website, with the app in dist/app/
+npm run preview  # serve dist/ as GitHub Pages does: website at http://localhost:4173/, app at /app/
 ```
+
+The dev server serves only the app. To see the website, run `npm run build` then `npm run preview`.
 
 The app shows only its Setup screen until it is connected to a GitHub Gist, so you need a personal access token (classic, `gist` scope) to get past it.
 
@@ -37,6 +39,9 @@ src/
                 and csp.ts (the Content Security Policy)
   components/   Sidebar, rows, the to-do card, menus, dialogs, Setup
   views/        Built-in lists, project and area pages, Settings
+site/           The website at the root of mytasks.fyi (plain HTML and CSS), copied
+                around the app by the build; site/sw.js retires the old root service worker
+scripts/        serve.mjs, the server behind npm run preview
 tests/          Unit tests; tests/fakeGitHub.ts fakes the gist API
 ```
 
@@ -63,13 +68,18 @@ The dev server has no service worker. To try install, offline or updates, run `n
 
 ## Keyboard
 
-Press `?` in the app for the full list. Installed, My Tasks uses the Things shortcuts. In a browser tab, keys the browser keeps for itself (Cmd/Ctrl+N, T, R and others) are replaced by single-letter fallbacks, and `/` opens Quick Find.
+Press `?` in the app for the full list. Installed, My Tasks uses the full shortcuts, including Cmd/Ctrl chords. In a browser tab, keys the browser keeps for itself (Cmd/Ctrl+N, T, R and others) are replaced by single-letter fallbacks, and `/` opens Quick Find.
 
 ## Hosting and security
 
-My Tasks is served as static files from GitHub Pages at https://mytasks.fyi. Every push to main runs `.github/workflows/deploy.yml`: unit tests, type check and build, then publish `dist/`. A failing step stops the deploy. `public/CNAME` names the domain.
+My Tasks is served as static files from GitHub Pages: the website at https://mytasks.fyi and the app at https://mytasks.fyi/app/. Every push to main runs `.github/workflows/deploy.yml`: unit tests, type check and build, then publish `dist/`. A failing step stops the deploy. `site/CNAME` names the domain.
 
-The domain is where each device keeps its data (the browser's storage belongs to the site's address), so it must never change.
+The domain is where each device keeps its data (the browser's storage belongs to the site's address, not its path), so it must never change. The app moved from the root to `/app/` in 0.5.0 on the same domain, so every device kept its data. Two files keep earlier installs working:
+
+- `site/sw.js` replaces the old root service worker: it deletes that worker's caches (not the app's), unregisters it and reloads open pages.
+- `site/assets/site.js`, on the home page, forwards old links (`mytasks.fyi/#/today`) to the app, and sends an app installed before the move, which still starts at the root, straight to `/app/`.
+
+The website has its own, stricter policy (`SITE_CSP` in `src/lib/csp.ts`): its own scripts and styles only, nothing inline, and no connections. `tests/website.test.ts` checks every page for it, the shared header and footer, and every link.
 
 The built page carries a strict Content Security Policy in a `<meta>` tag (`src/lib/csp.ts`, added by `vite.config.ts`): scripts only from the app, no `eval`, and no connections except the app and GitHub's gist API. GitHub Pages can't send headers, so `frame-ancestors` and violation reports are not available. The dev server leaves the policy out, because it needs its own live-reload connection; `npm run preview` serves a build with it.
 
