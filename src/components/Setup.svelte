@@ -1,7 +1,9 @@
 <!--
   First-run setup (FR-19.1 to FR-19.3, FR-19.6). Shown instead of the app
   until this device is connected to a GitHub Gist.
-  1. Token: checked, then the account is searched for My Tasks gists.
+  1. Token: checked, then the account is searched for My Tasks gists. Connect
+     waits until the user ticks that they have read the risks and limitations
+     on the website; the acknowledgment is kept on this device.
   2. None found: choose a passphrase; a new secret gist is made from this
      device's list. One found: enter its passphrase. Several: choose one
      first. Only invalid ones: they are left alone; Start a New Gist.
@@ -15,6 +17,10 @@
   import { errorText } from '../lib/sync/messages';
   import { createList, joinList, lookUp, type FoundList } from '../lib/sync/setup';
   import { sync } from '../lib/sync/sync.svelte';
+  import type { Acknowledgment } from '../lib/sync/device';
+  import { nowIso } from '../lib/model/ids';
+  import { LIMITATIONS_UPDATED } from '../lib/website';
+  import SiteLink from './SiteLink.svelte';
 
   /** Shortest passphrase accepted. */
   const MIN_PASSPHRASE = 8;
@@ -33,6 +39,17 @@
   let busy = $state(false);
   let error = $state('');
   let showHelp = $state(false);
+  /**
+   * The risks and limitations checkbox: when it was ticked, or null. Raw
+   * state: it is stored in IndexedDB as is, which can't hold Svelte's proxies.
+   */
+  let acknowledged = $state.raw<Acknowledgment | null>(null);
+
+  function acknowledge(e: Event) {
+    acknowledged = (e.target as HTMLInputElement).checked
+      ? { at: nowIso(), limitationsUpdated: LIMITATIONS_UPDATED }
+      : null;
+  }
 
   /** Run a step's action, showing its error in the form. */
   async function run(action: () => Promise<void>) {
@@ -49,6 +66,7 @@
 
   function connect(e: SubmitEvent) {
     e.preventDefault();
+    if (!acknowledged) return;
     void run(async () => {
       const found = await lookUp(token.trim());
       passphrase = confirm = '';
@@ -66,12 +84,12 @@
     e.preventDefault();
     if (passphrase.length < MIN_PASSPHRASE) error = `Use at least ${MIN_PASSPHRASE} characters.`;
     else if (passphrase !== confirm) error = 'The passphrases don’t match.';
-    else void run(async () => sync.connected(await createList(token.trim(), passphrase)));
+    else void run(async () => sync.connected(await createList(token.trim(), passphrase, acknowledged!)));
   }
 
   function unlock(e: SubmitEvent) {
     e.preventDefault();
-    void run(async () => sync.connected(await joinList(token.trim(), chosen!, passphrase)));
+    void run(async () => sync.connected(await joinList(token.trim(), chosen!, passphrase, acknowledged!)));
   }
 
   function choose(e: SubmitEvent) {
@@ -106,7 +124,7 @@
       <form onsubmit={connect}>
         <p>
           Welcome. My Tasks keeps your to-dos in your own GitHub Gist, so they’re the same on all your devices.
-          Connect a gist to get started.
+          Connect a gist to get started. <SiteLink page="home">What is My Tasks?</SiteLink>
         </p>
         <label class="form-label" for="setup-token">Personal access token (classic, gist scope)</label>
         <input id="setup-token" class="form-field" type="password" bind:value={token} autocomplete="off" spellcheck="false" />
@@ -124,8 +142,17 @@
             <li>Copy the token (it starts with <code>ghp_</code>) and paste it above.</li>
           </ol>
         {/if}
+        <label class="ack">
+          <input type="checkbox" checked={acknowledged !== null} onchange={acknowledge} />
+          <span>
+            I have read and understand the <SiteLink page="limitations">risks and limitations</SiteLink> of My Tasks,
+            including that a forgotten passphrase can’t be recovered.
+          </span>
+        </label>
         <div class="actions">
-          <button type="submit" class="btn-primary" disabled={busy || !token.trim()}>{busy ? 'Connecting…' : 'Connect'}</button>
+          <button type="submit" class="btn-primary" disabled={busy || !token.trim() || !acknowledged}>
+            {busy ? 'Connecting…' : 'Connect'}
+          </button>
         </div>
         {@render errorLine()}
         <p class="note">
@@ -255,8 +282,26 @@
     line-height: 1.55;
     color: var(--text-2);
   }
-  .help a {
+  .help a,
+  p :global(a),
+  .ack :global(a) {
     color: var(--accent-text);
+  }
+  .ack {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin: 4px 0 18px;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--text-2);
+  }
+  .ack input {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin: 2px 0 0;
+    accent-color: var(--accent);
   }
   .actions {
     display: flex;

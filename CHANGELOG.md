@@ -4,6 +4,15 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org): until the first release at mytasks.fyi (1.0.0), the middle number goes up for new features and the last number for fixes. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v0.6.0"></a>
+
+## 0.6.0 — 2026-11-12
+
+### Added
+
+- Setup asks you to confirm you've read the [risks and limitations](https://mytasks.fyi/limitations/) before connecting, and links to the website. Devices already connected aren't asked. (#30)
+- A ? button at the bottom of the sidebar opens the website, and Settings › About My Tasks links to its guide, limitations, privacy and security pages. (#30)
+
 <a id="v0.5.0"></a>
 
 ## 0.5.0 — 2026-11-12

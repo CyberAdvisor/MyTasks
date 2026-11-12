@@ -7,7 +7,7 @@
 import { nowIso } from '../model/ids';
 import { KDF_ITERATIONS, deriveKey, newSalt, parseEnvelope, type Envelope } from './crypto';
 import { envelopeOf, mergeAndPush, openPayload, sealPayload } from './cycle';
-import { saveConfig, type DeviceConfig } from './device';
+import { saveConfig, type Acknowledgment, type DeviceConfig } from './device';
 import { checkToken, createGist, findGists, readGist } from './github';
 import { readLocal } from './local';
 
@@ -38,13 +38,16 @@ export async function lookUp(token: string): Promise<Lookup> {
   return refs.length ? { kind: 'invalid' } : { kind: 'none' };
 }
 
-/** First device: a new secret gist holding this device's list, encrypted with `passphrase`. */
-export async function createList(token: string, passphrase: string): Promise<DeviceConfig> {
+/**
+ * First device: a new secret gist holding this device's list, encrypted with
+ * `passphrase`. `acknowledged` is the risks and limitations checkbox, as ticked.
+ */
+export async function createList(token: string, passphrase: string, acknowledged: Acknowledgment): Promise<DeviceConfig> {
   const salt = newSalt();
   const key = await deriveKey(passphrase, salt, KDF_ITERATIONS);
   const draft = { key, salt, iterations: KDF_ITERATIONS };
   const gistId = await createGist(token, await sealPayload(draft, await readLocal()));
-  const config: DeviceConfig = { token, gistId, ...draft, lastSyncedAt: nowIso() };
+  const config: DeviceConfig = { token, gistId, ...draft, lastSyncedAt: nowIso(), acknowledged };
   await saveConfig(config);
   return config;
 }
@@ -53,8 +56,14 @@ export async function createList(token: string, passphrase: string): Promise<Dev
  * Another device: open an existing list with its passphrase and merge it
  * with anything already on this device (decided 2026-11-11). A wrong
  * passphrase fails with SyncError('wrong-passphrase') and changes nothing.
+ * `acknowledged` is the risks and limitations checkbox, as ticked.
  */
-export async function joinList(token: string, gistId: string, passphrase: string): Promise<DeviceConfig> {
+export async function joinList(
+  token: string,
+  gistId: string,
+  passphrase: string,
+  acknowledged: Acknowledgment,
+): Promise<DeviceConfig> {
   const env = envelopeOf(await readGist(token, gistId));
   const key = await deriveKey(passphrase, env.kdf.salt, env.kdf.iterations);
   const remote = await openPayload(key, env, 'wrong-passphrase');
@@ -65,6 +74,7 @@ export async function joinList(token: string, gistId: string, passphrase: string
     salt: env.kdf.salt,
     iterations: env.kdf.iterations,
     lastSyncedAt: nowIso(),
+    acknowledged,
   };
   await mergeAndPush(config, remote);
   await saveConfig(config);

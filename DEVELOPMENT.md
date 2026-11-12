@@ -79,6 +79,8 @@ The domain is where each device keeps its data (the browser's storage belongs to
 - `site/sw.js` replaces the old root service worker: it deletes that worker's caches (not the app's), unregisters it and reloads open pages.
 - `site/assets/site.js`, on the home page, forwards old links (`mytasks.fyi/#/today`) to the app, and sends an app installed before the move, which still starts at the root, straight to `/app/`.
 
+The app links to the website from Setup, the sidebar's ? button and Settings › About My Tasks, always in a new tab (`src/lib/website.ts`, `SiteLink.svelte`): opened inside an installed app, the website's home page would send it straight back to `/app/`. Setup won't connect until the user ticks that they have read the risks and limitations; this device records when, and the Limitations page's "Last updated" date (`LIMITATIONS_UPDATED`). **When the Limitations page changes, update its date and `LIMITATIONS_UPDATED` together**; `tests/website.test.ts` checks they match.
+
 The website has its own, stricter policy (`SITE_CSP` in `src/lib/csp.ts`): its own scripts and styles only, nothing inline, and no connections. `tests/website.test.ts` checks every page for it, the shared header and footer, and every link.
 
 The built page carries a strict Content Security Policy in a `<meta>` tag (`src/lib/csp.ts`, added by `vite.config.ts`): scripts only from the app, no `eval`, and no connections except the app and GitHub's gist API. GitHub Pages can't send headers, so `frame-ancestors` and violation reports are not available. The dev server leaves the policy out, because it needs its own live-reload connection; `npm run preview` serves a build with it.

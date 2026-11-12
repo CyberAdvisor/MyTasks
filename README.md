@@ -73,7 +73,7 @@ Comparison as of November 2026. Prices are in US dollars and can change.
 ## How it works
 
 1. Open [mytasks.fyi/app](https://mytasks.fyi/app/) in your browser and install it: to your Home Screen on iPhone and iPad, to the Dock from Safari on a Mac, or with Chrome's or Edge's install button. The app shows you how.
-2. Connect it to your free GitHub account with a token (the app shows you how), and choose a passphrase.
+2. Confirm you've read the [risks and limitations](https://mytasks.fyi/limitations/), connect it to your free GitHub account with a token (the app shows you how), and choose a passphrase.
 3. My Tasks creates a secret, encrypted gist in your account to hold your list. Connect your other devices with the same token and passphrase, and they all stay in step.
 
 Every device keeps its own working copy, so the app is fast and works without a connection. Changes are encrypted and sent to your gist a moment after you make them.

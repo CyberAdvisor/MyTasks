@@ -12,6 +12,7 @@
   import SyncStatus from './SyncStatus.svelte';
   import InstallNotice from './InstallNotice.svelte';
   import VersionLink from './VersionLink.svelte';
+  import SiteLink from './SiteLink.svelte';
   import ProgressPie from './ProgressPie.svelte';
   import { snapshot, todayDate } from '../lib/state/live';
   import { route, go, hrefFor, type Route } from '../lib/state/route';
@@ -194,6 +195,9 @@
         </div>
       {/if}
     </div>
+    <SiteLink page="home" class="btn-plain help" title="My Tasks website: guide, limitations, privacy" aria-label="My Tasks website">
+      <Icon name="help" size={16} />
+    </SiteLink>
     <a
       href={hrefFor({ kind: 'settings' })}
       class="btn-plain"
@@ -343,6 +347,7 @@
   }
   .menu-wrap {
     position: relative;
+    margin-right: auto;
   }
   .menu {
     position: absolute;
