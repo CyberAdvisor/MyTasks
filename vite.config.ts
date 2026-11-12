@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { cpSync, readFileSync, rmSync } from 'node:fs';
 import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -35,11 +35,32 @@ function contentSecurityPolicy(): Plugin {
   };
 }
 
+/**
+ * The website (site/) is served at the root of mytasks.fyi and the app at
+ * /app/ (design doc NFR-13). The build writes the app to dist/app/ and copies
+ * the website into dist/ around it, so one GitHub Pages deploy serves both.
+ */
+function website(): Plugin {
+  return {
+    name: 'mytasks-website',
+    apply: 'build',
+    buildStart() {
+      rmSync('dist', { recursive: true, force: true });
+    },
+    closeBundle() {
+      cpSync('site', 'dist', { recursive: true });
+    },
+  };
+}
+
 // Vite configuration for the My Tasks PWA.
 export default defineConfig({
+  base: '/app/',
+  build: { outDir: 'dist/app' },
   plugins: [
     svelte(),
     contentSecurityPolicy(),
+    website(),
     // Install and offline (FR-0.1, NFR-1, NFR-8): the web app manifest, the
     // icons and a service worker that precaches the whole app.
     VitePWA({
@@ -51,8 +72,9 @@ export default defineConfig({
         short_name: 'My Tasks',
         description: 'Plan. Do. Succeed. A free, open-source task manager.',
         display: 'standalone',
-        start_url: '/',
-        scope: '/',
+        start_url: '/app/',
+        scope: '/app/',
+        id: '/app/',
         // The sidebar grey; the page itself switches it for dark mode (src/lib/theme.ts).
         theme_color: '#f2f2f4',
         background_color: '#ffffff',
