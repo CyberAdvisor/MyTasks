@@ -10,8 +10,8 @@ Versions follow [Semantic Versioning](https://semver.org): until the first relea
 
 ### Fixed
 
-- Keys typed right after New To-Do (N, Space or Cmd+N) go into the new to-do's title. Before, the first few were lost or ran as commands. (#PR)
-- Empty Trash is final, as its confirmation says: Cmd+Z no longer brings the items back. On touch devices, an Undo toast still showing is hidden. Empty Trash also no longer fails with an error when the Trash holds several items. (#PR)
+- Keys typed right after New To-Do (N, Space or Cmd+N) go into the new to-do's title. Before, the first few were lost or ran as commands. (#25)
+- Empty Trash is final, as its confirmation says: Cmd+Z no longer brings the items back. On touch devices, an Undo toast still showing is hidden. Empty Trash also no longer fails with an error when the Trash holds several items. (#25)
 
 <a id="v0.4.0"></a>
 
