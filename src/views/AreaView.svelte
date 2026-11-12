@@ -1,6 +1,7 @@
 <!--
   Area page (FR-2.5, FR-2.6), laid out as in Things: the ⋯ menu right after
-  the title holds Add/Edit Tags, New Project and Delete Area; the area's tags
+  the title holds Add/Edit Tags, New Project, Move to Completed (FR-12.2) and
+  Delete Area; the area's tags
   show as chips under the title, and clicking them reopens the tag picker.
   Projects come first, then loose to-dos; both reorder by dragging.
 -->
@@ -10,9 +11,9 @@
   import TodoList from '../components/TodoList.svelte';
   import EditableTitle from '../components/EditableTitle.svelte';
   import ViewHeader from '../components/ViewHeader.svelte';
-  import MoveToCompleted from '../components/MoveToCompleted.svelte';
   import ChoiceDialog from '../components/ChoiceDialog.svelte';
   import Popover from '../components/Popover.svelte';
+  import MoveToCompletedItem from '../components/MoveToCompletedItem.svelte';
   import TagPicker from '../components/TagPicker.svelte';
   import TagBar from '../components/TagBar.svelte';
   import { bySortKey } from '../lib/model/order';
@@ -124,13 +125,13 @@
               <Icon name="tag" size={15} /> {area!.tagIds.length ? 'Edit Tags' : 'Add Tags'}
             </button>
             <button type="button" class="menu-item" role="menuitem" onclick={addProject}><Icon name="project" size={15} /> New Project</button>
+            <MoveToCompletedItem view={{ kind: 'area', id }} onchoose={() => (menuOpen = false)} />
             <hr class="menu-sep" />
             <button type="button" class="menu-item danger" role="menuitem" onclick={startDelete}><Icon name="trash" size={15} /> Delete Area</button>
           </div>
         {/if}
       </Popover>
     {/snippet}
-    {#snippet actions()}<MoveToCompleted view={{ kind: 'area', id }} />{/snippet}
   </ViewHeader>
 
   {#if areaTags.length}

@@ -1,7 +1,8 @@
 <!--
   The seven built-in lists (design doc, Section 3, List membership rules).
-  Today can be grouped by Projects, Priorities or Contexts with the bar under
-  its title (FR-16, FR-18.7).
+  Today can be grouped by Projects, Priorities or Contexts from the ⋯ after
+  its title (FR-16, FR-18.7), which also has Move to Completed (FR-12.2), as
+  every list's ⋯ does except Completed and Trash.
   Rows can be reordered (FR-10.3) in the Inbox, in Today (also within a
   Today group), within a day in Scheduled, and within each group of
   Unscheduled and Deferred, as in Things. Completed and Trash have no manual order.
@@ -11,10 +12,9 @@
   import ProgressPie from '../components/ProgressPie.svelte';
   import TodoList from '../components/TodoList.svelte';
   import ViewHeader from '../components/ViewHeader.svelte';
-  import MoveToCompleted from '../components/MoveToCompleted.svelte';
   import ChoiceDialog from '../components/ChoiceDialog.svelte';
   import TagBar from '../components/TagBar.svelte';
-  import Segmented from '../components/Segmented.svelte';
+  import ListMenu from '../components/ListMenu.svelte';
   import { ui } from '../lib/state/ui.svelte';
   import { activeTag, filterByTag, projectTagIds, tagsInUse } from '../lib/model/tags';
   import { activeContext, contextsInUse, filterByContext } from '../lib/model/contexts';
@@ -70,12 +70,6 @@
   );
 
   // Today grouping (FR-16): applied after the filter bar.
-  const GROUPINGS: { value: L.TodayGrouping; label: string }[] = [
-    { value: 'none', label: 'All' },
-    { value: 'project', label: 'Projects' },
-    { value: 'priority', label: 'Priorities' },
-    { value: 'context', label: 'Contexts' },
-  ];
   let grouping = $derived(list === 'today' ? $settings.todayGrouping : 'none');
   let todayGroups = $derived(grouping === 'none' ? [] : L.todayGroups(flat, grouping, s, $settings.priorityLabels));
 
@@ -114,28 +108,16 @@
   }
 </script>
 
-<ViewHeader title={meta.title}>
+{#snippet listMenu()}<ListMenu {list} />{/snippet}
+
+<ViewHeader title={meta.title} menu={list === 'logbook' || list === 'trash' ? undefined : listMenu}>
   {#snippet icon()}<Icon name={meta.icon} size={28} color={meta.color} />{/snippet}
   {#snippet actions()}
     {#if list === 'trash' && !isEmpty}
       <button type="button" class="btn-plain" onclick={() => (confirmEmpty = true)}>Empty Trash</button>
-    {:else}
-      <MoveToCompleted view={{ kind: 'list', list }} />
     {/if}
   {/snippet}
 </ViewHeader>
-
-{#if list === 'today'}
-  <!-- Grouping bar under the title (FR-16.1); the app remembers the choice. -->
-  <div class="grouping">
-    <Segmented
-      label="Group Today by"
-      options={GROUPINGS}
-      value={grouping}
-      onchange={(v) => repo.setSetting('todayGrouping', v)}
-    />
-  </div>
-{/if}
 
 <TagBar tags={offered} contexts={offeredContexts} />
 
@@ -231,10 +213,6 @@
     font-size: 11px;
     font-weight: 400;
     color: var(--text-3);
-  }
-  .grouping {
-    display: flex;
-    margin: -3px 0 16px 38px;
   }
   .empty {
     color: var(--text-3);
