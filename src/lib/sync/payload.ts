@@ -5,9 +5,16 @@
  *
  * Merge rule: record by record, the copy with the later `modifiedAt` wins.
  * Records are never removed; a deletion is a tombstone (`deletedAt`), which
- * merges like any other change. Settings that sync merge the same way, key
+ * merges like any other change and keeps only `id`, `deletedAt` and
+ * `modifiedAt` (model/tombstone.ts). Settings that sync merge the same way, key
  * by key. Nothing is lost when two devices change different records.
+ *
+ * A `modifiedAt` from the gist later than now (another device's clock runs
+ * ahead) counts as now, and the corrected copy is pushed, so that device's
+ * edits don't win every merge until real time catches up.
  */
+import { nowIso } from '../model/ids';
+import { keepsContent, tombstone } from '../model/tombstone';
 import type { BaseRecord, EntityName, SettingEntry } from '../model/types';
 import type { SettingKey } from '../model/settings';
 
@@ -127,18 +134,40 @@ function mergeRows<T extends { modifiedAt?: string }>(
   return { merged: [...byKey.values()], fromRemote, localNewer };
 }
 
-/** Merge this device's copy with the gist's. */
-export function mergePayloads(local: Payload, remote: Payload): MergeResult {
+/**
+ * A copy of `rows` with every `modifiedAt` later than `now` set to `now`.
+ * `clamped` tells whether any changed.
+ */
+function notAfter<T extends { modifiedAt?: string }>(rows: T[], now: string): { rows: T[]; clamped: boolean } {
+  let clamped = false;
+  const out = rows.map((r) => {
+    if (!r.modifiedAt || r.modifiedAt <= now) return r;
+    clamped = true;
+    return { ...r, modifiedAt: now };
+  });
+  return { rows: out, clamped };
+}
+
+/**
+ * Merge this device's copy with the gist's. Deleted records on both sides
+ * are reduced to tombstones first, and the gist's timestamps later than
+ * `now` count as `now`. Either correction is pushed, so the gist itself is
+ * cleaned.
+ */
+export function mergePayloads(local: Payload, remote: Payload, now = nowIso()): MergeResult {
   const tables = {} as Record<EntityName, BaseRecord[]>;
   const toApply: RemoteChanges = { tables: {}, settings: [] };
   let pushNeeded = false;
   for (const t of SYNCED_TABLES) {
-    const m = mergeRows(local.tables[t], remote.tables[t], (r) => r.id);
+    const fromGist = notAfter(remote.tables[t].map(tombstone), now);
+    const m = mergeRows(local.tables[t].map(tombstone), fromGist.rows, (r) => r.id);
     tables[t] = m.merged;
     if (m.fromRemote.length) toApply.tables[t] = m.fromRemote;
-    pushNeeded ||= m.localNewer;
+    pushNeeded ||= m.localNewer || fromGist.clamped || remote.tables[t].some(keepsContent);
   }
-  const s = mergeRows(local.settings, remote.settings, (r) => r.key);
+  const settingsFromGist = notAfter(remote.settings, now);
+  pushNeeded ||= settingsFromGist.clamped;
+  const s = mergeRows(local.settings, settingsFromGist.rows, (r) => r.key);
   toApply.settings = s.fromRemote;
   pushNeeded ||= s.localNewer;
   return {

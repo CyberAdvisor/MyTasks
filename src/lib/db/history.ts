@@ -18,6 +18,7 @@
 import Dexie, { type Transaction } from 'dexie';
 import { db, type MyTasksDB } from './database';
 import { nowIso } from '../model/ids';
+import { bury } from './bury';
 import type { BaseRecord, EntityName, ID } from '../model/types';
 
 /** Tables that hold entities (everything except the log and settings). */
@@ -113,8 +114,8 @@ export async function undoGroup<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 /**
- * Undo the last change: restore each record it touched, and mark records it
- * created as deleted (a tombstone, so the deletion syncs like any change).
+ * Undo the last change: restore each record it touched, and replace records
+ * it created with tombstones (model/tombstone.ts), so the deletion syncs like any change.
  * Returns false when there is nothing to undo.
  */
 export async function undo(): Promise<boolean> {
@@ -125,9 +126,10 @@ export async function undo(): Promise<boolean> {
     async () => {
       const at = nowIso();
       for (const { entity, id, record } of step.before.values()) {
-        if (record) await db.table(entity).put({ ...record, modifiedAt: at });
-        else await db.table(entity).update(id, { deletedAt: at, modifiedAt: at });
-        await log(entity, id, ['*']);
+        if (record) {
+          await db.table(entity).put({ ...record, modifiedAt: at });
+          await log(entity, id, ['*']);
+        } else await bury(entity, [id], at);
       }
     },
     { track: false },

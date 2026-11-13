@@ -5,7 +5,7 @@
  */
 import Dexie from 'dexie';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { db, MyTasksDB } from '../src/lib/db/database';
+import { db, MyTasksDB, SCHEMA_VERSION } from '../src/lib/db/database';
 import * as repo from '../src/lib/db/repo';
 import { clearUndo, undo } from '../src/lib/db/history';
 import { addDays, today } from '../src/lib/model/dates';
@@ -73,7 +73,7 @@ describe('schema version 3', () => {
 
     const v3 = new MyTasksDB(name);
     await v3.open();
-    expect(v3.verno).toBe(3);
+    expect(v3.verno).toBe(SCHEMA_VERSION); // upgraded to the latest version
     expect((await v3.todos.get('open'))?.loggedAt).toBeNull();
     expect((await v3.todos.get('done'))?.loggedAt).toBe('2026-11-01T09:00:00Z');
     expect((await v3.todos.get('gone'))?.loggedAt).toBe('2026-11-02T00:00:00Z');
