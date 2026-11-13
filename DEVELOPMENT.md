@@ -142,4 +142,4 @@ v1 is built in milestones, each a pull request.
 | 6 | Finishing touches: 6a fixes (keys typed right after N, final Empty Trash); the website and the Setup acknowledgment (0.5.0, 0.6.0); the Roadmap page and "tasks" wording (0.7.0) | Done |
 | 7 | Ready for release (1.0.0): the security and privacy review and its fixes (0.7.1 to 0.9.1); back up and restore (0.10.0) | Done |
 
-Milestones 8 to 12 (v1.1 to v2.0) are on the website's [Roadmap](https://mytasks.fyi/roadmap/) page.
+Milestones 8 to 11 (v1.1 to v2.0) are on the website's [Roadmap](https://mytasks.fyi/roadmap/) page.
