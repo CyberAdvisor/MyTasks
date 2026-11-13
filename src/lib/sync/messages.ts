@@ -3,9 +3,13 @@
  * the sidebar, and the full explanation in Settings and the dialogs.
  */
 import { formatTimestamp } from '../model/dates';
+import { MIN_PASSPHRASE } from './crypto';
 import { SyncError } from './cycle';
 import { GistError } from './github';
 import type { SyncCode, SyncStatus } from './sync.svelte';
+
+/** Shown under a new passphrase field (Setup and Change Passphrase). */
+export const PASSPHRASE_TIP = `Use at least ${MIN_PASSPHRASE} characters. A password manager, or four random words, makes a good passphrase.`;
 
 /** A clock time such as 2:41 PM. */
 export function clock(d: Date): string {

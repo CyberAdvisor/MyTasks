@@ -13,6 +13,8 @@
  *   that is not on gist.githubusercontent.com
  */
 
+import { MAX_FILE_CHARS } from './crypto';
+
 const API = 'https://api.github.com';
 
 /** The only place the full text of a long gist file is fetched from. */
@@ -148,17 +150,20 @@ export async function findGists(token: string): Promise<GistRef[]> {
  * The My Tasks file in a gist, or null when the gist no longer has it.
  * GitHub cuts long files short in the API answer; then the full file is
  * fetched from its raw address, which must be on gist.githubusercontent.com.
+ * A file larger than MAX_FILE_CHARS is not fetched: its cut-short text is
+ * returned, which then fails the envelope check (crypto.ts) as not valid.
  */
 export async function readGist(token: string, id: string): Promise<string | null> {
   const gist = await request(
     'GET',
     `/gists/${id}`,
     token,
-    json<{ files: Record<string, { content?: string; truncated?: boolean; raw_url?: string } | undefined> }>,
+    json<{ files: Record<string, { content?: string; truncated?: boolean; raw_url?: string; size?: number } | undefined> }>,
   );
   const file = gist.files?.[GIST_FILE];
   if (!file) return null;
   if (!file.truncated && typeof file.content === 'string') return file.content;
+  if ((file.size ?? 0) > MAX_FILE_CHARS) return file.content ?? '';
   if (!isRawUrl(file.raw_url)) throw new GistError('server');
   return timedFetch(file.raw_url, { cache: 'no-store' }, (res) => res.text());
 }

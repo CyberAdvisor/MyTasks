@@ -17,6 +17,7 @@ import { nowIso } from '../model/ids';
 import { keepsContent, tombstone } from '../model/tombstone';
 import type { BaseRecord, EntityName, SettingEntry } from '../model/types';
 import type { SettingKey } from '../model/settings';
+import { isValidRecord, isValidSetting } from './validate';
 
 /** Entity tables that sync: every one except the local change log. */
 export const SYNCED_TABLES: EntityName[] = [
@@ -69,18 +70,18 @@ export interface MergeResult {
   pushNeeded: boolean;
 }
 
-/** Check a decrypted payload's shape before anything is applied or pushed. */
+/**
+ * Check a decrypted payload before anything is applied or pushed: its shape,
+ * then every record and setting field by field (sync/validate.ts).
+ */
 export function isPayload(x: unknown): x is Payload {
   const p = x as Partial<Payload> | null;
   if (!p || p.app !== 'mytasks' || !Number.isInteger(p.schema) || !p.tables || !Array.isArray(p.settings)) return false;
   for (const t of SYNCED_TABLES) {
     const rows = (p.tables as Record<string, unknown>)[t];
-    if (!Array.isArray(rows)) return false;
-    for (const r of rows as Partial<BaseRecord>[]) {
-      if (!r || typeof r.id !== 'string' || typeof r.modifiedAt !== 'string') return false;
-    }
+    if (!Array.isArray(rows) || !rows.every((r) => isValidRecord(t, r))) return false;
   }
-  return p.settings.every((s) => !!s && typeof s.key === 'string');
+  return p.settings.every(isValidSetting);
 }
 
 /** Whether `a` is a later edit than `b` (ISO timestamps compare as text). */

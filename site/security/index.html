@@ -47,6 +47,7 @@
     <li>Both are static files served over HTTPS by GitHub Pages. There is no My Tasks server.</li>
     <li>A strict Content Security Policy lets the app run only its own scripts, never <code>eval</code>, and connect only to itself and GitHub's gist API. This website may not connect anywhere.</li>
     <li>Notes are always shown as plain text, never as HTML, so pasted text can't run in the app.</li>
+    <li>Every file read from your gist is checked field by field before it is used, and a file that fails is never applied. The app also checks its own data before uploading it.</li>
   </ul>
 
   <h2>What it can't protect against</h2>

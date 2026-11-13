@@ -4,6 +4,18 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org): until the first release at mytasks.fyi (1.0.0), the middle number goes up for new features and the last number for fixes. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v0.9.0"></a>
+
+## 0.9.0 — 2026-11-13
+
+The fourth fixes from the security review.
+
+### Changed
+
+- Every task, project, area, heading, checklist item, tag, context, saved search and setting in your gist is checked field by field before it's used, and so is everything this device uploads. A file that fails isn't applied, and your tasks on this device are unchanged. (#38)
+- A gist file must use My Tasks' own encryption settings and be at most 5 MB; anything else isn't applied. (#38)
+- New passphrases need at least 12 characters, with a tip to use a password manager or four random words. Passphrases you already use keep working. (#38)
+
 <a id="v0.8.0"></a>
 
 ## 0.8.0 — 2026-11-13
