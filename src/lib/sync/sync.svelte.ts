@@ -23,7 +23,7 @@ import { nowIso } from '../model/ids';
 import { KDF_ITERATIONS, deriveKey, newSalt } from './crypto';
 import { SyncError, envelopeOf, mergeAndPush, openPayload, sealPayload, syncOnce, type SyncProblem } from './cycle';
 import { clearConfig, loadConfig, saveConfig, type DeviceConfig } from './device';
-import { GistError, checkToken, createGist, readGist, writeGist, type GistErrorCode } from './github';
+import { GistError, checkToken, createGist, gistOwner, readGist, writeGist, type GistErrorCode } from './github';
 import { readLocal } from './local';
 import { exclusive } from './lock';
 
@@ -47,9 +47,10 @@ export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline' | 'error';
 export type SyncCode = GistErrorCode | SyncProblem;
 
 /** Problems that need the user before syncing can work again. */
-const NEEDS_USER: SyncCode[] = ['token', 'scope', 'passphrase', 'newer', 'malformed', 'notfound', 'invalid'];
+const NEEDS_USER: SyncCode[] = ['token', 'scope', 'passphrase', 'newer', 'malformed', 'notfound', 'invalid', 'toolarge'];
 
-class SyncEngine {
+/** Exported for tests, which run two engines as two windows; the app uses `sync`. */
+export class SyncEngine {
   /** False until the device's sync settings have been read. */
   ready = $state(false);
   /** This device's sync settings; null shows Setup. Raw: it holds a CryptoKey. */
@@ -130,13 +131,19 @@ class SyncEngine {
 
   /**
    * Run `action` with this device's settings once no other sync or Settings
-   * action is running, in any window. Does nothing, and resolves undefined,
-   * when the device was disconnected meanwhile, here or in another window.
+   * action is running, in any window. The settings are read from storage
+   * inside the lock, and become this window's copy, so an action never uses
+   * settings another window has since changed (a new passphrase or token).
+   * Does nothing, and resolves undefined, when the device was disconnected
+   * meanwhile, here or in another window.
    */
   private exclusive<T>(action: (config: DeviceConfig) => Promise<T>): Promise<T | undefined> {
     return exclusive(async () => {
-      if (this.stopped || !this.config || !(await loadConfig())) return undefined;
-      return action(this.config);
+      if (this.stopped || !this.config) return undefined;
+      const saved = await loadConfig();
+      if (!saved) return undefined;
+      this.config = saved;
+      return action(saved);
     });
   }
 
@@ -154,7 +161,7 @@ class SyncEngine {
       do {
         this.again = false;
         // The settings are read when the sync starts, so a sync queued behind
-        // Change Passphrase uses the new key.
+        // Change Passphrase, in this window or another, uses the new key.
         await this.exclusive((config) => this.attempt(() => syncOnce(config), quiet));
       } while (this.again && this.config && !this.stopped);
     })().finally(() => (this.running = null));
@@ -207,16 +214,19 @@ class SyncEngine {
   // show, and runs only when no sync or other action is running (exclusive).
   // -------------------------------------------------------------------------
 
-  /** Use a new token (FR-19.7). It must work and reach this device's gist. */
+  /**
+   * Use a new token (FR-19.7). It must work, reach this device's gist, and
+   * belong to the GitHub account that owns the gist, so the tasks never move
+   * to another account. (A deleted gist can't be checked: the user
+   * disconnects this device and sets it up again.)
+   */
   async changeToken(token: string): Promise<void> {
     const changed = await this.exclusive(async (config) => {
-      await checkToken(token);
-      try {
-        await readGist(token, config.gistId);
-      } catch (e) {
-        // A deleted gist is reported by the next sync, with Recreate Gist.
-        if (!(e instanceof GistError && e.code === 'notfound')) throw e;
-      }
+      const account = await checkToken(token);
+      const owner = await gistOwner(token, config.gistId);
+      if (owner === null) throw new SyncError('unreachable');
+      // GitHub account names ignore case.
+      if (owner.toLowerCase() !== account.toLowerCase()) throw new SyncError('otheraccount');
       await saveConfig({ ...config, token });
       this.config = { ...config, token };
       this.problem = null;

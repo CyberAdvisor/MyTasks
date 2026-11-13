@@ -13,7 +13,7 @@ import { isFramed, showFramedNotice } from '../src/lib/framed';
 import { clearConfig, loadConfig, type DeviceConfig } from '../src/lib/sync/device';
 import { GistError, REQUEST_TIMEOUT_MS, isRawUrl, readGist } from '../src/lib/sync/github';
 import { createList, joinList } from '../src/lib/sync/setup';
-import { RATE_LIMIT_FALLBACK_MS, RATE_LIMIT_MARGIN_MS, sync } from '../src/lib/sync/sync.svelte';
+import { RATE_LIMIT_FALLBACK_MS, RATE_LIMIT_MARGIN_MS, SyncEngine, sync } from '../src/lib/sync/sync.svelte';
 import { FakeGitHub } from './fakeGitHub';
 
 let gh: FakeGitHub;
@@ -119,6 +119,21 @@ describe('one action at a time', () => {
     await joinList('good', gistId, 'new passphrase', ACK);
     expect(await titles()).toEqual(['during the change', 'first']);
   });
+
+  it('another window uses the settings saved since it opened, not its own old copy', async () => {
+    const config = await connectedDevice();
+    // A second window, opened before the passphrase change, holds the old settings.
+    const other = new SyncEngine();
+    other.connected(config);
+    await sync.changePassphrase('correct horse', 'new passphrase');
+    const changed = await loadConfig();
+    gh.tokens.set('second', 'gist');
+    await other.changeToken('second');
+    // Change Token in the other window kept the new salt and key, and still syncs.
+    const saved = (await loadConfig())!;
+    expect([saved.token, saved.salt, saved.key]).toEqual(['second', changed!.salt, changed!.key]);
+    expect([other.status, other.problem]).toEqual(['synced', null]);
+  });
 });
 
 describe('rate limits (FR-19.8)', () => {
@@ -201,5 +216,39 @@ describe('inside a frame', () => {
     expect(target.textContent).toBe('My Tasks can’t run inside another page. Open My Tasks');
     const link = target.querySelector('a')!;
     expect([link.href, link.target, link.rel]).toEqual([location.href, '_blank', 'noopener']);
+  });
+});
+
+describe('upload size (review follow-up 2)', () => {
+  /** Notes long enough that the encrypted file is over 5 MB (base64 adds a third). */
+  const HUGE = 'x'.repeat(4_000_000);
+
+  it('Setup makes no gist from a list too large to upload', async () => {
+    await repo.createTodo({ title: 'big', notes: HUGE });
+    await expect(createList('good', 'correct horse', ACK)).rejects.toMatchObject({ code: 'toolarge' });
+    expect(gh.gists.size).toBe(0);
+  });
+
+  it('a sync keeps the gist as it was and the change on this device', async () => {
+    const config = await connectedDevice();
+    const before = gh.file(config.gistId);
+    const id = (await db.todos.toArray())[0].id;
+    await repo.updateTodoText(id, { notes: HUGE });
+    await sync.syncNow();
+    expect([sync.status, sync.problem]).toEqual(['error', 'toolarge']);
+    expect(gh.file(config.gistId)).toBe(before);
+    expect((await db.todos.get(id))!.notes).toBe(HUGE);
+  });
+
+  it('Change Passphrase and Recreate Gist upload nothing too large', async () => {
+    const config = await connectedDevice();
+    const before = gh.file(config.gistId);
+    await repo.createTodo({ title: 'big', notes: HUGE });
+    await expect(sync.changePassphrase('correct horse', 'new passphrase')).rejects.toMatchObject({ code: 'toolarge' });
+    expect(gh.file(config.gistId)).toBe(before);
+    expect((await loadConfig())!.salt).toBe(config.salt);
+    gh.gists.clear();
+    await expect(sync.recreateGist()).rejects.toMatchObject({ code: 'toolarge' });
+    expect(gh.gists.size).toBe(0);
   });
 });
