@@ -21,7 +21,7 @@
 
 <main class="page">
   <h1>Security</h1>
-  <p class="updated">Last updated November 12, 2026</p>
+  <p class="updated">Last updated November 13, 2026</p>
   <p>How My Tasks protects your tasks, and what it can't protect against. The code is open source, so you can <a href="https://github.com/CyberAdvisor/MyTasks">check it yourself</a>.</p>
 
   <h2>Encryption</h2>
@@ -29,14 +29,16 @@
     <li>Your tasks are encrypted on your device before it is sent to your gist, using the browser's built-in Web Crypto.</li>
     <li>The key is derived from your passphrase with PBKDF2-SHA-256, 600,000 rounds and a random 16-byte salt.</li>
     <li>Your tasks are encrypted with AES-256-GCM, with a fresh 12-byte IV every time it's saved. GCM also detects any change to the encrypted file.</li>
-    <li>Each device asks for your passphrase once and keeps the key in a form the browser won't let any script read out. The passphrase itself is never stored or sent anywhere.</li>
-    <li>Change Passphrase re-encrypts your gist with a new salt. Your other devices then ask for the new passphrase.</li>
+    <li>Each device asks for your passphrase once and keeps the key in a form the browser won't let any script read out. The app doesn't store your passphrase or send it anywhere.</li>
+    <li>Change Passphrase re-encrypts your gist with a new salt. Your other devices then ask for the new passphrase. Older versions of the gist stay in its history, encrypted with the passphrase in use at the time.</li>
+    <li>GitHub can see that your gist exists, its size and when it changes, but not your tasks.</li>
   </ul>
 
   <h2>Your GitHub token</h2>
   <ul>
     <li>My Tasks uses a classic personal access token with only the <strong>gist</strong> permission. That permission covers all of your gists, not only My Tasks'.</li>
     <li>Each device keeps its token in the browser's storage, unencrypted, and uses it only with GitHub's API.</li>
+    <li>Give the token an expiry, such as 90 days. When it expires, make a new one and use Change Token in Settings › Sync on each device.</li>
     <li>If a device is lost, revoke its token at <a href="https://github.com/settings/tokens">github.com/settings/tokens</a>.</li>
   </ul>
 
@@ -52,6 +54,7 @@
     <li>Anyone who can use your unlocked device: each device's working copy is not encrypted.</li>
     <li>Anyone who has both your token and your passphrase.</li>
     <li>Malicious browser extensions, or malware on your device.</li>
+    <li>A malicious update to the app. My Tasks runs whatever code is published to mytasks.fyi, so a harmful change to that code, or to GitHub's hosting, could read your tasks once they're decrypted on your device. The code is public, so changes can be checked.</li>
     <li>Someone with access to your GitHub account deleting your gist. They can't read it without your passphrase.</li>
     <li>A forgotten passphrase: if no device is still connected, your data is lost.</li>
   </ul>

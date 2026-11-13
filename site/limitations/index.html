@@ -43,11 +43,12 @@
 
   <div class="item" id="github"><h3>2. GitHub account and token</h3>
     <p>My Tasks has no server or accounts of its own. Your tasks are kept in a secret gist in your GitHub account. A gist is a file stored in your GitHub account; a secret gist isn't listed or searchable, but anyone with its web address can open it, which is why My Tasks encrypts it. So you need a free GitHub account and a personal access token. A token with the gist permission can read and change <strong>all</strong> of your gists, not only My Tasks'. Each device stores its token in the browser, unencrypted.</p>
-    <p class="do">What to do: use a GitHub account where that's acceptable, and revoke the token on GitHub if a device is lost.</p></div>
+    <p class="do">What to do: use a GitHub account where that's acceptable, give the token an expiry, such as 90 days, and revoke the token on GitHub if a device is lost.</p></div>
 
   <div class="item" id="passphrase"><h3>3. Your passphrase</h3>
-    <p>Your tasks are encrypted with a passphrase you choose. It is never stored or sent anywhere, so it <strong>can't be recovered</strong>. If you forget it and no device is still connected, your data is lost.</p>
-    <p class="do">What to do: keep it in a password manager. A device that's still connected can set a new one.</p></div>
+    <p>Your tasks are encrypted with a passphrase you choose. My Tasks doesn't store it or send it anywhere, so it <strong>can't be recovered</strong>. If you forget it and no device is still connected, your data is lost.</p>
+    <p>Each change to your gist keeps the older version in the gist's history, including tasks you've since deleted, encrypted with the passphrase in use at the time. Changing your passphrase doesn't re-encrypt them.</p>
+    <p class="do">What to do: choose a strong passphrase from the start, don't use it anywhere else, and keep it in a password manager. A device that's still connected can set a new one.</p></div>
 
   <div class="item" id="conflicts"><h3>4. Editing on two devices</h3>
     <p>Devices sync through your gist a few seconds after each change. If the same task is changed on two devices before they sync, the later change wins, judged by each device's clock, and the other change is lost. Changes to different tasks are always kept.</p>

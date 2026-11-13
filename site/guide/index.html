@@ -56,12 +56,12 @@
   <p>The first screen asks for a personal access token, which lets My Tasks keep your tasks in a gist in your account.</p>
   <ol>
     <li>Click <strong>How to get a token</strong>, then the link to <a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=My%20Tasks">GitHub's new token page</a>, and sign in. It opens with the name "My Tasks" and the <strong>gist</strong> box ticked.</li>
-    <li>Choose when it expires. GitHub also removes tokens that go unused for a year.</li>
+    <li>Choose an expiry, such as 90 days. When it expires, the sidebar says the token isn't valid: make a new one and use Change Token in Settings › Sync on each device. GitHub also removes tokens that go unused for a year.</li>
     <li>Leave only <strong>gist</strong> ticked, then click <strong>Generate token</strong>.</li>
     <li>Copy the token (it starts with <code>ghp_</code>) and paste it into My Tasks.</li>
     <li>Read the <a href="/limitations/">risks and limitations</a>, tick the box that says you have, and click <strong>Connect</strong>.</li>
   </ol>
-  <p>A token with the gist permission can read and change all of your gists. It stays on your device and is used only with GitHub.</p>
+  <p>A token with the gist permission can read and change all of your gists, so give it an expiry. It stays on your device and is used only with GitHub.</p>
 
   <h2 id="passphrase">Choose a passphrase</h2>
   <p>On your first device, choose a passphrase of at least 8 characters and type it twice. My Tasks encrypts your tasks with it before anything leaves your device, and creates a secret gist named "My Tasks".</p>

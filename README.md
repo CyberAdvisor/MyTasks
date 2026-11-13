@@ -2,7 +2,7 @@
 
 **Plan. Do. Succeed.**
 
-A better task manager that is **free**, **private** and **secure**. My Tasks gives you a calm, focused way to plan your work, on every device you own, without a subscription, an account with us, or anyone else able to read your tasks.
+A better task manager that is **free**, **private** and **secure**. My Tasks gives you a calm, focused way to plan your work, on every device you own, without a subscription or an account with us.
 
 **Website:** [mytasks.fyi](https://mytasks.fyi) · **Open the app:** [mytasks.fyi/app](https://mytasks.fyi/app/) · **Guide:** [mytasks.fyi/guide](https://mytasks.fyi/guide/)
 
@@ -17,7 +17,7 @@ A better task manager that is **free**, **private** and **secure**. My Tasks giv
 
 **Private by design.** There is no My Tasks server and no My Tasks account. Your tasks live on your devices and in your own GitHub account, and nowhere else. No analytics, no tracking, no ads.
 
-**Secure.** Before your tasks leave a device, they are encrypted with a passphrase that only you know. The copy in your GitHub account can't be read by GitHub, by us, or by anyone who finds it. Your passphrase is never stored or sent anywhere.
+**Secure.** Before your tasks leave a device, they are encrypted with a passphrase that only you know, so the copy in your GitHub account can't be read without it. GitHub can see that the gist exists, its size and when it changes. The app doesn't store your passphrase or send it anywhere. See [Security](https://mytasks.fyi/security/) for what My Tasks can't protect against.
 
 **On every device.** It runs in any modern browser on iPhone, iPad, Mac, Windows, Linux and Android, and installs like an app on each of them. Your tasks keep working without a connection, and your devices stay in step whenever they're online.
 
