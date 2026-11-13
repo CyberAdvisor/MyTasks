@@ -10,6 +10,7 @@ Requires Node 20 or later.
 npm install
 npm run dev      # local dev server: the app at http://localhost:5173/app/
 npm test         # unit tests (Vitest)
+npm run test:ui  # interface tests (Playwright): builds, then runs real browsers
 npm run check    # type-check (svelte-check)
 npm run build    # production build in dist/: the website, with the app in dist/app/
 npm run preview  # serve dist/ as GitHub Pages does: website at http://localhost:4173/, app at /app/
@@ -18,6 +19,16 @@ npm run preview  # serve dist/ as GitHub Pages does: website at http://localhost
 The dev server serves only the app. To see the website, run `npm run build` then `npm run preview`.
 
 The app shows only its Setup screen until it is connected to a GitHub Gist, so you need a personal access token (classic, `gist` scope) to get past it.
+
+## Interface tests
+
+`npm run test:ui` builds the app and runs `e2e/` in real browsers against it, served on port 4174 as `npm run preview` serves it (`playwright.config.ts`). Every test runs in desktop Chromium and desktop WebKit (close to Safari, the reference platform); `e2e/phone.spec.ts` runs in WebKit at iPhone size. They cover what the unit tests can't see: real IndexedDB transactions, Web Crypto, the Content Security Policy, the service worker, the website as served, and the phone layout.
+
+- GitHub is faked: `e2e/fakeGitHub.ts` answers the browser's requests from the unit tests' `FakeGitHub`, so nothing reaches GitHub. Two browser contexts given the same `FakeGitHub` act as two devices sharing a gist.
+- `e2e/app.ts` holds the shared steps: connecting through Setup, adding a task, and `watchErrors`, which collects uncaught errors and console errors, so a test can expect none.
+- The first run needs the browsers: `npx playwright install chromium webkit`. They go in your user folder, so no admin rights are needed.
+- `npx playwright test --project=chromium` runs one browser; `npx playwright show-report` opens the last report.
+- **A change that a user can see or that touches the database gets an interface test**, alongside its unit tests.
 
 ## Tech
 
@@ -43,6 +54,7 @@ site/           The website at the root of mytasks.fyi (plain HTML and CSS), cop
                 around the app by the build; site/sw.js retires the old root service worker
 scripts/        serve.mjs, the server behind npm run preview
 tests/          Unit tests; tests/fakeGitHub.ts fakes the gist API
+e2e/            Interface tests (Playwright); e2e/fakeGitHub.ts puts the same fake in the browser
 ```
 
 ## Data
@@ -95,7 +107,7 @@ Press `?` in the app for the full list. Installed, My Tasks uses the full shortc
 
 ## Hosting and security
 
-My Tasks is served as static files from GitHub Pages: the website at https://mytasks.fyi and the app at https://mytasks.fyi/app/. Every push to main runs `.github/workflows/deploy.yml`: `npm audit --omit=dev` (known vulnerabilities in the packages the app ships), unit tests, type check and build, then publish `dist/`. A failing step stops the deploy. Pull requests run the same checks, without publishing, so the PR page shows whether they pass. `site/CNAME` names the domain.
+My Tasks is served as static files from GitHub Pages: the website at https://mytasks.fyi and the app at https://mytasks.fyi/app/. Every push to main runs `.github/workflows/deploy.yml`: `npm audit --omit=dev` (known vulnerabilities in the packages the app ships), unit tests, type check and build, then publish `dist/`. A second job, `interface`, runs the interface tests in Chromium and WebKit, and keeps Playwright's report for 7 days when one fails. A failing step in either job stops the deploy. Pull requests run both jobs, without publishing, so the PR page shows whether they pass. `site/CNAME` names the domain.
 
 - **Permissions.** The workflow can only read the repo; only the deploy job can publish to Pages (`pages: write`, `id-token: write`).
 - **Pinned actions.** Each action is pinned to a full commit hash, with its version in a comment, so a moved tag can't change what runs.
