@@ -17,13 +17,15 @@
     "preview": "node scripts/serve.mjs",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:ui": "playwright test"
   },
   "dependencies": {
     "dexie": "^4.4.7",
     "fractional-indexing": "^4.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@tsconfig/svelte": "^5.0.8",
     "@vite-pwa/assets-generator": "^2.0.0",
