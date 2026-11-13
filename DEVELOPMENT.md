@@ -81,7 +81,11 @@ Press `?` in the app for the full list. Installed, My Tasks uses the full shortc
 
 ## Hosting and security
 
-My Tasks is served as static files from GitHub Pages: the website at https://mytasks.fyi and the app at https://mytasks.fyi/app/. Every push to main runs `.github/workflows/deploy.yml`: unit tests, type check and build, then publish `dist/`. A failing step stops the deploy. `site/CNAME` names the domain.
+My Tasks is served as static files from GitHub Pages: the website at https://mytasks.fyi and the app at https://mytasks.fyi/app/. Every push to main runs `.github/workflows/deploy.yml`: `npm audit --omit=dev` (known vulnerabilities in the packages the app ships), unit tests, type check and build, then publish `dist/`. A failing step stops the deploy. Pull requests run the same checks, without publishing, so the PR page shows whether they pass. `site/CNAME` names the domain.
+
+- **Permissions.** The workflow can only read the repo; only the deploy job can publish to Pages (`pages: write`, `id-token: write`).
+- **Pinned actions.** Each action is pinned to a full commit hash, with its version in a comment, so a moved tag can't change what runs.
+- **Dependabot** (`.github/dependabot.yml`) opens one grouped pull request a month for npm packages and one for GitHub Actions, and updates the pinned hashes. Test and merge them like any other pull request.
 
 The domain is where each device keeps its data (the browser's storage belongs to the site's address, not its path), so it must never change. The app moved from the root to `/app/` in 0.5.0 on the same domain, so every device kept its data. Two files keep earlier installs working:
 
