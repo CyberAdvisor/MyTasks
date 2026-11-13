@@ -160,7 +160,7 @@
       bind:this={titleInput}
       bind:value={draft.title}
       onkeydown={onTitleKey}
-      placeholder="New To-Do"
+      placeholder="New Task"
       autocomplete="off"
     />
   </div>

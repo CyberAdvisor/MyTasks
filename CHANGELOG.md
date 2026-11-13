@@ -1,8 +1,22 @@
 # Changelog
 
-What changed in each version of My Tasks. The app shows its version at the bottom of the sidebar and on the Setup screen; clicking it opens that version's section here.
+What changed in each version of My Tasks. The app shows its version at the bottom of the sidebar and on the Setup screen; clicking it opens the [Roadmap](https://mytasks.fyi/roadmap/), which shows what's planned.
 
 Versions follow [Semantic Versioning](https://semver.org): until the first release at mytasks.fyi (1.0.0), the middle number goes up for new features and the last number for fixes. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
+
+<a id="v0.7.0"></a>
+
+## 0.7.0 — 2026-11-13
+
+### Added
+
+- A [Roadmap](https://mytasks.fyi/roadmap/) page on the website: what's planned, by milestone and version, with completed milestones at the bottom. The website's footer links to it instead of the changelog. (#31)
+
+### Changed
+
+- The version at the bottom of the sidebar and on Setup opens the Roadmap page. (#31)
+- The app and website say "tasks" instead of "to-dos": for example, New Task, Duplicate Task and Delete Task. Nothing is renamed in your data. (#31)
+- The website's comparison with Things 3 and Todoist is longer and up to date. (#31)
 
 <a id="v0.6.0"></a>
 

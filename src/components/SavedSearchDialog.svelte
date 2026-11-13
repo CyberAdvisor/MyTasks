@@ -72,7 +72,7 @@
     </label>
     {#if tags.length}
       <fieldset>
-        <legend>Only to-dos tagged</legend>
+        <legend>Only tasks tagged</legend>
         <div class="tags">
           {#each tags as tag (tag.id)}
             <button type="button" class="pill" aria-pressed={tagIds.includes(tag.id)} onclick={() => toggle(tag.id)}>
@@ -84,7 +84,7 @@
     {/if}
     {#if contexts.length}
       <fieldset>
-        <legend>Only to-dos in context</legend>
+        <legend>Only tasks in context</legend>
         <div class="tags">
           {#each contexts as c (c.id)}
             <button

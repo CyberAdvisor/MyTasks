@@ -243,7 +243,7 @@
   <div
     class="rowmenu"
     role={panel === 'menu' ? 'menu' : 'dialog'}
-    aria-label={panel === 'menu' ? `${todo.title || 'New To-Do'} actions` : undefined}
+    aria-label={panel === 'menu' ? `${todo.title || 'New Task'} actions` : undefined}
     tabindex="-1"
     bind:this={root}
     bind:offsetWidth={width}
@@ -311,7 +311,7 @@
       />
     {:else}
       <div class="info">
-        <p class="info-title">{todo.title || 'New To-Do'}</p>
+        <p class="info-title">{todo.title || 'New Task'}</p>
         <dl>
           <dt>Created</dt><dd>{formatTimestamp(todo.createdAt)}</dd>
           <dt>Modified</dt><dd>{formatTimestamp(todo.modifiedAt)}</dd>
@@ -370,7 +370,7 @@
 {#if deleting}
   <ChoiceDialog
     title="Delete Immediately?"
-    message={`“${deleting.title || 'New To-Do'}” will be deleted permanently. This cannot be undone.`}
+    message={`“${deleting.title || 'New Task'}” will be deleted permanently. This cannot be undone.`}
     choices={[{ label: 'Delete', value: 'delete', danger: true }]}
     onchoose={(v) => {
       if (v === 'delete') void deleteTodoForever(deleting!.id);

@@ -22,13 +22,13 @@
 <main class="page">
   <h1>Privacy</h1>
   <p class="updated">Last updated November 12, 2026</p>
-  <p>My Tasks has no server and no accounts. The project never receives your to-dos, your passphrase or your token. This page explains what is stored, where, and who can see it.</p>
+  <p>My Tasks has no server and no accounts. The project never receives your tasks, your passphrase or your token. This page explains what is stored, where, and who can see it.</p>
 
   <h2>What is stored, and where</h2>
   <table>
     <tr><th>Where</th><th>What</th><th>Who can read it</th></tr>
-    <tr><td>Your device, in the browser's storage</td><td>A working copy of your list and your settings, so My Tasks works offline. Separately: this device's GitHub token, the gist's id and the encryption key.</td><td>Anyone who can use your unlocked device. It is not encrypted.</td></tr>
-    <tr><td>Your GitHub account, in a secret gist named "My Tasks"</td><td>Your list, encrypted with your passphrase. Only the app's name, the file format, the last-updated time and the values needed to decrypt it with your passphrase (salt and IV) are in plain text.</td><td>Only someone with your passphrase. A secret gist isn't listed, but anyone with its web address can download the encrypted file.</td></tr>
+    <tr><td>Your device, in the browser's storage</td><td>A working copy of your tasks and your settings, so My Tasks works offline. Separately: this device's GitHub token, the gist's id and the encryption key.</td><td>Anyone who can use your unlocked device. It is not encrypted.</td></tr>
+    <tr><td>Your GitHub account, in a secret gist named "My Tasks"</td><td>Your tasks, encrypted with your passphrase. Only the app's name, the file format, the last-updated time and the values needed to decrypt it with your passphrase (salt and IV) are in plain text.</td><td>Only someone with your passphrase. A secret gist isn't listed, but anyone with its web address can download the encrypted file.</td></tr>
   </table>
 
   <h2>What My Tasks doesn't collect</h2>
@@ -57,7 +57,7 @@
 <!-- Shared footer: keep the same on every page (tests/website.test.ts). -->
 <footer class="site"><div class="wrap">
   <a href="/guide/">Guide</a><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a>
-  <a href="https://github.com/CyberAdvisor/MyTasks/blob/main/CHANGELOG.md">Changelog</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a>
+  <a href="/roadmap/">Roadmap</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a>
 </div></footer>
 </body>
 </html>

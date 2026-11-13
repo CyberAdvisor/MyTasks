@@ -65,6 +65,7 @@ section.block p.sub { text-align: center; color: var(--text-2); font-size: 19px;
 table.cmp { width: 100%; border-collapse: collapse; font-size: 15px; }
 table.cmp th, table.cmp td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: center; }
 table.cmp th:first-child, table.cmp td:first-child { text-align: left; }
+table.cmp td:nth-child(2) { white-space: nowrap; }
 .closing { text-align: center; padding: 90px 0 70px; }
 .closing h2 { font-size: 36px; margin: 0 0 18px; }
 
@@ -110,3 +111,11 @@ kbd { font-family: inherit; font-size: 14px; background: var(--bg-2); border: 1p
   .toc ol { columns: 1; }
   footer.site .wrap { gap: 14px; }
 }
+
+/* Roadmap: one block per milestone, its version as a small pill after the title;
+   completed milestones are muted. */
+.milestone { border-top: 1px solid var(--line); padding: 16px 0 2px; }
+.milestone h3 { margin: 0 0 4px; font-size: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.milestone .ver { font-size: 12px; font-weight: 600; color: var(--accent-text); background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; white-space: nowrap; }
+.milestone ul { margin: 4px 0 12px; }
+.milestone.done, .milestone.done .ver { color: var(--text-2); }

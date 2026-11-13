@@ -80,13 +80,13 @@ export interface Binding {
 }
 
 export const BINDINGS: Binding[] = [
-  { command: 'new-todo', label: 'New To-Do', app: ['Mod+N'], tab: ['N'], both: ['Space'] },
+  { command: 'new-todo', label: 'New Task', app: ['Mod+N'], tab: ['N'], both: ['Space'] },
   { command: 'new-project', label: 'New Project', both: ['Mod+Alt+N'] },
   { command: 'new-heading', label: 'New Heading', app: ['Mod+Shift+N'], tab: ['Alt+H'] },
   { command: 'quick-entry', label: 'Quick Entry', both: ['Ctrl+Space', 'Mod+Shift+Space'] },
-  { command: 'open', label: 'Open selected to-do', both: ['Enter'] },
-  { command: 'select-prev', label: 'Select previous to-do', both: ['Up'] },
-  { command: 'select-next', label: 'Select next to-do', both: ['Down'] },
+  { command: 'open', label: 'Open selected task', both: ['Enter'] },
+  { command: 'select-prev', label: 'Select previous task', both: ['Up'] },
+  { command: 'select-next', label: 'Select next task', both: ['Down'] },
   { command: 'move-up', label: 'Move item up', both: ['Mod+Up'], inText: false },
   { command: 'move-down', label: 'Move item down', both: ['Mod+Down'], inText: false },
   { command: 'complete', label: 'Complete', app: ['Mod+K'], tab: ['X'] },

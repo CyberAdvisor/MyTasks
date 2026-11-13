@@ -32,17 +32,17 @@ export function problemText(code: SyncCode, retryAt: Date | null = null): string
     case 'server':
       return 'GitHub returned an error. Try again.';
     case 'notfound':
-      return 'Your My Tasks gist was not found. It may have been deleted on GitHub. Recreate it from the list on this device.';
+      return 'Your My Tasks gist was not found. It may have been deleted on GitHub. Recreate it from the tasks on this device.';
     case 'malformed':
-      return 'Your gist holds a file that isn’t a valid My Tasks list. It was not applied, and the list on this device is unchanged.';
+      return 'Your gist holds a file that isn’t a valid My Tasks file. It was not applied, and the tasks on this device are unchanged.';
     case 'passphrase':
       return 'The passphrase was changed on another device. Enter the new passphrase to keep syncing.';
     case 'wrong-passphrase':
       return 'Wrong passphrase.';
     case 'newer':
-      return 'Your list was saved by a newer version of My Tasks. Reload the app to update it.';
+      return 'Your tasks were saved by a newer version of My Tasks. Reload the app to update it.';
     case 'invalid':
-      return 'The list on this device failed its check, so it was not uploaded. Your gist is unchanged.';
+      return 'The tasks on this device failed their check, so they were not uploaded. Your gist is unchanged.';
   }
 }
 

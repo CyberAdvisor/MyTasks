@@ -123,7 +123,7 @@
       class:canceled
       role="checkbox"
       aria-checked={done}
-      aria-label={`${done ? 'Mark not done' : 'Complete'}: ${todo.title || 'New To-Do'}`}
+      aria-label={`${done ? 'Mark not done' : 'Complete'}: ${todo.title || 'New Task'}`}
       disabled={mode === 'trash'}
       onclick={onCheck}
     >
@@ -134,13 +134,13 @@
       class="body"
       role="button"
       tabindex="0"
-      aria-label={`Open ${todo.title || 'New To-Do'}`}
+      aria-label={`Open ${todo.title || 'New Task'}`}
       onclick={onRowClick}
       onkeydown={onKey}
     >
       <span class="line">
         {#if starred}<Icon name="star" size={13} color="var(--c-today)" />{/if}
-        <span class="title" class:placeholder={!todo.title}>{todo.title || 'New To-Do'}</span>
+        <span class="title" class:placeholder={!todo.title}>{todo.title || 'New Task'}</span>
         {#if todo.notes}<Icon name="note" size={11} color="var(--text-3)" label="Has notes" />{/if}
         {#if checklist.total}
           <span class="progress" title="Checklist">

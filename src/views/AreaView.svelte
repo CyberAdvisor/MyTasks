@@ -167,7 +167,7 @@
   {#if askDelete}
     <ChoiceDialog
       title="Delete this area?"
-      message="Choose what happens to its projects and to-dos."
+      message="Choose what happens to its projects and tasks."
       choices={[
         { label: 'Keep them', value: 'keep' },
         { label: 'Move them to Trash', value: 'trash', danger: true },

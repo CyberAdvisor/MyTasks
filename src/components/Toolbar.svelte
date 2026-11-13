@@ -1,10 +1,10 @@
 <!--
   Desktop bottom toolbar, as in Things for Mac (design doc, Section 6):
-  - New To-Do, in views that accept new to-dos.
+  - New Task, in views that accept new tasks.
   - New Heading, on open project pages.
   - When and Move, for the selected to-do; greyed out until a to-do is selected.
   - Search, which opens Quick Find (FR-9.1).
-  New To-Do opens Quick Entry set to the current view (FR-10.5). Phones use
+  New Task opens Quick Entry set to the current view (FR-10.5). Phones use
   the round + button instead.
 -->
 <script lang="ts">
@@ -33,7 +33,7 @@
 
 <div class="toolbar" role="toolbar" aria-label="Actions">
   {#if canAddHere($route)}
-    <button type="button" class="tool" aria-label="New To-Do" title="New To-Do" onclick={() => openQuickEntry(draftStartFor($route, $todayDate))}>
+    <button type="button" class="tool" aria-label="New Task" title="New Task" onclick={() => openQuickEntry(draftStartFor($route, $todayDate))}>
       <Icon name="plus" size={20} />
     </button>
   {/if}
@@ -48,7 +48,7 @@
         type="button"
         class="tool"
         aria-label="When"
-        title={selected ? 'When' : 'When (select a to-do first)'}
+        title={selected ? 'When' : 'When (select a task first)'}
         aria-expanded={open}
         disabled={!selected}
         onclick={toggle}
@@ -64,7 +64,7 @@
     type="button"
     class="tool"
     aria-label="Move"
-    title={selected ? 'Move' : 'Move (select a to-do first)'}
+    title={selected ? 'Move' : 'Move (select a task first)'}
     disabled={!selected}
     onclick={() => selected && (ui.movingId = selected.id)}
   >

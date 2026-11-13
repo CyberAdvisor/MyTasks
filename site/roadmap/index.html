@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roadmap — My Tasks</title>
+<meta name="description" content="What's planned for My Tasks, grouped by milestone and the version it's planned for.">
+<link rel="icon" href="/app/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+<!-- Shared header: keep the same on every page (tests/website.test.ts). -->
+<header class="site"><div class="wrap">
+  <a class="brand" href="/"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#2f6fdb"/><path d="M9 16.5l4.5 4.5L23 11" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>My Tasks</a>
+  <nav class="main">
+    <a href="/#features">Features</a><a href="/#how">How it works</a><a href="/guide/">Guide</a><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a>
+    <a class="btn" href="/app/">Open the app</a>
+  </nav>
+</div></header>
+
+<main class="page">
+  <h1>Roadmap</h1>
+  <p class="updated">Last updated November 13, 2026</p>
+  <p>What’s planned for My Tasks, grouped by milestone and the version it’s planned for. Plans can change; items marked research are being looked into, not promised.</p>
+
+  <h2>Coming next</h2>
+  <section class="milestone">
+    <h3>Milestone 7 · Ready for release <span class="ver">v1.0</span></h3>
+    <ul>
+      <li>An independent review of security and privacy</li>
+      <li>Back up and restore your tasks, in Settings</li>
+      <li>A full check against the design, and testing on iPhone and iPad</li>
+      <li>On this website: an About page, a guide to hosting or changing your own copy, and a way to follow updates</li>
+    </ul>
+  </section>
+  <section class="milestone">
+    <h3>Milestone 8 · Tidy and polish <span class="ver">v1.1</span></h3>
+    <ul>
+      <li>Collapsible areas, and collapsible headings in projects</li>
+      <li>Empty-list illustrations, a new logo, and a sidebar you can resize</li>
+      <li>Phone gestures: pull down to search, swipe from the edge to go back</li>
+      <li>Print a list, and a count of Today’s tasks on the app icon</li>
+      <li>Automated tests of the interface (research)</li>
+      <li>On this website: setup guides for PARA, GTD and other methods</li>
+    </ul>
+  </section>
+  <section class="milestone">
+    <h3>Milestone 9 · Power editing <span class="ver">v1.2</span></h3>
+    <ul>
+      <li>Select several tasks and change their priority, context or project, or delete them</li>
+      <li>Repeating tasks</li>
+      <li>Type dates in plain words, such as “next fri”</li>
+      <li>Sequential projects: when a task is done, the next one moves up</li>
+      <li>Undo and redo more than one change</li>
+      <li>Drag tasks onto the sidebar’s lists and between Today’s groups, and swipe actions on phones</li>
+      <li>Nested tags, tag shortcuts, and speed with very long lists</li>
+    </ul>
+  </section>
+  <section class="milestone">
+    <h3>Milestone 10 · Your data <span class="ver">v1.3</span></h3>
+    <ul>
+      <li>Switch between gists, for example one for work and one for personal tasks</li>
+      <li>Import from Things, Todoist and others</li>
+      <li>Other places to keep your tasks (research)</li>
+    </ul>
+  </section>
+  <section class="milestone">
+    <h3>Milestone 11 · Calendar <span class="ver">v1.4</span></h3>
+    <ul>
+      <li>Today’s events from your Google and Microsoft calendars, above your tasks</li>
+      <li>Importing calendars from a file (research)</li>
+    </ul>
+  </section>
+  <section class="milestone">
+    <h3>Milestone 12 · Sharing <span class="ver">v2.0</span></h3>
+    <ul>
+      <li>Small teams sharing a gist, with an assigned field on tasks (research)</li>
+    </ul>
+  </section>
+
+  <h2>Completed</h2>
+  <section class="milestone done">
+    <h3>Milestone 6 · Finishing touches <span class="ver">v0.4.1 to v0.7.0</span></h3>
+    <ul>
+      <li>Typing straight into a new task, and a final Empty Trash</li>
+      <li>This website, with its guide, limitations, privacy and security pages</li>
+      <li>Confirming the risks and limitations at setup, and links to this website from the app</li>
+    </ul>
+  </section>
+  <section class="milestone done">
+    <h3>Milestone 5 · Sync, install and hosting <span class="ver">v0.1.0 to v0.4.0</span></h3>
+    <ul>
+      <li>Light and dark themes, and the Completed list</li>
+      <li>Encrypted sync between your devices through your own GitHub gist</li>
+      <li>Install as an app that works offline, hosted at mytasks.fyi</li>
+    </ul>
+  </section>
+  <section class="milestone done">
+    <h3>Milestone 4 · Drag and drop, keyboard and undo <span class="ver">v0.1.0 to v0.2.2</span></h3>
+    <ul>
+      <li>Drag and drop in lists and the sidebar, keyboard shortcuts, and undo</li>
+      <li>Each task’s right-click menu, and the menus after each list’s title</li>
+      <li>Contexts, and grouping Today by project, priority or context</li>
+    </ul>
+  </section>
+  <section class="milestone done">
+    <h3>Milestones 1 to 3 · The foundations <span class="ver">v0.1.0</span></h3>
+    <ul>
+      <li>Inbox, Today, Scheduled, Unscheduled, Deferred, Completed and Trash</li>
+      <li>Areas, projects, headings, tags, checklists, notes, dates and deadlines</li>
+      <li>Priorities, saved searches, search and Quick Entry</li>
+    </ul>
+  </section>
+</main>
+
+<!-- Shared footer: keep the same on every page (tests/website.test.ts). -->
+<footer class="site"><div class="wrap">
+  <a href="/guide/">Guide</a><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a>
+  <a href="/roadmap/">Roadmap</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a>
+</div></footer>
+</body>
+</html>

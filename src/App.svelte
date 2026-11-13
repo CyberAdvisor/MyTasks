@@ -131,7 +131,7 @@
 
         {#if isPhone}
           {#if canAddHere($route)}
-            <button type="button" class="plus" aria-label="New To-Do" onclick={() => openQuickEntry(draftStartFor($route, $todayDate))}>
+            <button type="button" class="plus" aria-label="New Task" onclick={() => openQuickEntry(draftStartFor($route, $todayDate))}>
               <Icon name="plus" size={22} color="#fff" />
             </button>
           {/if}
@@ -198,7 +198,7 @@
     max-width: 680px;
     margin: 0 auto;
   }
-  /* Phone only: round New To-Do button. */
+  /* Phone only: round New Task button. */
   .plus {
     position: fixed;
     right: 28px;

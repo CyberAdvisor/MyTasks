@@ -74,7 +74,7 @@ class UiState {
     this.selectedId = id;
   }
 
-  /** Return the keys typed after New To-Do and stop collecting them. */
+  /** Return the keys typed after New Task and stop collecting them. */
   takeTypeAhead(): string {
     const text = this.typeAhead ?? '';
     this.typeAhead = null;

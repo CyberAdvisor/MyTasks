@@ -93,7 +93,7 @@
 
   /** Text shown for a result. */
   function titleOf(r: FindResult): string {
-    if (r.kind === 'todo') return r.todo.title || 'New To-Do';
+    if (r.kind === 'todo') return r.todo.title || 'New Task';
     if (r.kind === 'search') return `Search for “${r.query}”`;
     if (r.kind === 'area') return r.title || 'New Area';
     if (r.kind === 'project') return r.title || 'New Project';
@@ -167,7 +167,7 @@
       {/each}
     </ul>
   {:else}
-    <p class="hint">Find lists, projects, tags and to-dos.</p>
+    <p class="hint">Find lists, projects, tags and tasks.</p>
   {/if}
 </dialog>
 
