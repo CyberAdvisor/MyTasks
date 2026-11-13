@@ -90,6 +90,14 @@
     <li><strong>Sync.</strong> The bottom of the sidebar shows when your tasks last synced. Settings › Sync has Sync Now, Change Passphrase and Disconnect This Device.</li>
   </ul>
 
+  <h2 id="backup">Back up and restore</h2>
+  <p>Your gist is where every device's tasks are kept; a backup file is a separate copy that you keep yourself.</p>
+  <ul>
+    <li><strong>Save Backup</strong> in Settings › Backup downloads a file of your tasks, projects, areas, tags, contexts, saved searches and synced settings. On iPhone and iPad, choose <strong>Save to Files</strong> in the share sheet. The file is <strong>not encrypted</strong>: keep it somewhere safe.</li>
+    <li><strong>Restore from Backup…</strong> replaces all your tasks with the file's, on this device, in your gist and, once they sync, on your other devices. Anything created since the backup is deleted. It can't be undone, so the confirmation offers <strong>Save Backup First</strong>.</li>
+    <li>Restore needs a working sync connection. Your theme, token, passphrase and gist connection don't change.</li>
+  </ul>
+
   <h2 id="keyboard">Keyboard shortcuts</h2>
   <p>The installed app uses the shortcuts in the first column. In a browser tab, some of those belong to the browser, so the second column applies. On Windows and Linux, use <kbd>Ctrl</kbd> for <kbd>Cmd</kbd>. Press <kbd>?</kbd> in the app for the full list.</p>
   <table>
@@ -116,6 +124,8 @@
     <tr><td>Your tasks are too large to upload.</td><td>Your changes are still on this device and your gist is unchanged. Remove what you don't need, such as long notes, then use Sync Now in Settings › Sync.</td></tr>
     <tr><td>This token belongs to a different GitHub account, or can't reach your gist.</td><td>Make the token in the GitHub account that owns your gist. If the gist was deleted, use Disconnect This Device in Settings › Sync and set it up again.</td></tr>
     <tr><td>Your My Tasks gist was not found.</td><td>It may have been deleted on GitHub. Click <strong>Recreate Gist</strong> to make it again from the tasks on this device.</td></tr>
+    <tr><td>This file isn't a My Tasks backup, or the backup is damaged.</td><td>Choose a file saved with Save Backup. Nothing was changed.</td></tr>
+    <tr><td>Restore needs a working sync connection.</td><td>Fix the problem shown in Settings › Sync, or wait until you're online, then restore again. Nothing was changed.</td></tr>
     <tr><td>Update available</td><td>Click <strong>Restart</strong> to load the new version. What you're typing is saved first.</td></tr>
     <tr><td>Your tasks were saved by a newer version of My Tasks.</td><td>Reload the app to update it.</td></tr>
     <tr><td>A list looks different on iPhone and in Safari</td><td>The installed app and Safari keep separate copies. Use the installed app.</td></tr>

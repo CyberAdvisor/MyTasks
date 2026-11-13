@@ -16,6 +16,7 @@
  * up.
  */
 import { nowIso } from '../model/ids';
+import { DEFAULT_SETTINGS } from '../model/settings';
 import { keepsContent, tombstone } from '../model/tombstone';
 import type { BaseRecord, EntityName, SettingEntry } from '../model/types';
 import type { SettingKey } from '../model/settings';
@@ -47,13 +48,19 @@ export const SYNCED_SETTINGS: SettingKey[] = [
   'sinkChecked',
 ];
 
-/** The decrypted contents of the gist. */
+/** The decrypted contents of the gist; also the body of a backup file (backup.ts). */
 export interface Payload {
   app: 'mytasks';
   /** Database schema version the records follow. */
   schema: number;
   tables: Record<EntityName, BaseRecord[]>;
   settings: SettingEntry[];
+  /**
+   * Set, in memory only, on a list that was upgraded from this older schema
+   * when it was read (cycle.ts). The merge then pushes, so the gist is saved
+   * at the current schema. Never written: the merged list is a new object.
+   */
+  upgradedFrom?: number;
 }
 
 /**
@@ -222,10 +229,36 @@ export function mergePayloads(local: Payload, remote: Payload, now = nowIso()): 
   }
   const s = mergeSide(local.settings, remote.settings, (r) => r.key, now, seen);
   toApply.settings = s.toApply;
-  pushNeeded ||= s.pushNeeded;
+  pushNeeded ||= s.pushNeeded || remote.upgradedFrom !== undefined;
   return {
     toApply,
     merged: { app: 'mytasks', schema: Math.max(local.schema, remote.schema), tables, settings: s.merged },
     pushNeeded,
   };
+}
+
+/**
+ * The list a restore writes (FR-12.8): the backup's records and synced
+ * settings, each stamped as changed `now`, so they win every merge with a
+ * copy made before the restore; a tombstone, also stamped `now`, for every
+ * id in `known` (this device and the gist) the backup doesn't have; and the
+ * default for every synced setting the backup doesn't have. The gist and
+ * every device then match the backup at their next sync.
+ */
+export function replacement(backup: Payload, known: Partial<Record<EntityName, string[]>>, now: string): Payload {
+  const tables = {} as Record<EntityName, BaseRecord[]>;
+  for (const t of SYNCED_TABLES) {
+    const rows = backup.tables[t].map((r) => ({ ...tombstone(r), modifiedAt: now }));
+    const inBackup = new Set(rows.map((r) => r.id));
+    const gone = [...new Set(known[t] ?? [])].filter((id) => !inBackup.has(id));
+    tables[t] = [...rows, ...gone.map((id) => ({ id, deletedAt: now, modifiedAt: now }) as BaseRecord)];
+  }
+  const fromBackup = new Map(backup.settings.map((s) => [s.key, s]));
+  const settings = SYNCED_SETTINGS.map((key) => ({ key, value: fromBackup.get(key)?.value ?? DEFAULT_SETTINGS[key], modifiedAt: now }));
+  return { app: 'mytasks', schema: backup.schema, tables, settings };
+}
+
+/** A list's record ids, by table. */
+export function idsOf(list: Payload): Record<EntityName, string[]> {
+  return Object.fromEntries(SYNCED_TABLES.map((t) => [t, list.tables[t].map((r) => r.id)])) as Record<EntityName, string[]>;
 }

@@ -2,6 +2,8 @@
   Settings (design doc, Section 5.10 FR-14.13 and Section 5.4 FR-6.1).
   - Sync (FR-19.6 to FR-19.8): the gist connection, its problems and their
     fixes, Sync Now, Change Token, Change Passphrase, Disconnect.
+  - Backup (FR-12.8): Save Backup downloads a file of all synced data;
+    Restore from Backup… checks a file, confirms, then replaces everything.
   - Appearance (FR-V.3): System, Light or Dark.
   - Completed Items: when completed items move to Completed (FR-12.2) and
     the two "move to the bottom" switches (FR-12.7, FR-7.5).
@@ -32,6 +34,18 @@
   import SiteLink from '../components/SiteLink.svelte';
   import { sync } from '../lib/sync/sync.svelte';
   import { errorText, problemText, whenSynced } from '../lib/sync/messages';
+  import {
+    BackupError,
+    backupFileName,
+    backupProblemText,
+    buildBackup,
+    countsOf,
+    countsText,
+    readBackup,
+    saveMethod,
+    type Backup,
+  } from '../lib/backup';
+  import { detectBrowser, isStandalone } from '../lib/pwa/platform';
 
   const THEME_OPTIONS: { value: Theme; label: string }[] = [
     { value: 'system', label: 'System' },
@@ -75,6 +89,103 @@
     if (v !== 'disconnect') return;
     await sync.disconnect();
     location.replace(location.pathname);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Backup (FR-12.8)
+  // ---------------------------------------------------------------------------
+
+  let fileInput: HTMLInputElement;
+  /**
+   * A checked backup waiting for the restore confirmation. Raw: a deep
+   * reactive copy would hand proxies to IndexedDB, which can't store them.
+   */
+  let pendingRestore = $state.raw<Backup | null>(null);
+  /** The confirmation's note after Save Backup First; once a file is saved, its button goes. */
+  let savedFirst = $state('');
+  let savedFirstOk = $state(false);
+  let backupBusy = $state(false);
+  let backupMessage = $state('');
+  let backupError = $state('');
+
+  /**
+   * Save a backup file of this device's tasks. Returns the message to show:
+   * the browser started a download, or the share sheet took the file. It
+   * says "downloaded", never "backed up": whether the file was kept is up to
+   * the browser and the user. Empty when the share sheet was dismissed.
+   */
+  async function saveBackup(): Promise<string> {
+    const now = new Date();
+    const name = backupFileName(now);
+    const file = new File([await buildBackup(now.toISOString())], name, { type: 'application/json' });
+    const canShare = typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] });
+    if (saveMethod(detectBrowser(), isStandalone(), canShare) === 'share') {
+      try {
+        await navigator.share({ files: [file] });
+      } catch (e) {
+        if ((e as DOMException).name === 'AbortError') return '';
+        throw e;
+      }
+      return `Backup file shared: ${name}. Choose Save to Files to keep it.`;
+    }
+    const url = URL.createObjectURL(file);
+    const a = Object.assign(document.createElement('a'), { href: url, download: name });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    return `Backup file downloaded: ${name}`;
+  }
+
+  async function onSaveBackup() {
+    backupMessage = backupError = '';
+    try {
+      backupMessage = await saveBackup();
+    } catch (e) {
+      console.error(e);
+      backupError = 'The backup file couldn’t be saved. Try again.';
+    }
+  }
+
+  /** A file was picked: check it completely, then ask before restoring. */
+  async function onBackupPicked() {
+    const file = fileInput.files?.[0];
+    fileInput.value = '';
+    if (!file) return;
+    backupMessage = backupError = '';
+    try {
+      pendingRestore = readBackup(await file.text());
+      [savedFirst, savedFirstOk] = ['', false];
+    } catch (e) {
+      backupError = e instanceof BackupError ? backupProblemText(e.code) : 'This file couldn’t be read. Nothing was changed.';
+    }
+  }
+
+  async function onRestoreChoice(v: string | null) {
+    const backup = pendingRestore;
+    if (v === 'save') {
+      try {
+        const done = await saveBackup();
+        if (done) [savedFirst, savedFirstOk] = [done, true];
+      } catch (e) {
+        console.error(e);
+        savedFirst = 'The backup file couldn’t be saved. Try again.';
+      }
+      return;
+    }
+    pendingRestore = null;
+    if (v !== 'restore' || !backup) return;
+    backupBusy = true;
+    try {
+      const result = await sync.restore(backup.list);
+      const from = `Restored from the backup saved ${whenSynced(backup.savedAt)}.`;
+      if (result === 'synced') backupMessage = from;
+      else if (result === 'pending') backupMessage = `${from} Your gist will be updated at the next sync.`;
+    } catch (e) {
+      backupError = `Restore needs a working sync connection, so nothing was changed. ${errorText(e)}`;
+    } finally {
+      backupBusy = false;
+    }
   }
 
   /** Save one priority label; an empty label returns to its default (FR-14.3). */
@@ -140,6 +251,23 @@
   <p class="help">
     Your tasks are encrypted with your passphrase before they reach GitHub. Disconnecting removes your tasks, token
     and key from this device; your tasks stay in your gist.
+  </p>
+</section>
+
+<section aria-labelledby="backup-heading">
+  <h2 id="backup-heading">Backup</h2>
+  <div class="sync-buttons">
+    <button type="button" class="outline" onclick={onSaveBackup}>Save Backup</button>
+    <button type="button" class="outline" disabled={backupBusy} onclick={() => fileInput.click()}>
+      {backupBusy ? 'Restoring…' : 'Restore from Backup…'}
+    </button>
+    <input bind:this={fileInput} type="file" accept=".json,application/json" hidden onchange={onBackupPicked} />
+  </div>
+  {#if backupMessage}<p class="backup-done" role="status">{backupMessage}</p>{/if}
+  {#if backupError}<p class="form-error" role="alert">⚠ {backupError}</p>{/if}
+  <p class="help">
+    The backup file is a copy of your tasks and synced settings that you keep yourself. It is not encrypted: anyone
+    who can open it can read your tasks. Restoring replaces all your tasks, on every device, with the file’s.
   </p>
 </section>
 
@@ -294,6 +422,26 @@
   />
 {/if}
 
+{#if pendingRestore}
+  <ChoiceDialog
+    title="Replace all your tasks with this backup?"
+    message={`This backup was saved ${whenSynced(pendingRestore.savedAt)} and holds ${countsText(countsOf(pendingRestore.list))}.`}
+    points={[
+      'Everything created since the backup is deleted, and everything changed since goes back to the backup’s version.',
+      'Your other devices match the backup when they next sync. Changes they haven’t synced yet are overwritten, but a task created there and not yet synced is kept.',
+      'A backup from another gist replaces your tasks rather than adding to them.',
+      'This device’s appearance, token, passphrase and gist connection don’t change.',
+      'Restore can’t be undone.',
+    ]}
+    note={savedFirst}
+    choices={[
+      ...(savedFirstOk ? [] : [{ label: 'Save Backup First', value: 'save' }]),
+      { label: 'Restore', value: 'restore', danger: true },
+    ]}
+    onchoose={onRestoreChoice}
+  />
+{/if}
+
 {#if deleting?.kind === 'tag'}
   <ChoiceDialog
     title={`Delete the tag “${deleting.title}”?`}
@@ -339,6 +487,10 @@
     color: var(--danger);
     font-size: 14px;
     line-height: 1.45;
+  }
+  .backup-done {
+    font-size: 14px;
+    margin: 6px 0 4px;
   }
   .sync-buttons {
     display: flex;

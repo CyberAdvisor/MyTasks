@@ -16,6 +16,7 @@
  *   window (lock.ts), and only while this device is still connected.
  *   Disconnect waits for a running one, then tells the other windows, which
  *   stop and reload to Setup.
+ * - Restore from a backup (FR-12.8) runs the same way, under the lock.
  */
 import { db } from '../db/database';
 import { onLocalChange } from '../db/history';
@@ -23,8 +24,10 @@ import { nowIso } from '../model/ids';
 import { KDF_ITERATIONS, deriveKey, newSalt } from './crypto';
 import { SyncError, envelopeOf, mergeAndPush, openPayload, sealPayload, syncOnce, type SyncProblem } from './cycle';
 import { clearConfig, loadConfig, saveConfig, type DeviceConfig } from './device';
+import { SYNCED_TABLES, idsOf, replacement, type Payload } from './payload';
 import { GistError, checkToken, createGist, gistOwner, readGist, writeGist, type GistErrorCode } from './github';
-import { readLocal } from './local';
+import { readLocal, replaceLocal } from './local';
+import { clearUndo } from '../db/history';
 import { exclusive } from './lock';
 
 /** Delay between a local change and the sync that pushes it. */
@@ -48,6 +51,15 @@ export type SyncCode = GistErrorCode | SyncProblem;
 
 /** Problems that need the user before syncing can work again. */
 const NEEDS_USER: SyncCode[] = ['token', 'scope', 'passphrase', 'newer', 'malformed', 'notfound', 'invalid', 'toolarge'];
+
+/**
+ * Ask the browser to keep this device's storage rather than clear it when
+ * space runs low (`navigator.storage.persist()`). Best effort: the answer is
+ * not shown, and it is no backup (FR-12.8 is).
+ */
+export function keepStorage(): void {
+  void navigator.storage?.persist?.().catch(() => undefined);
+}
 
 /** Exported for tests, which run two engines as two windows; the app uses `sync`. */
 export class SyncEngine {
@@ -75,6 +87,7 @@ export class SyncEngine {
     this.started = true;
     this.config = await loadConfig();
     this.ready = true;
+    if (this.config) keepStorage();
     // Another window disconnected this device: stop, and reload to Setup.
     this.channel = new BroadcastChannel(CHANNEL_NAME);
     this.channel.onmessage = (e: MessageEvent) => {
@@ -94,6 +107,7 @@ export class SyncEngine {
 
   /** Setup finished: use these settings from now on. */
   connected(config: DeviceConfig): void {
+    keepStorage();
     this.stopped = false;
     this.config = config;
     this.status = 'synced';
@@ -271,6 +285,50 @@ export class SyncEngine {
     await this.exclusive(async (config) => {
       const gistId = await createGist(config.token, await sealPayload(config, await readLocal()));
       await this.saved({ ...config, gistId, lastSyncedAt: nowIso() });
+    });
+  }
+
+  /**
+   * Replace everything with a backup (FR-12.8), under the lock, so no sync
+   * in any window runs during it. Connected-device policy: the gist is read
+   * first, and every record it or this device holds that the backup doesn't
+   * becomes a tombstone stamped now, while the backup's records are stamped
+   * now (payload.ts, `replacement`). The gist and every device then match
+   * the backup at their next sync; another device's edits that haven't
+   * synced lose to the restore, but a task it created and hasn't synced
+   * yet is kept.
+   *
+   * Every check finishes before anything is replaced: the gist must open
+   * (otherwise its error is thrown and nothing changes), and the result
+   * must pass the upload checks and fit the 5 MB limit. Then this device
+   * is replaced in one transaction, and the gist is written. If only that
+   * last write fails (offline, say), this device is already restored and
+   * the next sync pushes it: 'pending'. Not an undo step.
+   *
+   * Resolves 'synced' or 'pending', or undefined when the device was
+   * disconnected meanwhile.
+   */
+  async restore(backup: Payload): Promise<'synced' | 'pending' | undefined> {
+    return this.exclusive(async (config) => {
+      const env = envelopeOf(await readGist(config.token, config.gistId));
+      if (env.kdf.salt !== config.salt || env.kdf.iterations !== config.iterations) throw new SyncError('passphrase');
+      const remote = await openPayload(config.key, env, 'malformed');
+      const gistIds = idsOf(remote);
+      const now = nowIso();
+      // Check the result before replacing anything.
+      const known = idsOf(await readLocal());
+      for (const t of SYNCED_TABLES) known[t].push(...gistIds[t]);
+      await sealPayload(config, replacement(backup, known, now));
+      await replaceLocal(backup, gistIds, now);
+      clearUndo();
+      try {
+        await writeGist(config.token, config.gistId, await sealPayload(config, await readLocal()));
+      } catch (e) {
+        this.failed(e);
+        return 'pending' as const;
+      }
+      await this.saved({ ...config, lastSyncedAt: nowIso() });
+      return 'synced' as const;
     });
   }
 

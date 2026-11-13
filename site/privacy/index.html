@@ -29,6 +29,7 @@
     <tr><th>Where</th><th>What</th><th>Who can read it</th></tr>
     <tr><td>Your device, in the browser's storage</td><td>A working copy of your tasks and your settings, so My Tasks works offline. Separately: this device's GitHub token, the gist's id and the encryption key.</td><td>Anyone who can use your unlocked device. It is not encrypted.</td></tr>
     <tr><td>Your GitHub account, in a secret gist named "My Tasks"</td><td>Your tasks, encrypted with your passphrase. Only the app's name, the file format, the last-updated time and the values needed to decrypt it with your passphrase (salt and IV) are in plain text.</td><td>Someone with your passphrase. A secret gist isn't listed, but anyone with its web address can download the encrypted file. GitHub can see that the gist exists, its size, when it changes, and the details above that are in plain text.</td></tr>
+    <tr><td>A backup file, wherever you save it</td><td>Only if you use Save Backup: your tasks and synced settings. Never your token, your passphrase or the gist's id.</td><td>Anyone who can open the file. It is not encrypted.</td></tr>
   </table>
 
   <h2>What My Tasks doesn't collect</h2>

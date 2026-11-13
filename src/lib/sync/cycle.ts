@@ -4,6 +4,7 @@
  * this device's newer ones there. Also the steps setup and Settings share.
  */
 import { SCHEMA_VERSION } from '../db/database';
+import { upgradeList } from '../db/migrations';
 import { nowIso } from '../model/ids';
 import { DecryptError, MAX_FILE_CHARS, parseEnvelope, seal, unseal, type Envelope } from './crypto';
 import type { DeviceConfig } from './device';
@@ -49,8 +50,24 @@ export function envelopeOf(content: string | null): Envelope {
 }
 
 /**
+ * Check a list read from the gist or a backup file (FR-19.5, FR-12.8),
+ * before anything is applied: one from a newer version is refused
+ * (`newer`), one from an older version is upgraded with the schema steps
+ * (db/migrations.ts) and marked `upgradedFrom`, and the result must pass
+ * every check (`malformed`).
+ */
+export function checkList(list: unknown): Payload {
+  const schema = (list as { schema?: unknown } | null)?.schema;
+  if (!Number.isInteger(schema) || (schema as number) < 1) throw new SyncError('malformed');
+  if ((schema as number) > SCHEMA_VERSION) throw new SyncError('newer');
+  const upgraded = upgradeList(list, SCHEMA_VERSION);
+  if (!isPayload(upgraded)) throw new SyncError('malformed');
+  return upgraded === list ? upgraded : { ...upgraded, upgradedFrom: schema as number };
+}
+
+/**
  * Decrypt and check an envelope. A key that does not open it gives
- * `wrongKey` (as a SyncError); a list from a newer app gives `newer`.
+ * `wrongKey` (as a SyncError); then the list is checked by `checkList`.
  */
 export async function openPayload(key: CryptoKey, env: Envelope, wrongKey: SyncProblem): Promise<Payload> {
   let plain: string;
@@ -66,9 +83,7 @@ export async function openPayload(key: CryptoKey, env: Envelope, wrongKey: SyncP
   } catch {
     throw new SyncError('malformed');
   }
-  if (!isPayload(payload)) throw new SyncError('malformed');
-  if (payload.schema > SCHEMA_VERSION) throw new SyncError('newer');
-  return payload;
+  return checkList(payload);
 }
 
 /**
