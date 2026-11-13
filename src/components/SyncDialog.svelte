@@ -10,13 +10,11 @@
 </script>
 
 <script lang="ts">
-  import { errorText } from '../lib/sync/messages';
+  import { MIN_PASSPHRASE } from '../lib/sync/crypto';
+  import { PASSPHRASE_TIP, errorText } from '../lib/sync/messages';
   import { sync } from '../lib/sync/sync.svelte';
 
   let { form, onclose }: { form: SyncForm; onclose: () => void } = $props();
-
-  /** Shortest passphrase accepted, as in Setup. */
-  const MIN_PASSPHRASE = 8;
 
   const TITLES: Record<SyncForm, string> = {
     token: 'Change Token',
@@ -76,6 +74,7 @@
       <input id="sync-current" class="form-field" type="password" bind:value={first} autocomplete="current-password" />
       <label class="form-label" for="sync-new">New passphrase</label>
       <input id="sync-new" class="form-field" type="password" bind:value={second} autocomplete="new-password" />
+      <p class="tip">{PASSPHRASE_TIP}</p>
       <label class="form-label" for="sync-confirm">Confirm new passphrase</label>
       <input id="sync-confirm" class="form-field" type="password" bind:value={third} autocomplete="new-password" />
     {:else}
@@ -115,6 +114,11 @@
   }
   .form-error {
     margin: 0 0 12px;
+  }
+  /* The passphrase tip sits close under its field. */
+  p.tip {
+    margin: -8px 0 14px;
+    font-size: 12px;
   }
   .actions {
     display: flex;

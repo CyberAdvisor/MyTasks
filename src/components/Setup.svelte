@@ -14,16 +14,14 @@
   import InstallFirst from './InstallFirst.svelte';
   import { install } from '../lib/pwa/install.svelte';
   import { installFirst } from '../lib/pwa/platform';
-  import { errorText } from '../lib/sync/messages';
+  import { MIN_PASSPHRASE } from '../lib/sync/crypto';
+  import { PASSPHRASE_TIP, errorText } from '../lib/sync/messages';
   import { createList, joinList, lookUp, type FoundList } from '../lib/sync/setup';
   import { sync } from '../lib/sync/sync.svelte';
   import type { Acknowledgment } from '../lib/sync/device';
   import { nowIso } from '../lib/model/ids';
   import { LIMITATIONS_UPDATED } from '../lib/website';
   import SiteLink from './SiteLink.svelte';
-
-  /** Shortest passphrase accepted. */
-  const MIN_PASSPHRASE = 8;
 
   /** Token page on GitHub with the gist scope and a name filled in. */
   const NEW_TOKEN_URL = 'https://github.com/settings/tokens/new?scopes=gist&description=My%20Tasks';
@@ -166,6 +164,7 @@
         <p>Choose a passphrase. Your tasks are encrypted with it before they leave this device.</p>
         <label class="form-label" for="setup-pass">Passphrase</label>
         <input id="setup-pass" class="form-field" type="password" bind:value={passphrase} autocomplete="new-password" />
+        <p class="note tip">{PASSPHRASE_TIP}</p>
         <label class="form-label" for="setup-confirm">Confirm passphrase</label>
         <input id="setup-confirm" class="form-field" type="password" bind:value={confirm} autocomplete="new-password" />
         <p class="note">
@@ -263,6 +262,11 @@
   }
   form .note:not(:last-child) {
     margin: 0 0 18px;
+  }
+  /* The passphrase tip sits close under its field. */
+  form .note.tip {
+    margin: -8px 0 14px;
+    font-size: 12px;
   }
   .link {
     border: 0;

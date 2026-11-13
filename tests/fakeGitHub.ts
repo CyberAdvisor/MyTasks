@@ -20,6 +20,10 @@ export class FakeGitHub {
   limitedUntil = 0;
   /** Content longer than this is "truncated" in API answers, as GitHub does over 1 MB. */
   truncateOver = Infinity;
+  /** The file size GitHub reports, when set; otherwise the content's length, as GitHub does. */
+  sizeOverride: number | null = null;
+  /** How many times a file was fetched from its raw address. */
+  rawFetches = 0;
   private next = 1;
   private clock = Date.parse('2026-11-11T10:00:00Z');
 
@@ -60,7 +64,12 @@ export class FakeGitHub {
           return [
             name,
             withContent
-              ? { content: truncated ? f.content.slice(0, this.truncateOver) : f.content, truncated, raw_url: `https://gist.githubusercontent.com/raw/${g.id}/${name}` }
+              ? {
+                  content: truncated ? f.content.slice(0, this.truncateOver) : f.content,
+                  truncated,
+                  size: this.sizeOverride ?? f.content.length,
+                  raw_url: `https://gist.githubusercontent.com/raw/${g.id}/${name}`,
+                }
               : { filename: name },
           ];
         }),
@@ -73,6 +82,7 @@ export class FakeGitHub {
     const url = new URL(String(input));
     const method = (init.method ?? 'GET').toUpperCase();
     if (url.host === 'gist.githubusercontent.com') {
+      this.rawFetches++;
       const [, , id, name] = url.pathname.split('/');
       const f = this.gists.get(id)?.files[name];
       return f ? new Response(f.content) : new Response('', { status: 404 });

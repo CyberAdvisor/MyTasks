@@ -59,6 +59,9 @@ tests/          Unit tests; tests/fakeGitHub.ts fakes the gist API
 
 ## Sync
 
+- Everything read from the gist or uploaded to it is checked first (`src/lib/sync/validate.ts`): every field of every record and setting, with its type; a missing or unknown field fails. Deleted records are checked on `id`, `deletedAt` and `modifiedAt` only (anything else is dropped by the merge). **When you add a field to a record type in `src/lib/model/types.ts`, add it to `validate.ts` too**; `tests/checks.test.ts` builds every kind of record through the app and fails otherwise.
+- The gist file must use 600,000 PBKDF2 iterations, a 16-byte salt and a 12-byte IV, and be at most 5 MB (`src/lib/sync/crypto.ts`); a longer file isn't fetched in full. A file that fails any check is never applied.
+- New passphrases need at least 12 characters (`MIN_PASSPHRASE`); entering an existing one has no minimum.
 - Syncs and the Settings actions (Change Token, Change Passphrase, Enter Passphrase, Recreate Gist) run one at a time across every open window, under one Web Lock (`src/lib/sync/lock.ts`); without Web Locks they still run one at a time within the window. Each one first checks that the device is still connected, and does nothing if not.
 - Disconnect stops new syncs, takes the same lock (so it waits for a running one in any window), clears this device, then tells the other windows over a `BroadcastChannel`; they stop and reload to Setup.
 - Every GitHub request, its answer included, has a 30-second limit (`REQUEST_TIMEOUT_MS`); no answer in time counts as offline, so the 15-second offline retries take over.

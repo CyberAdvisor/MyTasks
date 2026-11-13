@@ -11,8 +11,21 @@
  *   its gist and derive the key, and the encrypted data.
  */
 
-/** PBKDF2 rounds for new keys (OWASP's figure for PBKDF2-HMAC-SHA256). */
+/**
+ * PBKDF2 rounds (OWASP's figure for PBKDF2-HMAC-SHA256). The only count a gist
+ * file may use, so a file can't make a device derive a weak key.
+ */
 export const KDF_ITERATIONS = 600_000;
+
+/** Salt and IV lengths in bytes; a file with any other length is refused. */
+const SALT_BYTES = 16;
+const IV_BYTES = 12;
+
+/** The largest gist file accepted, in characters (5 MB; far above 10,000 tasks). */
+export const MAX_FILE_CHARS = 5 * 1024 * 1024;
+
+/** The shortest passphrase accepted for a new gist or Change Passphrase (fix 4, 2026-11-13). */
+export const MIN_PASSPHRASE = 12;
 
 /** The gist file's contents: plain metadata around the encrypted list. */
 export interface Envelope {
@@ -48,9 +61,19 @@ function fromBase64(b64: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
+/** How many bytes a base64 string decodes to, or -1 when it isn't valid base64. */
+function base64Bytes(b64: string): number {
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(b64) || b64.length % 4 !== 0) return -1;
+  try {
+    return atob(b64).length;
+  } catch {
+    return -1;
+  }
+}
+
 /** A new random salt, base64. */
 export function newSalt(): string {
-  return toBase64(crypto.getRandomValues(new Uint8Array(16)));
+  return toBase64(crypto.getRandomValues(new Uint8Array(SALT_BYTES)));
 }
 
 /** The AES key for a passphrase and salt. */
@@ -72,7 +95,7 @@ export async function seal(
   plaintext: string,
   updatedAt: string,
 ): Promise<Envelope> {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
   const data = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, text.encode(plaintext)));
   return {
     app: 'mytasks',
@@ -98,8 +121,13 @@ export async function unseal(key: CryptoKey, env: Envelope): Promise<string> {
   }
 }
 
-/** Parse a gist file into an envelope, or null when it is not one of ours. */
+/**
+ * Parse a gist file into an envelope, or null when it is not one of ours or
+ * fails a check: larger than MAX_FILE_CHARS, an iteration count other than
+ * KDF_ITERATIONS, a salt or IV of the wrong length, or data that isn't base64.
+ */
 export function parseEnvelope(content: string): Envelope | null {
+  if (content.length > MAX_FILE_CHARS) return null;
   let x: unknown;
   try {
     x = JSON.parse(content);
@@ -114,11 +142,13 @@ export function parseEnvelope(content: string): Envelope | null {
     typeof e.updatedAt === 'string' &&
     e.kdf?.name === 'PBKDF2' &&
     e.kdf.hash === 'SHA-256' &&
-    Number.isInteger(e.kdf.iterations) &&
-    e.kdf.iterations > 0 &&
+    e.kdf.iterations === KDF_ITERATIONS &&
     typeof e.kdf.salt === 'string' &&
+    base64Bytes(e.kdf.salt) === SALT_BYTES &&
     e.cipher?.name === 'AES-GCM' &&
     typeof e.cipher.iv === 'string' &&
-    typeof e.data === 'string';
+    base64Bytes(e.cipher.iv) === IV_BYTES &&
+    typeof e.data === 'string' &&
+    base64Bytes(e.data) > 0;
   return ok ? (e as Envelope) : null;
 }
