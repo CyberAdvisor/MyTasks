@@ -5,9 +5,6 @@
  * at build time (vite.config.ts).
  */
 
-/** Where the changelog lives on GitHub. */
-const REPO = 'https://github.com/CyberAdvisor/MyTasks';
-
 /** Semantic version from package.json, e.g. "0.2.0". */
 export const VERSION: string = __APP_VERSION__;
 
@@ -17,13 +14,4 @@ export const COMMIT: string = __APP_COMMIT__;
 /** "v0.2.0 (a1b2c3d)", or "v0.2.0" when the commit is unknown. */
 export function versionLabel(version = VERSION, commit = COMMIT): string {
   return commit === 'unknown' ? `v${version}` : `v${version} (${commit})`;
-}
-
-/**
- * This version's section of CHANGELOG.md, as it stands at the build's own
- * commit, so the link works for branches that are not merged yet.
- */
-export function changelogUrl(version = VERSION, commit = COMMIT): string {
-  const ref = commit === 'unknown' ? 'main' : commit;
-  return `${REPO}/blob/${ref}/CHANGELOG.md#v${version}`;
 }

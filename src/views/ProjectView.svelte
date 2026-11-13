@@ -301,7 +301,7 @@
             autofocus={heading.id === ui.newHeadingId}
             onsave={(v) => repo.renameHeading(heading.id, v)}
           />
-          <button type="button" class="btn-plain small" aria-label="Add to-do under heading" onclick={() => addTodo(heading.id)}>
+          <button type="button" class="btn-plain small" aria-label="Add task under heading" onclick={() => addTodo(heading.id)}>
             <Icon name="plus" size={14} />
           </button>
           <Popover bind:open={() => headingMenu === heading.id, (v) => (headingMenu = v ? heading.id : null)} label="Heading actions">
@@ -337,7 +337,7 @@
   {#if askClose}
     <ChoiceDialog
       title="Complete this project?"
-      message={`It still has ${openCount} open ${openCount === 1 ? 'to-do' : 'to-dos'}. Mark them as completed or canceled?`}
+      message={`It still has ${openCount} open ${openCount === 1 ? 'task' : 'tasks'}. Mark them as completed or canceled?`}
       choices={[
         { label: 'Cancel them', value: 'cancel' },
         { label: 'Complete them', value: 'complete' },

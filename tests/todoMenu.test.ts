@@ -22,7 +22,7 @@ describe('menu items', () => {
   it('a to-do in a project, opened elsewhere, matches Things’ order', () => {
     expect(show(todoMenuItems({ projectId: 'p', areaId: null }, { ...open, link: 'project', waiting: true }))).toEqual([
       'When…', 'Move…', 'Tags…', 'Deadline…', 'Priority ›', 'Context ›', 'Complete ›', '—',
-      'Get Info', 'Duplicate To-Do', 'Convert to Project…', 'Delete To-Do', '—',
+      'Get Info', 'Duplicate Task', 'Convert to Project…', 'Delete Task', '—',
       'Remove From Project', '—', 'Show in Project', 'Move to Completed',
     ]);
   });
@@ -35,7 +35,7 @@ describe('menu items', () => {
 
   it('a loose to-do on its own page: no Remove, no Show, and Move to Completed is off with nothing waiting', () => {
     const items = show(todoMenuItems({ projectId: null, areaId: null }, open));
-    expect(items.slice(-3)).toEqual(['Delete To-Do', '—', 'Move to Completed (off)']);
+    expect(items.slice(-3)).toEqual(['Delete Task', '—', 'Move to Completed (off)']);
   });
 
   it('in Trash: Put Back and Delete Immediately', () => {

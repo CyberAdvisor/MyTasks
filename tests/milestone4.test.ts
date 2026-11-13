@@ -370,7 +370,7 @@ describe('keyboard bindings (Section 7)', async () => {
   });
 });
 
-describe('type-ahead after New To-Do (FR-1.1)', async () => {
+describe('type-ahead after New Task (FR-1.1)', async () => {
   const { typeAheadKey } = await import('../src/lib/shortcuts');
   const key = (k: string, mods: Partial<KeyboardEvent> = {}) => ({ key: k, ctrlKey: false, metaKey: false, ...mods });
 
@@ -392,7 +392,7 @@ describe('type-ahead after New To-Do (FR-1.1)', async () => {
   });
 });
 
-describe('inline New To-Do (FR-1.1)', async () => {
+describe('inline New Task (FR-1.1)', async () => {
   const { inlineStart } = await import('../src/lib/actions');
   const { todo } = await import('./helpers');
   const ref = '2026-11-09';

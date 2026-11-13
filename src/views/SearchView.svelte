@@ -137,7 +137,7 @@
   {:else}
     <div class="field">
       <Icon name="search" size={15} color="var(--text-3)" />
-      <input bind:value={text} placeholder="Search to-dos" aria-label="Search to-dos" autocomplete="off" />
+      <input bind:value={text} placeholder="Search tasks" aria-label="Search tasks" autocomplete="off" />
       {#if tagIds.length}<span class="summary">Tagged {tagTitles(tagIds, s).join(', ')}</span>{/if}
     </div>
   {/if}
@@ -159,7 +159,7 @@
   {/if}
 
   {#if empty}
-    <p class="empty">{isEmptyFilter(filter) ? 'Type words to search for.' : 'No matching to-dos.'}</p>
+    <p class="empty">{isEmptyFilter(filter) ? 'Type words to search for.' : 'No matching tasks.'}</p>
   {/if}
 {/if}
 
@@ -177,7 +177,7 @@
 {#if askDelete}
   <ChoiceDialog
     title="Delete saved search?"
-    message="The search is removed from the sidebar. Your to-dos are not changed."
+    message="The search is removed from the sidebar. Your tasks are not changed."
     choices={[{ label: 'Delete', value: 'delete', danger: true }]}
     onchoose={onDeleteChoice}
   />

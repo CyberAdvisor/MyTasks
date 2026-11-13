@@ -37,7 +37,7 @@ src/
   lib/          shortcuts.ts (key bindings), commands.ts (what they do),
                 actions.ts (shared actions), version.ts (the version stamp)
                 and csp.ts (the Content Security Policy)
-  components/   Sidebar, rows, the to-do card, menus, dialogs, Setup
+  components/   Sidebar, rows, the task card, menus, dialogs, Setup
   views/        Built-in lists, project and area pages, Settings
 site/           The website at the root of mytasks.fyi (plain HTML and CSS), copied
                 around the app by the build; site/sw.js retires the old root service worker
@@ -79,7 +79,7 @@ The domain is where each device keeps its data (the browser's storage belongs to
 - `site/sw.js` replaces the old root service worker: it deletes that worker's caches (not the app's), unregisters it and reloads open pages.
 - `site/assets/site.js`, on the home page, forwards old links (`mytasks.fyi/#/today`) to the app, and sends an app installed before the move, which still starts at the root, straight to `/app/`.
 
-The app links to the website from Setup, the sidebar's ? button and Settings › About My Tasks, always in a new tab (`src/lib/website.ts`, `SiteLink.svelte`): opened inside an installed app, the website's home page would send it straight back to `/app/`. Setup won't connect until the user ticks that they have read the risks and limitations; this device records when, and the Limitations page's "Last updated" date (`LIMITATIONS_UPDATED`). **When the Limitations page changes, update its date and `LIMITATIONS_UPDATED` together**; `tests/website.test.ts` checks they match.
+The app links to the website from Setup, the sidebar's ? button, Settings › About My Tasks and the version stamp (the Roadmap page), always in a new tab (`src/lib/website.ts`, `SiteLink.svelte`): opened inside an installed app, the website's home page would send it straight back to `/app/`. Setup won't connect until the user ticks that they have read the risks and limitations; this device records when, and the Limitations page's "Last updated" date (`LIMITATIONS_UPDATED`). **When the Limitations page changes, update its date and `LIMITATIONS_UPDATED` together**; `tests/website.test.ts` checks they match.
 
 The website has its own, stricter policy (`SITE_CSP` in `src/lib/csp.ts`): its own scripts and styles only, nothing inline, and no connections. `tests/website.test.ts` checks every page for it, the shared header and footer, and every link.
 
@@ -87,7 +87,15 @@ The built page carries a strict Content Security Policy in a `<meta>` tag (`src/
 
 ## Versions
 
-The app shows its version and commit at the bottom of the sidebar, for example `v0.2.0 (a1b2c3d)`, and links it to that version's section of [CHANGELOG.md](CHANGELOG.md). Each pull request that changes the app adds a changelog section and sets the version in `package.json`: the middle number for new features, the last for fixes. 1.0.0 is the first release at mytasks.fyi.
+The app shows its version and commit at the bottom of the sidebar and on Setup, for example `v0.2.0 (a1b2c3d)`, and links it to the website's [Roadmap](https://mytasks.fyi/roadmap/) page. 1.0.0 is the first release at mytasks.fyi.
+
+Release steps for each pull request that changes the app:
+
+1. Set the version in `package.json`: the middle number for new features, the last for fixes.
+2. Add a section to [CHANGELOG.md](CHANGELOG.md).
+3. When a milestone completes or a planned feature changes, update the Roadmap page (`site/roadmap/index.html`) and its "Last updated" date in the same pull request.
+
+The website names a version only on the Roadmap page (`tests/website.test.ts`).
 
 The commit is read when the dev server starts or the app is built, so restart `npm run dev` after switching branches.
 
@@ -97,13 +105,13 @@ v1 is built in milestones, each a pull request.
 
 | Milestone | Scope | Status |
 | --- | --- | --- |
-| 1 | Data model, sidebar, the seven lists, to-dos, areas, projects and headings | Done |
+| 1 | Data model, sidebar, the seven lists, tasks, areas, projects and headings | Done |
 | 2 | Tags, When and deadline pickers, checklists and notes, priority and its automatic rules, Settings | Done |
 | 3 | Saved searches, Today grouping, search and Quick Find, Quick Entry | Done |
 | 4 | Drag and drop, keyboard shortcuts, undo | Done |
 | 4a | Area ⋯ menu, contexts, project link under the open card | Done |
 | 4b | To-do right-click menu | Done |
 | 5 | 5a Completed list and subtitle; 5b themes; 5c when completed items move; 5e encrypted gist sync; 5f install and offline; 5g hosting at mytasks.fyi | Done |
-| 6 | Finishing v1.0: 6a fixes (keys typed right after N, final Empty Trash) | Done |
+| 6 | Finishing touches: 6a fixes (keys typed right after N, final Empty Trash); the website and the Setup acknowledgment (0.5.0, 0.6.0); the Roadmap page and "tasks" wording (0.7.0) | Done |
 
-Moved to v1.1: calendar events in Today (after a throwaway sign-in prototype), empty-state illustrations, phone gestures (pull down for Quick Find, swipe back), the resizable sidebar and sidebar blur, the logo, the title-bar area and long-list speed.
+Milestones 7 to 12 (v1.0 to v2.0) are on the website's [Roadmap](https://mytasks.fyi/roadmap/) page.

@@ -138,8 +138,8 @@
   </div>
   {#if syncError}<p class="form-error" role="alert">⚠ {syncError}</p>{/if}
   <p class="help">
-    Your list is encrypted with your passphrase before it reaches GitHub. Disconnecting removes your to-dos, token
-    and key from this device; your list stays in your gist.
+    Your tasks are encrypted with your passphrase before they reach GitHub. Disconnecting removes your tasks, token
+    and key from this device; your tasks stay in your gist.
   </p>
 </section>
 
@@ -179,7 +179,7 @@
       checked={$settings.sinkCompleted}
       onchange={(e) => repo.setSetting('sinkCompleted', e.currentTarget.checked)}
     />
-    <span>Move completed to-dos to the bottom of the list</span>
+    <span>Move completed tasks to the bottom of the list</span>
   </label>
   <label class="switch-row">
     <input
@@ -225,7 +225,7 @@
       checked={$settings.autoP1}
       onchange={(e) => repo.setSetting('autoP1', e.currentTarget.checked)}
     />
-    <span>Set P1 automatically for due and overdue to-dos in Today</span>
+    <span>Set P1 automatically for due and overdue tasks in Today</span>
   </label>
   <label class="switch-row">
     <input
@@ -234,7 +234,7 @@
       checked={$settings.defaultP2}
       onchange={(e) => repo.setSetting('defaultP2', e.currentTarget.checked)}
     />
-    <span>Set P2 by default for to-dos added to Today</span>
+    <span>Set P2 by default for tasks added to Today</span>
   </label>
   <p class="help">
     These rules only fill in a priority you have not chosen yourself. Turning a switch off keeps the
@@ -257,7 +257,7 @@
 
 <section aria-labelledby="contexts-heading">
   <h2 id="contexts-heading">Contexts</h2>
-  <p class="help">Where or how a to-do can be done, such as Home, Office or Phone. A to-do has one context or none.</p>
+  <p class="help">Where or how a task can be done, such as Home, Office or Phone. A task has one context or none.</p>
   <NamedList
     items={contexts}
     icon="context"
@@ -288,7 +288,7 @@
 {#if confirmDisconnect}
   <ChoiceDialog
     title="Disconnect this device?"
-    message="Your to-dos, token and key are removed from this device. Your list stays in your gist, and you can connect again with your token and passphrase."
+    message="Your tasks, token and key are removed from this device. Your tasks stay in your gist, and you can connect again with your token and passphrase."
     choices={[{ label: 'Disconnect', value: 'disconnect', danger: true }]}
     onchoose={onDisconnectChoice}
   />
@@ -297,14 +297,14 @@
 {#if deleting?.kind === 'tag'}
   <ChoiceDialog
     title={`Delete the tag “${deleting.title}”?`}
-    message="It will be removed from every to-do, project and area. The items themselves stay."
+    message="It will be removed from every task, project and area. The items themselves stay."
     choices={[{ label: 'Delete Tag', value: 'delete', danger: true }]}
     onchoose={onDeleteChoice}
   />
 {:else if deleting}
   <ChoiceDialog
     title={`Delete the context “${deleting.title}”?`}
-    message="It will be cleared from every to-do and saved search that uses it. The to-dos themselves stay."
+    message="It will be cleared from every task and saved search that uses it. The tasks themselves stay."
     choices={[{ label: 'Delete Context', value: 'delete', danger: true }]}
     onchoose={onDeleteChoice}
   />

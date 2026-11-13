@@ -61,7 +61,7 @@
 {/each}
 
 {#if empty}
-  <p class="empty">{filter === 'deadlines' ? 'No open to-dos have a deadline.' : 'No projects.'}</p>
+  <p class="empty">{filter === 'deadlines' ? 'No open tasks have a deadline.' : 'No projects.'}</p>
 {/if}
 
 <style>

@@ -78,12 +78,12 @@
   let isEmpty = $derived(!allFlat.length && !allGroups.length && !allProjects.length);
 
   const EMPTY_TEXT: Record<L.BuiltInList, string> = {
-    inbox: 'Nothing in your Inbox. New to-dos land here.',
+    inbox: 'Nothing in your Inbox. New tasks land here.',
     today: 'Nothing planned for today.',
     scheduled: 'Nothing scheduled for later.',
-    unscheduled: 'No open to-dos.',
+    unscheduled: 'No open tasks.',
     deferred: 'Nothing deferred.',
-    logbook: 'Completed to-dos appear here.',
+    logbook: 'Completed tasks appear here.',
     trash: 'Trash is empty.',
   };
 

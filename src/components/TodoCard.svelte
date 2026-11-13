@@ -218,7 +218,7 @@
 {/snippet}
 
 <div bind:this={card}>
-<div class="card" role="group" aria-label="Edit to-do">
+<div class="card" role="group" aria-label="Edit task">
   <div class="top">
     <button
       type="button"
@@ -240,7 +240,7 @@
       bind:value={title}
       oninput={scheduleSave}
       onkeydown={onTitleKey}
-      placeholder="New To-Do"
+      placeholder="New Task"
       autocomplete="off"
     />
   </div>
@@ -385,7 +385,7 @@
         <div role="menu" aria-label="More actions">
           <button type="button" class="menu-item" role="menuitem" onclick={duplicate}><Icon name="copy" size={15} /> Duplicate</button>
           <button type="button" class="menu-item" role="menuitem" onclick={convert}><Icon name="project" size={15} /> Convert to Project</button>
-          <button type="button" class="menu-item" role="menuitem" onclick={() => { moreOpen = false; ui.toggleDone(todo.id, 'canceled'); }}><Icon name="cancel" size={15} /> Cancel To-Do</button>
+          <button type="button" class="menu-item" role="menuitem" onclick={() => { moreOpen = false; ui.toggleDone(todo.id, 'canceled'); }}><Icon name="cancel" size={15} /> Cancel Task</button>
           <hr class="menu-sep" />
           <button type="button" class="menu-item danger" role="menuitem" onclick={remove}><Icon name="trash" size={15} /> Delete</button>
         </div>

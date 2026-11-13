@@ -21,7 +21,7 @@
 
 <main class="page">
   <h1>Risks and limitations</h1>
-  <p class="updated">Last updated November 12, 2026</p>
+  <p class="updated">Last updated November 13, 2026</p>
   <p>My Tasks is free and open source, and it is still in active development. Please read this page before you rely on it. When you set up My Tasks, you're asked to confirm you've read it.</p>
   <div class="toc"><strong>On this page</strong>
     <ol>
@@ -42,24 +42,24 @@
     <p class="do">What to do: don't keep anything in My Tasks that you can't afford to lose or recreate.</p></div>
 
   <div class="item" id="github"><h3>2. GitHub account and token</h3>
-    <p>My Tasks has no server or accounts of its own. Your list is kept in a secret gist in your GitHub account. A gist is a file stored in your GitHub account; a secret gist isn't listed or searchable, but anyone with its web address can open it, which is why My Tasks encrypts it. So you need a free GitHub account and a personal access token. A token with the gist permission can read and change <strong>all</strong> of your gists, not only My Tasks'. Each device stores its token in the browser, unencrypted.</p>
+    <p>My Tasks has no server or accounts of its own. Your tasks are kept in a secret gist in your GitHub account. A gist is a file stored in your GitHub account; a secret gist isn't listed or searchable, but anyone with its web address can open it, which is why My Tasks encrypts it. So you need a free GitHub account and a personal access token. A token with the gist permission can read and change <strong>all</strong> of your gists, not only My Tasks'. Each device stores its token in the browser, unencrypted.</p>
     <p class="do">What to do: use a GitHub account where that's acceptable, and revoke the token on GitHub if a device is lost.</p></div>
 
   <div class="item" id="passphrase"><h3>3. Your passphrase</h3>
-    <p>Your list is encrypted with a passphrase you choose. It is never stored or sent anywhere, so it <strong>can't be recovered</strong>. If you forget it and no device is still connected, your data is lost.</p>
+    <p>Your tasks are encrypted with a passphrase you choose. It is never stored or sent anywhere, so it <strong>can't be recovered</strong>. If you forget it and no device is still connected, your data is lost.</p>
     <p class="do">What to do: keep it in a password manager. A device that's still connected can set a new one.</p></div>
 
   <div class="item" id="conflicts"><h3>4. Editing on two devices</h3>
-    <p>Devices sync through your gist a few seconds after each change. If the same to-do is changed on two devices before they sync, the later change wins, judged by each device's clock, and the other change is lost. Changes to different to-dos are always kept.</p>
+    <p>Devices sync through your gist a few seconds after each change. If the same task is changed on two devices before they sync, the later change wins, judged by each device's clock, and the other change is lost. Changes to different tasks are always kept.</p>
     <p class="do">What to do: let a device sync (the sidebar shows "Synced") before switching to another.</p></div>
 
   <div class="item" id="device"><h3>5. Your device's copy</h3>
-    <p>Each device keeps a working copy of your list in the browser's storage so it works offline. That copy is <strong>not</strong> encrypted: anyone who can use your unlocked device can read it.</p>
+    <p>Each device keeps a working copy of your tasks in the browser's storage so it works offline. That copy is <strong>not</strong> encrypted: anyone who can use your unlocked device can read it.</p>
     <p class="do">What to do: lock your devices, and use Disconnect This Device in Settings before giving one away.</p></div>
 
   <div class="item" id="safari"><h3>6. Safari tabs</h3>
     <p>In a Safari tab, Safari deletes a site's data after 7 days without use. On iPhone and iPad, the installed app and Safari keep separate copies.</p>
-    <p class="do">What to do: install My Tasks (Add to Home Screen, or Add to Dock on a Mac). Your list is also in your gist.</p></div>
+    <p class="do">What to do: install My Tasks (Add to Home Screen, or Add to Dock on a Mac). Your tasks are also in your gist.</p></div>
 
   <div class="item" id="not-possible"><h3>7. Not possible in a web app</h3>
     <p>Without a server, My Tasks can't send reminders or notifications. Web apps also can't have widgets, Siri or Shortcuts actions, an Apple Watch app, or a Quick Entry shortcut that works from other apps. There's no sharing lists with other people.</p></div>
@@ -74,7 +74,7 @@
 <!-- Shared footer: keep the same on every page (tests/website.test.ts). -->
 <footer class="site"><div class="wrap">
   <a href="/guide/">Guide</a><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a>
-  <a href="https://github.com/CyberAdvisor/MyTasks/blob/main/CHANGELOG.md">Changelog</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a>
+  <a href="/roadmap/">Roadmap</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a>
 </div></footer>
 </body>
 </html>

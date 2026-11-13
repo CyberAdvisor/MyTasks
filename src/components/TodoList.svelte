@@ -3,7 +3,7 @@
   rows can be reordered by dragging or with Cmd/Ctrl+Up and Down (FR-10.3).
   The whole section, heading and bottom padding included, takes drops, so a
   row can be dropped on a group's title or in the gap below its last row.
-  With "Move completed to-dos to the bottom of the list" on, completed rows
+  With "Move completed tasks to the bottom of the list" on, completed rows
   waiting to move show below the open ones (FR-12.7); display only.
 -->
 <script lang="ts">

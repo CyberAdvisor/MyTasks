@@ -123,7 +123,7 @@
       {#if installFirst(install.browser, install.standalone)}<InstallFirst />{/if}
       <form onsubmit={connect}>
         <p>
-          Welcome. My Tasks keeps your to-dos in your own GitHub Gist, so they’re the same on all your devices.
+          Welcome. My Tasks keeps your tasks in your own GitHub Gist, so they’re the same on all your devices.
           Connect a gist to get started. <SiteLink page="home">What is My Tasks?</SiteLink>
         </p>
         <label class="form-label" for="setup-token">Personal access token (classic, gist scope)</label>
@@ -163,7 +163,7 @@
       </form>
     {:else if step === 'create'}
       <form onsubmit={create}>
-        <p>Choose a passphrase. Your list is encrypted with it before it leaves this device.</p>
+        <p>Choose a passphrase. Your tasks are encrypted with it before they leave this device.</p>
         <label class="form-label" for="setup-pass">Passphrase</label>
         <input id="setup-pass" class="form-field" type="password" bind:value={passphrase} autocomplete="new-password" />
         <label class="form-label" for="setup-confirm">Confirm passphrase</label>
@@ -179,7 +179,7 @@
       </form>
     {:else if step === 'choose'}
       <form onsubmit={choose}>
-        <p>More than one My Tasks list was found in your GitHub account. Choose the one to use. The others are left unchanged.</p>
+        <p>More than one My Tasks gist was found in your GitHub account. Choose the one to use. The others are left unchanged.</p>
         <fieldset>
           <legend class="visually-hidden">My Tasks lists</legend>
           {#each lists as list (list.id)}
@@ -195,7 +195,7 @@
       </form>
     {:else if step === 'unlock'}
       <form onsubmit={unlock}>
-        <p>A My Tasks list was found in your GitHub account. Enter its passphrase to use it on this device.</p>
+        <p>A My Tasks gist was found in your GitHub account. Enter its passphrase to use it on this device.</p>
         <label class="form-label" for="setup-unlock">Passphrase</label>
         <input id="setup-unlock" class="form-field" type="password" bind:value={passphrase} autocomplete="current-password" />
         <p class="note">Anything already on this device is merged into it.</p>
@@ -205,7 +205,7 @@
         {@render errorLine()}
       </form>
     {:else}
-      <p>Your My Tasks gist holds a file that isn’t a valid My Tasks list. It was not changed.</p>
+      <p>Your My Tasks gist holds a file that isn’t a valid My Tasks file. It was not changed.</p>
       <div class="actions">
         <button type="button" class="btn-primary" onclick={() => ((step = 'create'), (error = ''))}>Start a New Gist</button>
       </div>

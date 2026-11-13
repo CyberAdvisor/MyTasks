@@ -59,9 +59,9 @@ export function todoMenuItems(todo: Pick<Todo, 'projectId' | 'areaId'>, ctx: Tod
     { kind: 'submenu', submenu: 'complete', label: 'Complete' },
     SEP,
     action('info', 'Get Info'),
-    action('duplicate', 'Duplicate To-Do'),
+    action('duplicate', 'Duplicate Task'),
     action('convert', 'Convert to Project…'),
-    action('delete', 'Delete To-Do'),
+    action('delete', 'Delete Task'),
   ];
   const container = todo.projectId ? 'Project' : todo.areaId ? 'Area' : null;
   if (container) items.push(SEP, action('remove', `Remove From ${container}`));

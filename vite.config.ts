@@ -92,6 +92,8 @@ export default defineConfig({
       },
     }),
   ],
+  // Under Vitest, resolve Svelte's browser build so tests can mount components.
+  resolve: process.env.VITEST ? { conditions: ['browser'] } : undefined,
   define: {
     __APP_VERSION__: JSON.stringify(version),
     __APP_COMMIT__: JSON.stringify(commit()),

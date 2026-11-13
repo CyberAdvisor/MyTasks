@@ -5,7 +5,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Security — My Tasks</title>
-<meta name="description" content="How My Tasks protects your list, and what it can’t protect against.">
+<meta name="description" content="How My Tasks protects your tasks, and what it can’t protect against.">
 <link rel="icon" href="/app/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/site.css">
 </head>
@@ -22,13 +22,13 @@
 <main class="page">
   <h1>Security</h1>
   <p class="updated">Last updated November 12, 2026</p>
-  <p>How My Tasks protects your list, and what it can't protect against. The code is open source, so you can <a href="https://github.com/CyberAdvisor/MyTasks">check it yourself</a>.</p>
+  <p>How My Tasks protects your tasks, and what it can't protect against. The code is open source, so you can <a href="https://github.com/CyberAdvisor/MyTasks">check it yourself</a>.</p>
 
   <h2>Encryption</h2>
   <ul>
-    <li>Your list is encrypted on your device before it is sent to your gist, using the browser's built-in Web Crypto.</li>
+    <li>Your tasks are encrypted on your device before it is sent to your gist, using the browser's built-in Web Crypto.</li>
     <li>The key is derived from your passphrase with PBKDF2-SHA-256, 600,000 rounds and a random 16-byte salt.</li>
-    <li>The list is encrypted with AES-256-GCM, with a fresh 12-byte IV every time it's saved. GCM also detects any change to the encrypted file.</li>
+    <li>Your tasks are encrypted with AES-256-GCM, with a fresh 12-byte IV every time it's saved. GCM also detects any change to the encrypted file.</li>
     <li>Each device asks for your passphrase once and keeps the key in a form the browser won't let any script read out. The passphrase itself is never stored or sent anywhere.</li>
     <li>Change Passphrase re-encrypts your gist with a new salt. Your other devices then ask for the new passphrase.</li>
   </ul>
@@ -63,7 +63,7 @@
 <!-- Shared footer: keep the same on every page (tests/website.test.ts). -->
 <footer class="site"><div class="wrap">
   <a href="/guide/">Guide</a><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a>
-  <a href="https://github.com/CyberAdvisor/MyTasks/blob/main/CHANGELOG.md">Changelog</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a>
+  <a href="/roadmap/">Roadmap</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a>
 </div></footer>
 </body>
 </html>

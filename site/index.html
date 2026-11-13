@@ -36,9 +36,9 @@
     <h2>Before you rely on it</h2>
     <p>My Tasks is <strong>still in active development</strong>. Please read these before you put anything important in it:</p>
     <ul>
-      <li>You need a <strong>GitHub account</strong> and a personal access token. Your list is kept, encrypted, in a secret gist in your account. (A gist is a file stored in your GitHub account. A secret gist isn't listed or searchable, but anyone with its web address can open it, which is why My Tasks encrypts it.)</li>
-      <li><strong>A forgotten passphrase can't be recovered.</strong> Nobody, including us, can decrypt your list without it.</li>
-      <li>If you edit the same to-do on two devices before they sync, <strong>the later edit wins</strong> and the other is lost.</li>
+      <li>You need a <strong>GitHub account</strong> and a personal access token. Your tasks are kept, encrypted, in a secret gist in your account. (A gist is a file stored in your GitHub account. A secret gist isn't listed or searchable, but anyone with its web address can open it, which is why My Tasks encrypts it.)</li>
+      <li><strong>A forgotten passphrase can't be recovered.</strong> Nobody, including us, can decrypt your tasks without it.</li>
+      <li>If you edit the same task on two devices before they sync, <strong>the later edit wins</strong> and the other is lost.</li>
       <li>No reminders or notifications, no widgets, no Siri. Only your last change can be undone.</li>
       <li>Android is best effort.</li>
     </ul>
@@ -49,10 +49,10 @@
     <h2>Everything in its place</h2>
     <p class="sub">A clear structure for everything you need to do.</p>
     <div class="grid3">
-      <div class="card"><h3>Today, and what's next</h3><p>Inbox, Today, Scheduled, Unscheduled and Deferred. To-dos roll into Today when their day comes; deadlines are flagged in red.</p></div>
-      <div class="card"><h3>Areas, projects, headings</h3><p>Group work into areas and projects, split projects with headings, and add checklists and notes to any to-do.</p></div>
-      <div class="card"><h3>Priorities</h3><p>Five priority levels with names you choose. Due and overdue to-dos can get P1 automatically.</p></div>
-      <div class="card"><h3>Contexts</h3><p>Mark where or how a to-do gets done — Errands, Phone, Computer — and filter Today by it.</p></div>
+      <div class="card"><h3>Today, and what's next</h3><p>Inbox, Today, Scheduled, Unscheduled and Deferred. Tasks roll into Today when their day comes; deadlines are flagged in red.</p></div>
+      <div class="card"><h3>Areas, projects, headings</h3><p>Group work into areas and projects, split projects with headings, and add checklists and notes to any task.</p></div>
+      <div class="card"><h3>Priorities</h3><p>Five priority levels with names you choose. Due and overdue tasks can get P1 automatically.</p></div>
+      <div class="card"><h3>Contexts</h3><p>Mark where or how a task gets done — Errands, Phone, Computer — and filter Today by it.</p></div>
       <div class="card"><h3>Group Today your way</h3><p>See Today as one list, or grouped by project, priority or context. Save searches to the sidebar.</p></div>
       <div class="card"><h3>Made for the keyboard</h3><p>Quick Entry, Quick Find and a full set of keyboard shortcuts, wherever the browser allows them.</p></div>
     </div>
@@ -63,8 +63,8 @@
     <p class="sub">No server of ours ever sees your tasks.</p>
     <div class="grid3">
       <div class="card"><h3>Free and open source</h3><p>No subscription, no ads, no tracking. The code is on GitHub under the MIT licence.</p></div>
-      <div class="card"><h3>Encrypted end to end</h3><p>Your list is encrypted on your device with your passphrase before it leaves. <a href="/security/">How it works</a></p></div>
-      <div class="card"><h3>Yours to keep</h3><p>Your list lives in your own GitHub account, not ours. Every device keeps a working copy, so it works offline. <a href="/privacy/">Privacy</a></p></div>
+      <div class="card"><h3>Encrypted end to end</h3><p>Your tasks are encrypted on your device with your passphrase before it leaves. <a href="/security/">How it works</a></p></div>
+      <div class="card"><h3>Yours to keep</h3><p>Your tasks live in your own GitHub account, not ours. Every device keeps a working copy, so it works offline. <a href="/privacy/">Privacy</a></p></div>
     </div>
   </section>
 
@@ -74,7 +74,7 @@
     <div class="steps">
       <div class="card"><h3>Open the app</h3><p>Go to mytasks.fyi/app in Safari, Chrome or Edge.</p></div>
       <div class="card"><h3>Connect GitHub</h3><p>Create a token with the gist permission and paste it in. <a href="/guide/#token">Step by step</a></p></div>
-      <div class="card"><h3>Choose a passphrase</h3><p>It encrypts your list. Write it down: it can't be recovered.</p></div>
+      <div class="card"><h3>Choose a passphrase</h3><p>It encrypts your tasks. Write it down: it can't be recovered.</p></div>
       <div class="card"><h3>Install it</h3><p>Add it to your Home Screen or Dock, then connect your other devices the same way.</p></div>
     </div>
   </section>
@@ -85,12 +85,26 @@
     <div class="table-scroll">
     <table class="cmp">
       <tr><th></th><th>My Tasks</th><th>Things 3</th><th>Todoist</th></tr>
-      <tr><td>Price</td><td>Free</td><td>$49.99 Mac, $19.99 iPad, $9.99 iPhone</td><td>Free for 5 projects; paid for more</td></tr>
-      <tr><td>Encrypted so only you can read your list</td><td>✅</td><td>—</td><td>—</td></tr>
+      <tr><td>Price</td><td>Free</td><td>$49.99 Mac, $19.99 iPad, $9.99 iPhone, one-time</td><td>Free for 5 projects; Pro $5 a month yearly, or $7 monthly</td></tr>
+      <tr><td>Open source</td><td>✅</td><td>—</td><td>—</td></tr>
+      <tr><td>Your data is end-to-end encrypted</td><td>✅</td><td>—</td><td>—</td></tr>
+      <tr><td>iPhone, iPad and Mac</td><td>✅</td><td>✅</td><td>✅</td></tr>
       <tr><td>Windows, Linux, Android and the web</td><td>✅</td><td>—</td><td>✅</td></tr>
-      <tr><td>Priorities and contexts</td><td>✅</td><td>—</td><td>Priorities</td></tr>
-      <tr><td>Repeating to-dos</td><td>Planned</td><td>✅</td><td>✅</td></tr>
+      <tr><td>Works offline</td><td>✅</td><td>✅</td><td>✅</td></tr>
+      <tr><td>Areas, projects and headings</td><td>✅</td><td>✅</td><td>Projects and sections</td></tr>
+      <tr><td>Checklists</td><td>✅</td><td>✅</td><td>Sub-tasks</td></tr>
+      <tr><td>Tags</td><td>✅</td><td>✅</td><td>✅</td></tr>
+      <tr><td>Priorities</td><td>✅ 5 levels</td><td>—</td><td>✅ 4 levels</td></tr>
+      <tr><td>Contexts</td><td>✅</td><td>—</td><td>—</td></tr>
+      <tr><td>Saved searches</td><td>✅</td><td>—</td><td>✅ Filters</td></tr>
+      <tr><td>Repeating tasks</td><td>Planned</td><td>✅</td><td>✅</td></tr>
+      <tr><td>Typed dates ("next fri")</td><td>Planned</td><td>✅</td><td>✅</td></tr>
+      <tr><td>Calendar events with your tasks</td><td>Planned</td><td>✅</td><td>Pro</td></tr>
       <tr><td>Reminders and notifications</td><td>—</td><td>✅</td><td>✅</td></tr>
+      <tr><td>Board (Kanban) view</td><td>—</td><td>—</td><td>✅</td></tr>
+      <tr><td>Sharing with others</td><td>—</td><td>—</td><td>✅</td></tr>
+      <tr><td>Markdown in notes</td><td>—</td><td>✅</td><td>✅</td></tr>
+      <tr><td>Widgets, Siri and Apple Watch</td><td>—</td><td>✅</td><td>✅</td></tr>
     </table>
     </div>
   </section>
@@ -104,7 +118,7 @@
 <!-- Shared footer: keep the same on every page (tests/website.test.ts). -->
 <footer class="site"><div class="wrap">
   <a href="/guide/">Guide</a><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a>
-  <a href="https://github.com/CyberAdvisor/MyTasks/blob/main/CHANGELOG.md">Changelog</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a>
+  <a href="/roadmap/">Roadmap</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a>
 </div></footer>
 </body>
 </html>

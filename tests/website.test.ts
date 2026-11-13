@@ -34,12 +34,13 @@ function served(path: string): boolean {
 }
 
 describe('website pages', () => {
-  it('has the five pages', () => {
+  it('has the six pages', () => {
     expect(pages.map((p) => p.name).sort()).toEqual([
       'guide/index.html',
       'index.html',
       'limitations/index.html',
       'privacy/index.html',
+      'roadmap/index.html',
       'security/index.html',
     ]);
   });
@@ -74,8 +75,11 @@ describe('website pages', () => {
     }
   });
 
-  it('never names a version', () => {
-    for (const { name, html } of pages) expect(html, name).not.toMatch(/\bv?\d+\.\d+\.\d+\b|version \d/i);
+  it('never names a version, except on the Roadmap page', () => {
+    for (const { name, html } of pages) {
+      if (name === 'roadmap/index.html') continue;
+      expect(html, name).not.toMatch(/\bv?\d+\.\d+\.\d+\b|version \d/i);
+    }
   });
 });
 
