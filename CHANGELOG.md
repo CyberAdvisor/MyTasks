@@ -4,6 +4,24 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org): until the first release at mytasks.fyi (1.0.0), the middle number goes up for new features and the last number for fixes. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v0.7.1"></a>
+
+## 0.7.1 — 2026-11-13
+
+The first fixes from the security review.
+
+### Fixed
+
+- Disconnect waits for a sync that's running, in this or another open window, before it clears this device, so the sync can no longer save the connection back. Other open windows stop syncing and return to Setup. (#32)
+- Syncing and the Settings actions (Change Token, Change Passphrase, Enter Passphrase, Recreate Gist) run one at a time, across every open window. A sync can no longer upload your tasks under the old passphrase just after Change Passphrase. (#32)
+- When GitHub limits requests, sync tries again by itself just after the limit ends. (#32)
+- A request to GitHub that gets no answer within 30 seconds now shows as Offline, and sync keeps trying. (#32)
+- Long gist files are read only from gist.githubusercontent.com. (#32)
+
+### Changed
+
+- The app won't run inside another web page. It shows a short message with a link that opens it on its own. (#32)
+
 <a id="v0.7.0"></a>
 
 ## 0.7.0 — 2026-11-13
