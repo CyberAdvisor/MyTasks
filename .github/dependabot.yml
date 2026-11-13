@@ -11,6 +11,11 @@ updates:
     groups:
       npm:
         patterns: ['*']
+    ignore:
+      # svelte-check 4 accepts TypeScript 5 or 6 only, so TypeScript 7 fails npm ci.
+      # Remove this rule once svelte-check accepts TypeScript 7.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     directory: /

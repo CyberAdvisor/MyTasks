@@ -85,7 +85,7 @@ My Tasks is served as static files from GitHub Pages: the website at https://myt
 
 - **Permissions.** The workflow can only read the repo; only the deploy job can publish to Pages (`pages: write`, `id-token: write`).
 - **Pinned actions.** Each action is pinned to a full commit hash, with its version in a comment, so a moved tag can't change what runs.
-- **Dependabot** (`.github/dependabot.yml`) opens one grouped pull request a month for npm packages and one for GitHub Actions, and updates the pinned hashes. Test and merge them like any other pull request.
+- **Dependabot** (`.github/dependabot.yml`) opens one grouped pull request a month for npm packages and one for GitHub Actions, and updates the pinned hashes. Test and merge them like any other pull request. Major TypeScript updates are ignored until `svelte-check` accepts TypeScript 7; remove that rule from `dependabot.yml` when it does.
 
 The domain is where each device keeps its data (the browser's storage belongs to the site's address, not its path), so it must never change. The app moved from the root to `/app/` in 0.5.0 on the same domain, so every device kept its data. Two files keep earlier installs working:
 
