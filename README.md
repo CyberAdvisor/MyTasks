@@ -6,8 +6,8 @@ A better task manager that is **free**, **private** and **secure**. My Tasks giv
 
 **Website:** [mytasks.fyi](https://mytasks.fyi) · **Open the app:** [mytasks.fyi/app](https://mytasks.fyi/app/) · **Guide:** [mytasks.fyi/guide](https://mytasks.fyi/guide/)
 
-> [!WARNING]
-> **Still in active development.** Features are missing, things will change, and data could be lost between versions. Please read the [risks and limitations](https://mytasks.fyi/limitations/) before you rely on it, and don't keep anything important or critical in it yet.
+> [!NOTE]
+> **Ready for use, within its limitations.** Please read the [risks and limitations](https://mytasks.fyi/limitations/) before you rely on it.
 
 ![The Today list in My Tasks, with tasks from several projects, their contexts, deadlines and priorities](docs/images/today.png)
 

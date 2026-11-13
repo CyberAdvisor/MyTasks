@@ -114,7 +114,7 @@ The built page carries a strict Content Security Policy in a `<meta>` tag (`src/
 
 ## Versions
 
-The app shows its version and commit at the bottom of the sidebar and on Setup, for example `v0.2.0 (a1b2c3d)`, and links it to the website's [Roadmap](https://mytasks.fyi/roadmap/) page. 1.0.0 is the first release at mytasks.fyi.
+The app shows its version and commit at the bottom of the sidebar and on Setup, for example `v0.2.0 (a1b2c3d)`, and links it to the website's [Roadmap](https://mytasks.fyi/roadmap/) page. 1.0.0 (2026-11-13) was the first release at mytasks.fyi. The middle number goes up for new features and the last for fixes; the first number changes only for a major release, such as v2.0 on the Roadmap.
 
 Release steps for each pull request that changes the app:
 
@@ -137,8 +137,9 @@ v1 is built in milestones, each a pull request.
 | 3 | Saved searches, Today grouping, search and Quick Find, Quick Entry | Done |
 | 4 | Drag and drop, keyboard shortcuts, undo | Done |
 | 4a | Area ⋯ menu, contexts, project link under the open card | Done |
-| 4b | To-do right-click menu | Done |
+| 4b | Task right-click menu | Done |
 | 5 | 5a Completed list and subtitle; 5b themes; 5c when completed items move; 5e encrypted gist sync; 5f install and offline; 5g hosting at mytasks.fyi | Done |
 | 6 | Finishing touches: 6a fixes (keys typed right after N, final Empty Trash); the website and the Setup acknowledgment (0.5.0, 0.6.0); the Roadmap page and "tasks" wording (0.7.0) | Done |
+| 7 | Ready for release (1.0.0): the security and privacy review and its fixes (0.7.1 to 0.9.1); back up and restore (0.10.0) | Done |
 
-Milestones 7 to 12 (v1.0 to v2.0) are on the website's [Roadmap](https://mytasks.fyi/roadmap/) page.
+Milestones 8 to 12 (v1.1 to v2.0) are on the website's [Roadmap](https://mytasks.fyi/roadmap/) page.
