@@ -2,7 +2,18 @@
 
 What changed in each version of My Tasks. The app shows its version at the bottom of the sidebar and on the Setup screen; clicking it opens the [Roadmap](https://mytasks.fyi/roadmap/), which shows what's planned.
 
-Versions follow [Semantic Versioning](https://semver.org): until the first release at mytasks.fyi (1.0.0), the middle number goes up for new features and the last number for fixes. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
+Versions follow [Semantic Versioning](https://semver.org). 1.0.0 was the first release at mytasks.fyi. The middle number goes up for new features and the last number for fixes; the first number changes only for a major release, such as v2.0 on the Roadmap. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
+
+<a id="v1.0.0"></a>
+
+## 1.0.0 — 2026-11-13
+
+The first release. My Tasks is ready for use, within its [risks and limitations](https://mytasks.fyi/limitations/) and the features on the [Roadmap](https://mytasks.fyi/roadmap/) that aren't built yet.
+
+### Changed
+
+- The README and the website no longer describe My Tasks as in active development. The Limitations page's first item is now "Bugs and features still to come", and suggests saving a backup file from time to time. (#41)
+- Milestone 7 is complete. Its three unbuilt items (a full design check with iPhone and iPad testing; the website's About page and self-hosting guide; a way to follow updates) moved to Milestone 8 (v1.1) on the Roadmap. (#41)
 
 <a id="v0.10.0"></a>
 
