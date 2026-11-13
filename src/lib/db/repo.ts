@@ -8,6 +8,7 @@
  */
 import { db } from './database';
 import { clearUndo, log, tx } from './history';
+import { bury } from './bury';
 import { nowIso, uuidv7 } from '../model/ids';
 import { localDay, today } from '../model/dates';
 import { bySortKey, keyAtEnd, keyAtStart, keyBetween, placementKeys } from '../model/order';
@@ -475,9 +476,9 @@ export function convertTodoToProject(id: ID): Promise<ID | undefined> {
       };
       await db.todos.add(todo);
       await log('todos', todo.id, ['*']);
-      await patch<ChecklistItem>('checklistItems', item.id, { deletedAt: at });
+      await bury('checklistItems', [item.id], at);
     }
-    await patch<Todo>('todos', id, { deletedAt: at });
+    await bury('todos', [id], at);
     return projectId;
   });
 }
@@ -677,7 +678,7 @@ export function deleteHeading(id: ID): Promise<void> {
   return tx(async () => {
     const todos = await db.todos.where('headingId').equals(id).toArray();
     for (const t of todos) await patch<Todo>('todos', t.id, { headingId: null });
-    await patch<Heading>('headings', id, { deletedAt: nowIso() });
+    await bury('headings', [id], nowIso());
   });
 }
 
@@ -690,7 +691,7 @@ export function convertHeadingToProject(id: ID): Promise<ID | undefined> {
     const projectId = await insertProject({ title: h.title, areaId: parent?.areaId ?? null });
     const todos = await db.todos.where('headingId').equals(id).toArray();
     for (const t of todos) await patch<Todo>('todos', t.id, { projectId, headingId: null });
-    await patch<Heading>('headings', id, { deletedAt: nowIso() });
+    await bury('headings', [id], nowIso());
     return projectId;
   });
 }
@@ -735,7 +736,7 @@ export function deleteArea(id: ID, contents: 'keep' | 'trash'): Promise<void> {
       const start = normalizeStart({ start: t.start, startDate: t.startDate, areaId: null, projectId: t.projectId });
       await patch<Todo>('todos', t.id, contents === 'trash' ? { trashedAt: at, areaId: null } : { areaId: null, start });
     }
-    await patch<Area>('areas', id, { deletedAt: at });
+    await bury('areas', [id], at);
   });
 }
 
@@ -744,7 +745,8 @@ export function deleteArea(id: ID, contents: 'keep' | 'trash'): Promise<void> {
 // ---------------------------------------------------------------------------
 
 /**
- * Permanently delete everything in Trash (FR-12.3). Tombstones stay for sync.
+ * Permanently delete everything in Trash (FR-12.3), with the headings of
+ * emptied projects. Only tombstones stay, for sync (model/tombstone.ts).
  * It cannot be undone, as in Things: the change is not tracked and the undo
  * step is cleared, so undoing an earlier change (such as a move to Trash)
  * cannot bring the items back either.
@@ -763,18 +765,12 @@ export async function emptyTrash(): Promise<void> {
       );
       const todoIds = new Set(todos.map((t) => t.id));
       const items = (await db.checklistItems.toArray()).filter((c) => !c.deletedAt && todoIds.has(c.todoId));
-      const gone = { deletedAt: at, modifiedAt: at };
-      const changes = (rows: { id: ID }[]) => rows.map((r) => ({ key: r.id, changes: gone }));
-      await db.projects.bulkUpdate(changes(projects));
-      await db.todos.bulkUpdate(changes(todos));
-      await db.checklistItems.bulkUpdate(changes(items));
-      const logged = (entity: EntityName, rows: { id: ID }[]) =>
-        rows.map((r) => ({ entity, entityId: r.id, fields: ['deletedAt'], at }));
-      await db.changeLog.bulkAdd([
-        ...logged('projects', projects),
-        ...logged('todos', todos),
-        ...logged('checklistItems', items),
-      ]);
+      const headings = (await db.headings.toArray()).filter((h) => !h.deletedAt && inTrashedProject.has(h.projectId));
+      const ids = (rows: { id: ID }[]) => rows.map((r) => r.id);
+      await bury('projects', ids(projects), at);
+      await bury('headings', ids(headings), at);
+      await bury('todos', ids(todos), at);
+      await bury('checklistItems', ids(items), at);
     },
     { track: false },
   );
@@ -783,8 +779,8 @@ export async function emptyTrash(): Promise<void> {
 
 /** Mark a to-do and its checklist deleted (tombstones, so the deletion syncs). Call inside a transaction. */
 async function deleteTodoRecords(todoId: ID, at: string): Promise<void> {
-  await patch<Todo>('todos', todoId, { deletedAt: at });
-  for (const c of await liveChecklist(todoId)) await patch<ChecklistItem>('checklistItems', c.id, { deletedAt: at });
+  await bury('todos', [todoId], at);
+  await bury('checklistItems', (await liveChecklist(todoId)).map((c) => c.id), at);
 }
 
 /**
@@ -829,11 +825,12 @@ export function deleteTag(id: ID): Promise<void> {
   return tx(async () => {
     for (const entity of ['todos', 'projects', 'areas', 'savedSearches'] as const) {
       const rows = (await db.table(entity).toArray()) as (Todo | Project | Area | SavedSearch)[];
-      for (const r of rows.filter((x) => x.tagIds.includes(id))) {
+      // Deleted records keep no tagIds (model/tombstone.ts).
+      for (const r of rows.filter((x) => !x.deletedAt && x.tagIds.includes(id))) {
         await patch<Todo | Project | Area | SavedSearch>(entity, r.id, { tagIds: r.tagIds.filter((t) => t !== id) });
       }
     }
-    await patch<Tag>('tags', id, { deletedAt: nowIso() });
+    await bury('tags', [id], nowIso());
   });
 }
 
@@ -887,7 +884,7 @@ export function deleteContext(id: ID): Promise<void> {
       )[];
       for (const r of rows) await patch<Todo | SavedSearch>(entity, r.id, { contextId: null });
     }
-    await patch<Context>('contexts', id, { deletedAt: nowIso() });
+    await bury('contexts', [id], nowIso());
   });
 }
 
@@ -947,7 +944,7 @@ export function updateChecklistItem(id: ID, changes: Partial<Pick<ChecklistItem,
 }
 
 export function deleteChecklistItem(id: ID): Promise<void> {
-  return tx(() => patch<ChecklistItem>('checklistItems', id, { deletedAt: nowIso() }));
+  return tx(() => bury('checklistItems', [id], nowIso()).then(() => undefined));
 }
 
 /** Move a checklist item one place up or down. */
@@ -1001,5 +998,5 @@ export function placeSavedSearch(id: ID, order: ID[]): Promise<void> {
 
 /** Delete a saved search. To-dos are never affected (FR-15.5). */
 export function deleteSavedSearch(id: ID): Promise<void> {
-  return tx(() => patch<SavedSearch>('savedSearches', id, { deletedAt: nowIso() }));
+  return tx(() => bury('savedSearches', [id], nowIso()).then(() => undefined));
 }

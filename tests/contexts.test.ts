@@ -5,7 +5,7 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 import Dexie from 'dexie';
-import { db, MyTasksDB } from '../src/lib/db/database';
+import { db, MyTasksDB, SCHEMA_VERSION } from '../src/lib/db/database';
 import * as repo from '../src/lib/db/repo';
 import { clearUndo, undo } from '../src/lib/db/history';
 import { contextTitle, contextsInUse, filterByContext, activeContext } from '../src/lib/model/contexts';
@@ -42,7 +42,7 @@ describe('storage', () => {
 
     const v2 = new MyTasksDB(name);
     await v2.open();
-    expect(v2.verno).toBe(3); // upgraded to the latest version
+    expect(v2.verno).toBe(SCHEMA_VERSION); // upgraded to the latest version
     expect((await v2.todos.get('t1'))?.contextId).toBeNull();
     expect((await v2.savedSearches.get('s1'))?.contextId).toBeNull();
     expect(await v2.contexts.count()).toBe(0);

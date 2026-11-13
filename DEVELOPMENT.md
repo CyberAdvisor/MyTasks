@@ -52,8 +52,9 @@ tests/          Unit tests; tests/fakeGitHub.ts fakes the gist API
   - awaiting a plain `async` helper before the first database request (load settings first);
   - a read awaited through two levels of `async` helpers more than once (for example a helper that calls a read helper, in a loop).
   So helpers that only read (`liveChecklist`, `siblingKeys`, `shiftedKey`, `loadSettings` in `repo.ts`) return Dexie's own promise with `then` and are not `async`. The unit tests' in-memory database does not show this; check multi-record operations in a browser.
-- Records are never removed: a deletion sets `deletedAt`, so it syncs like any other change.
-- Sync merges record by record; the later `modifiedAt` wins.
+- Records are never removed: a deletion sets `deletedAt`, so it syncs like any other change. A deleted record keeps only `id`, `deletedAt` and `modifiedAt` (a tombstone): delete with `bury` (`src/lib/db/bury.ts`), never by setting `deletedAt` yourself. Uploads and merges strip deleted records too (`src/lib/model/tombstone.ts`). Undo keeps its own full copy, so it can still restore a deleted record.
+- Only read fields other than those three after filtering out deleted records.
+- Sync merges record by record; the later `modifiedAt` wins. A `modifiedAt` from the gist later than now counts as now, and the corrected copy is pushed.
 - This device's token, gist id and encryption key live in a separate database, `mytasks-device`, and never sync.
 
 ## Sync

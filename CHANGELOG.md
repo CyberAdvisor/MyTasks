@@ -4,6 +4,20 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org): until the first release at mytasks.fyi (1.0.0), the middle number goes up for new features and the last number for fixes. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v0.8.0"></a>
+
+## 0.8.0 — 2026-11-13
+
+The second fixes from the security review.
+
+### Changed
+
+- Deleting keeps nothing of what was deleted: Empty Trash, Delete Immediately, and deleting a heading, area, tag, context, saved search or checklist item keep only an id and the time, on your devices and in your gist. Undo still brings back something you just deleted. (#33)
+- Empty Trash also removes the headings of projects it empties. (#33)
+- Things deleted before this version are cleaned once when the app updates, and your gist is cleaned at the next sync. Earlier versions of the gist stay in its history on GitHub. (#33)
+- A device whose clock runs fast can no longer have its changes win every sync: times from the gist later than now count as now. (#33)
+- Devices still on 0.7.1 ask you to reload once another device has synced with 0.8.0. (#33)
+
 <a id="v0.7.1"></a>
 
 ## 0.7.1 — 2026-11-13

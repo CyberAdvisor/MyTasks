@@ -6,6 +6,7 @@
  * supported (design doc, Section 4, Rules).
  */
 import Dexie, { type Table } from 'dexie';
+import { tombstone } from '../model/tombstone';
 import type {
   Area,
   ChangeLogEntry,
@@ -20,7 +21,7 @@ import type {
 } from '../model/types';
 
 /** The current schema version; synced lists record it (FR-19.4). */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export class MyTasksDB extends Dexie {
   areas!: Table<Area, string>;
@@ -70,6 +71,16 @@ export class MyTasksDB extends Dexie {
       };
       await tx.table('todos').toCollection().modify(markMoved);
       await tx.table('projects').toCollection().modify(markMoved);
+    });
+    // Version 4: deleted records keep only id, deletedAt and modifiedAt
+    // (security review, 2026-11-13). Records deleted earlier are stripped
+    // once; the next sync uploads the cleaned copy.
+    this.version(4).stores({}).upgrade(async (tx) => {
+      for (const name of ['areas', 'projects', 'headings', 'todos', 'checklistItems', 'tags', 'contexts', 'savedSearches']) {
+        await tx.table(name).toCollection().modify((record, ctx) => {
+          if (record.deletedAt) ctx.value = tombstone(record);
+        });
+      }
     });
   }
 }

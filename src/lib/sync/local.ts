@@ -4,13 +4,14 @@
  */
 import { db, SCHEMA_VERSION } from '../db/database';
 import { tx } from '../db/history';
+import { tombstone } from '../model/tombstone';
 import type { BaseRecord, EntityName, SettingEntry } from '../model/types';
 import { SYNCED_SETTINGS, SYNCED_TABLES, type Payload, type RemoteChanges } from './payload';
 
-/** Every record (tombstones included) and the settings that sync. */
+/** Every record (deleted ones as tombstones only) and the settings that sync. */
 export async function readLocal(): Promise<Payload> {
   const tables = {} as Record<EntityName, BaseRecord[]>;
-  for (const t of SYNCED_TABLES) tables[t] = (await db.table(t).toArray()) as BaseRecord[];
+  for (const t of SYNCED_TABLES) tables[t] = ((await db.table(t).toArray()) as BaseRecord[]).map(tombstone);
   const keys = new Set<string>(SYNCED_SETTINGS);
   const settings = (await db.settings.toArray()).filter((s) => keys.has(s.key));
   return { app: 'mytasks', schema: SCHEMA_VERSION, tables, settings };
