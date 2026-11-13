@@ -112,8 +112,11 @@
     font-size: 14px;
     line-height: 1.45;
   }
+  /* Red, as in Setup: the colour must be set here, because the dialog's own
+     p rule above outranks the shared .form-error in app.css. */
   .form-error {
     margin: 0 0 12px;
+    color: var(--danger);
   }
   /* The passphrase tip sits close under its field. */
   p.tip {

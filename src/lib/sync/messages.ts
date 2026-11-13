@@ -47,6 +47,12 @@ export function problemText(code: SyncCode, retryAt: Date | null = null): string
       return 'Your tasks were saved by a newer version of My Tasks. Reload the app to update it.';
     case 'invalid':
       return 'The tasks on this device failed their check, so they were not uploaded. Your gist is unchanged.';
+    case 'toolarge':
+      return 'Your tasks are too large to upload: the encrypted file would be over 5 MB. Your gist is unchanged, and your changes are still on this device.';
+    case 'otheraccount':
+      return 'This token belongs to a different GitHub account from the one that owns your gist. Use a token from the account that owns it.';
+    case 'unreachable':
+      return 'This token can’t reach your My Tasks gist. Use a token from the GitHub account that owns it. If the gist was deleted, disconnect this device in Settings › Sync and set it up again.';
   }
 }
 
@@ -75,6 +81,7 @@ export function syncMessage(status: SyncStatus, problem: SyncCode | null): strin
       if (problem === 'token' || problem === 'scope') return 'Sync error — token rejected';
       if (problem === 'notfound') return 'Sync error — gist not found';
       if (problem === 'newer') return 'Update needed — reload the app';
+      if (problem === 'toolarge') return 'Sync error — too large';
       return 'Sync error';
     default:
       return null;

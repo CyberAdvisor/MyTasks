@@ -7,11 +7,13 @@
  * Records are never removed; a deletion is a tombstone (`deletedAt`), which
  * merges like any other change and keeps only `id`, `deletedAt` and
  * `modifiedAt` (model/tombstone.ts). Settings that sync merge the same way, key
- * by key. Nothing is lost when two devices change different records.
+ * by key. Changes to different records on two devices are both kept once both
+ * devices have synced.
  *
- * A `modifiedAt` from the gist later than now (another device's clock runs
- * ahead) counts as now, and the corrected copy is pushed, so that device's
- * edits don't win every merge until real time catches up.
+ * A `modifiedAt` later than now, from the gist or on this device (a clock
+ * that ran ahead), counts as now. The corrected copy is pushed, and saved on
+ * this device, so those edits don't win every merge until real time catches
+ * up.
  */
 import { nowIso } from '../model/ids';
 import { keepsContent, tombstone } from '../model/tombstone';
@@ -54,10 +56,20 @@ export interface Payload {
   settings: SettingEntry[];
 }
 
-/** Records and settings the remote copy has newer than this device. */
+/**
+ * What a merge writes on this device: records and settings the remote copy
+ * has newer, and this device's own copies whose future time was corrected.
+ */
 export interface RemoteChanges {
   tables: Partial<Record<EntityName, BaseRecord[]>>;
   settings: SettingEntry[];
+  /**
+   * For each row above (the same object), the `modifiedAt` this device had
+   * when the merge read it (undefined when it had none). While the device
+   * still has that time, the merge's choice stands; once it has changed (an
+   * edit made during the sync), only a later time replaces it.
+   */
+  seen?: Map<object, string | undefined>;
 }
 
 /** The result of merging this device's copy with the gist's. */
@@ -72,16 +84,22 @@ export interface MergeResult {
 
 /**
  * Check a decrypted payload before anything is applied or pushed: its shape,
- * then every record and setting field by field (sync/validate.ts).
+ * every record and setting field by field (sync/validate.ts), and no record
+ * id or setting key twice.
  */
 export function isPayload(x: unknown): x is Payload {
   const p = x as Partial<Payload> | null;
   if (!p || p.app !== 'mytasks' || !Number.isInteger(p.schema) || !p.tables || !Array.isArray(p.settings)) return false;
   for (const t of SYNCED_TABLES) {
-    const rows = (p.tables as Record<string, unknown>)[t];
-    if (!Array.isArray(rows) || !rows.every((r) => isValidRecord(t, r))) return false;
+    const rows = Object.hasOwn(p.tables, t) ? (p.tables as Record<string, unknown>)[t] : undefined;
+    if (!Array.isArray(rows) || !rows.every((r) => isValidRecord(t, r)) || !unique(rows.map((r) => (r as BaseRecord).id))) return false;
   }
-  return p.settings.every(isValidSetting);
+  return p.settings.every(isValidSetting) && unique(p.settings.map((s) => s.key));
+}
+
+/** Whether no value appears twice: one record per id, one entry per setting key. */
+function unique(values: string[]): boolean {
+  return new Set(values).size === values.length;
 }
 
 /** Whether `a` is a later edit than `b` (ISO timestamps compare as text). */
@@ -149,28 +167,62 @@ function notAfter<T extends { modifiedAt?: string }>(rows: T[], now: string): { 
   return { rows: out, clamped };
 }
 
+/** The result of merging one table, or the settings, keyed by `keyOf`. */
+interface SideResult<T> {
+  merged: T[];
+  /** Rows to write on this device. */
+  toApply: T[];
+  pushNeeded: boolean;
+}
+
+/**
+ * Merge one table (or the settings) after correcting future times on both
+ * sides. Rows to write here are the gist's newer ones and this device's own
+ * corrected winners, each recorded in `seen` with the time this device had.
+ */
+function mergeSide<T extends { modifiedAt?: string }>(
+  localRows: T[],
+  remoteRows: T[],
+  keyOf: (r: T) => string,
+  now: string,
+  seen: Map<object, string | undefined>,
+): SideResult<T> {
+  const local = notAfter(localRows, now);
+  const remote = notAfter(remoteRows, now);
+  const m = mergeRows(local.rows, remote.rows, keyOf);
+  const before = new Map(localRows.map((r) => [keyOf(r), r.modifiedAt]));
+  for (const r of m.fromRemote) seen.set(r, before.get(keyOf(r)));
+  // This device's corrected copies that won: save the correction here too.
+  const kept = new Set(m.merged);
+  const corrected = local.rows.filter((r, i) => r !== localRows[i] && kept.has(r));
+  for (const r of corrected) seen.set(r, before.get(keyOf(r)));
+  return {
+    merged: m.merged,
+    toApply: [...m.fromRemote, ...corrected],
+    pushNeeded: m.localNewer || local.clamped || remote.clamped,
+  };
+}
+
 /**
  * Merge this device's copy with the gist's. Deleted records on both sides
- * are reduced to tombstones first, and the gist's timestamps later than
- * `now` count as `now`. Either correction is pushed, so the gist itself is
- * cleaned.
+ * are reduced to tombstones first, and times later than `now`, on either
+ * side, count as `now`. Every correction is pushed, so the gist itself is
+ * cleaned, and this device's corrections are written back here too.
  */
 export function mergePayloads(local: Payload, remote: Payload, now = nowIso()): MergeResult {
   const tables = {} as Record<EntityName, BaseRecord[]>;
-  const toApply: RemoteChanges = { tables: {}, settings: [] };
+  const seen = new Map<object, string | undefined>();
+  const toApply: RemoteChanges = { tables: {}, settings: [], seen };
   let pushNeeded = false;
   for (const t of SYNCED_TABLES) {
-    const fromGist = notAfter(remote.tables[t].map(tombstone), now);
-    const m = mergeRows(local.tables[t].map(tombstone), fromGist.rows, (r) => r.id);
+    const m = mergeSide(local.tables[t].map(tombstone), remote.tables[t].map(tombstone), (r) => r.id, now, seen);
     tables[t] = m.merged;
-    if (m.fromRemote.length) toApply.tables[t] = m.fromRemote;
-    pushNeeded ||= m.localNewer || fromGist.clamped || remote.tables[t].some(keepsContent);
+    if (m.toApply.length) toApply.tables[t] = m.toApply;
+    pushNeeded ||= m.pushNeeded || remote.tables[t].some(keepsContent);
   }
-  const settingsFromGist = notAfter(remote.settings, now);
-  pushNeeded ||= settingsFromGist.clamped;
-  const s = mergeRows(local.settings, settingsFromGist.rows, (r) => r.key);
-  toApply.settings = s.fromRemote;
-  pushNeeded ||= s.localNewer;
+  const s = mergeSide(local.settings, remote.settings, (r) => r.key, now, seen);
+  toApply.settings = s.toApply;
+  pushNeeded ||= s.pushNeeded;
   return {
     toApply,
     merged: { app: 'mytasks', schema: Math.max(local.schema, remote.schema), tables, settings: s.merged },

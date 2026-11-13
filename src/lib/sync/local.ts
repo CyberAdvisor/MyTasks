@@ -17,28 +17,40 @@ export async function readLocal(): Promise<Payload> {
   return { app: 'mytasks', schema: SCHEMA_VERSION, tables, settings };
 }
 
-/** Whether `incoming` should replace `current` (the later edit wins). */
-function newer(incoming: { modifiedAt?: string }, current: { modifiedAt?: string } | undefined): boolean {
-  return !current || (incoming.modifiedAt ?? '') >= (current.modifiedAt ?? '');
+/**
+ * Whether `incoming` should replace `current`. While this device still has
+ * the time the merge saw (`seen`), the merge's choice stands: that is how a
+ * corrected future time replaces the future one. Otherwise only a later or
+ * equal edit replaces it, so an edit made during the sync is kept.
+ */
+function replaces(
+  incoming: { modifiedAt?: string },
+  current: { modifiedAt?: string } | undefined,
+  seen: Map<object, string | undefined> | undefined,
+): boolean {
+  if (!current) return true;
+  if (seen?.has(incoming) && seen.get(incoming) === current.modifiedAt) return true;
+  return (incoming.modifiedAt ?? '') >= (current.modifiedAt ?? '');
 }
 
 /**
- * Write the gist's newer records and settings in one transaction. Each is
- * checked again against this device's current copy, so an edit made while
- * the gist was being read is never overwritten by an older one. These
- * changes are not undo steps and are not pushed back.
+ * Write the merge's changes in one transaction: the gist's newer records and
+ * settings, and this device's corrected times. Each is checked again against
+ * this device's current copy, so an edit made while the gist was being read
+ * is never overwritten. These changes are not undo steps and are not pushed
+ * back.
  */
 export function applyRemote(changes: RemoteChanges): Promise<void> {
   return tx(
     async () => {
       for (const [table, rows] of Object.entries(changes.tables) as [EntityName, BaseRecord[]][]) {
         const current = await db.table(table).bulkGet(rows.map((r) => r.id));
-        const put = rows.filter((r, i) => newer(r, current[i] as BaseRecord | undefined));
+        const put = rows.filter((r, i) => replaces(r, current[i] as BaseRecord | undefined, changes.seen));
         if (put.length) await db.table(table).bulkPut(put);
       }
       const synced = new Set<string>(SYNCED_SETTINGS);
       for (const s of changes.settings.filter((x) => synced.has(x.key))) {
-        if (newer(s, (await db.settings.get(s.key)) as SettingEntry | undefined)) await db.settings.put(s);
+        if (replaces(s, (await db.settings.get(s.key)) as SettingEntry | undefined, changes.seen)) await db.settings.put(s);
       }
     },
     { track: false, fromSync: true },

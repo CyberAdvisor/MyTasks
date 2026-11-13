@@ -107,6 +107,59 @@ describe('merging (FR-19.4)', () => {
   });
 });
 
+describe('clocks that ran ahead (review follow-up 3)', () => {
+  const FUTURE = '2099-01-01T00:00:00.000Z';
+  /** Earlier than the test machine's clock, so an edit made now is later. */
+  const NOW = '2026-01-01T00:00:00.000Z';
+
+  /** A task on this device whose last edit carries a time far in the future. */
+  async function futureTask(title = 'here'): Promise<string> {
+    const id = await repo.createTodo({ title });
+    await db.todos.update(id, { modifiedAt: FUTURE });
+    return id;
+  }
+
+  it('corrects a future time on this device, saves it here and pushes it', async () => {
+    const id = await futureTask();
+    const older = { ...(await db.todos.get(id))!, title: 'gist', modifiedAt: '2025-12-01T00:00:00.000Z' };
+    const m = mergePayloads(await readLocal(), payload({ todos: [older] }), NOW);
+    await applyRemote(m.toApply);
+    expect(await db.todos.get(id)).toMatchObject({ title: 'here', modifiedAt: NOW });
+    expect(m.merged.tables.todos[0]).toMatchObject({ title: 'here', modifiedAt: NOW });
+    expect(m.pushNeeded).toBe(true);
+    // A later edit on another device now wins.
+    const edited = { ...older, title: 'edited elsewhere', modifiedAt: '2026-01-02T00:00:00.000Z' };
+    const next = mergePayloads(await readLocal(), payload({ todos: [edited] }), '2026-01-03T00:00:00.000Z');
+    await applyRemote(next.toApply);
+    expect((await db.todos.get(id))!.title).toBe('edited elsewhere');
+  });
+
+  it('lets the gist’s corrected copy replace a future time here', async () => {
+    const id = await futureTask();
+    const theirs = { ...(await db.todos.get(id))!, title: 'gist', modifiedAt: '2098-01-01T00:00:00.000Z' };
+    const m = mergePayloads(await readLocal(), payload({ todos: [theirs] }), NOW);
+    await applyRemote(m.toApply);
+    expect(await db.todos.get(id)).toMatchObject({ title: 'gist', modifiedAt: NOW });
+  });
+
+  it('never overwrites an edit made on this device during the sync', async () => {
+    const id = await futureTask();
+    const m = mergePayloads(await readLocal(), payload(), NOW);
+    await repo.updateTodoText(id, { title: 'typed during the sync' });
+    await applyRemote(m.toApply);
+    expect((await db.todos.get(id))!.title).toBe('typed during the sync');
+  });
+
+  it('corrects a future time on a setting here too', async () => {
+    await repo.setSetting('autoP1', false);
+    await db.settings.update('autoP1', { modifiedAt: FUTURE });
+    const m = mergePayloads(await readLocal(), payload(), NOW);
+    await applyRemote(m.toApply);
+    expect(await db.settings.get('autoP1')).toMatchObject({ value: false, modifiedAt: NOW });
+    expect(m.pushNeeded).toBe(true);
+  });
+});
+
 describe('local changes (FR-19.5)', () => {
   it('notify sync, except those that came from the gist', async () => {
     const seen = vi.fn();
@@ -268,6 +321,17 @@ describe('Settings › Sync (FR-19.6 to FR-19.8)', () => {
     expect(sync.status).toBe('synced');
     expect(gh.file(config.gistId)).toBeDefined();
     expect(await titles()).toEqual(['offline edit']);
+  });
+
+  it('Change Token refuses a token from another GitHub account, or one that can’t reach the gist', async () => {
+    gh.tokens.set('theirs', 'gist');
+    gh.logins.set('theirs', 'someone-else');
+    await expect(sync.changeToken('theirs')).rejects.toMatchObject({ code: 'otheraccount' });
+    // A deleted gist can't be checked, so the token is refused too.
+    gh.tokens.set('mine', 'gist');
+    gh.gists.delete(config.gistId);
+    await expect(sync.changeToken('mine')).rejects.toMatchObject({ code: 'unreachable' });
+    expect((await loadConfig())!.token).toBe('good');
   });
 
   it('Recreate Gist: a deleted gist is made again from this device', async () => {

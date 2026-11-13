@@ -128,11 +128,32 @@ export function isRawUrl(url: unknown): url is string {
 /**
  * Check a token: it must be accepted, and a classic token must carry the
  * `gist` scope. (Fine-grained tokens report no scopes; GitHub refuses their
- * gist requests later with `token` if they lack access.)
+ * gist requests later with `token` if they lack access.) Resolves to the
+ * GitHub account the token belongs to.
  */
-export async function checkToken(token: string): Promise<void> {
-  const scopes = await request('GET', '/user', token, async (res) => res.headers.get('x-oauth-scopes'));
-  if (scopes !== null && !scopes.split(',').map((s) => s.trim()).includes('gist')) throw new GistError('scope');
+export async function checkToken(token: string): Promise<string> {
+  const user = await request('GET', '/user', token, async (res) => ({
+    scopes: res.headers.get('x-oauth-scopes'),
+    login: ((await res.json()) as { login?: unknown }).login,
+  }));
+  if (user.scopes !== null && !user.scopes.split(',').map((s) => s.trim()).includes('gist')) throw new GistError('scope');
+  if (typeof user.login !== 'string') throw new GistError('server');
+  return user.login;
+}
+
+/**
+ * The GitHub account that owns a gist, as `token` sees it, or null when the
+ * token can't reach the gist (GitHub answers not found).
+ */
+export async function gistOwner(token: string, id: string): Promise<string | null> {
+  try {
+    const gist = await request('GET', `/gists/${id}`, token, json<{ owner?: { login?: unknown } }>);
+    if (typeof gist.owner?.login !== 'string') throw new GistError('server');
+    return gist.owner.login;
+  } catch (e) {
+    if (e instanceof GistError && e.code === 'notfound') return null;
+    throw e;
+  }
 }
 
 /** Every gist in the account that holds the My Tasks file, newest first. */

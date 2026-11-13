@@ -122,6 +122,44 @@ describe('records and settings, field by field', () => {
     expect(isValidSetting({ key: 'constructor', value: true })).toBe(false);
   });
 
+  it('counts only a record’s own fields, and a rule passes only with true (review follow-up 4)', async () => {
+    const p = await fullList();
+    // An own field named after an inherited one (Object.prototype.toString) in place of a real one.
+    const swapped = withRecord(p, 'todos', (r) => {
+      delete r.title;
+      Object.assign(r, { toString: 'x' });
+    });
+    expect(isPayload(JSON.parse(JSON.stringify(swapped)))).toBe(false);
+  });
+
+  it('accepts only real dates, and timestamps exactly as the app writes them', async () => {
+    const p = await fullList();
+    expect(isPayload(withRecord(p, 'todos', (r) => (r.deadline = '2026-02-30')))).toBe(false);
+    expect(isPayload(withRecord(p, 'projects', (r) => (r.deadline = '2026-13-01')))).toBe(false);
+    expect(isPayload(withRecord(p, 'todos', (r) => (r.createdAt = '2026-11-13T10:00:00Z')))).toBe(false);
+    expect(isPayload(withRecord(p, 'todos', (r) => (r.modifiedAt = '2026-11-13T10:00:00.5Z')))).toBe(false);
+    expect(isPayload(withRecord(p, 'todos', (r) => (r.modifiedAt = '2026-11-31T10:00:00.000Z')))).toBe(false);
+    expect(isPayload(withRecord(p, 'todos', (r) => (r.modifiedAt = '2026-11-13T25:00:00.000Z')))).toBe(false);
+    expect(isValidRecord('todos', { id: 'x', deletedAt: '2026-11-13T10:00:00Z', modifiedAt: '2026-11-13T10:00:00.000Z' })).toBe(false);
+    expect(isValidSetting({ key: 'autoP1', value: true, modifiedAt: '2026-11-13T10:00:00Z' })).toBe(false);
+    expect(isPayload(withRecord(p, 'todos', (r) => (r.deadline = '2028-02-29')))).toBe(true);
+  });
+
+  it('accepts only ordering keys fractional-indexing can use', async () => {
+    const p = await fullList();
+    expect(isPayload(withRecord(p, 'tags', (r) => (r.sortKey = '')))).toBe(false);
+    expect(isPayload(withRecord(p, 'tags', (r) => (r.sortKey = 'not a key!')))).toBe(false);
+    expect(isPayload(withRecord(p, 'todos', (r) => (r.todaySortKey = 'a00')))).toBe(false);
+  });
+
+  it('refuses the same record id, or the same setting, twice', async () => {
+    const p = await fullList();
+    const twice = structuredClone(p);
+    twice.tables.todos.push({ ...first(twice, 'todos'), title: 'another' } as never);
+    expect(isPayload(twice)).toBe(false);
+    expect(isPayload({ ...p, settings: [...p.settings, { ...p.settings[0] }] })).toBe(false);
+  });
+
   it('never applies a gist with a bad record, and never uploads one', async () => {
     const p = await fullList();
     const key = await deriveKey('a long passphrase', newSalt());

@@ -5,7 +5,7 @@
  */
 import { SCHEMA_VERSION } from '../db/database';
 import { nowIso } from '../model/ids';
-import { DecryptError, parseEnvelope, seal, unseal, type Envelope } from './crypto';
+import { DecryptError, MAX_FILE_CHARS, parseEnvelope, seal, unseal, type Envelope } from './crypto';
 import type { DeviceConfig } from './device';
 import { readGist, writeGist } from './github';
 import { applyRemote, readLocal } from './local';
@@ -19,8 +19,20 @@ import { isPayload, mergePayloads, type Payload } from './payload';
  * - `invalid`: this device's list failed the check before upload (never pushed)
  * - `notfound`: the gist has no My Tasks file (deleted on GitHub)
  * - `wrong-passphrase`: a passphrase typed in setup or Settings does not open the gist
+ * - `toolarge`: this device's list, encrypted, is over MAX_FILE_CHARS (never pushed)
+ * - `otheraccount`: a new token belongs to a GitHub account that doesn't own the gist
+ * - `unreachable`: a new token can't reach this device's gist
  */
-export type SyncProblem = 'malformed' | 'passphrase' | 'newer' | 'invalid' | 'notfound' | 'wrong-passphrase';
+export type SyncProblem =
+  | 'malformed'
+  | 'passphrase'
+  | 'newer'
+  | 'invalid'
+  | 'notfound'
+  | 'wrong-passphrase'
+  | 'toolarge'
+  | 'otheraccount'
+  | 'unreachable';
 
 export class SyncError extends Error {
   constructor(readonly code: SyncProblem) {
@@ -59,11 +71,17 @@ export async function openPayload(key: CryptoKey, env: Envelope, wrongKey: SyncP
   return payload;
 }
 
-/** Encrypt a list for the gist. It is checked first, so a bug can never upload a broken list. */
+/**
+ * Encrypt a list for the gist. It is checked first, so a bug can never
+ * upload a broken list, and the encrypted file is measured last: one larger
+ * than any device would read back (MAX_FILE_CHARS) is never uploaded, so the
+ * gist keeps its last good file. Every create and write goes through here.
+ */
 export async function sealPayload(config: Pick<DeviceConfig, 'key' | 'salt' | 'iterations'>, payload: Payload): Promise<string> {
   if (!isPayload(payload)) throw new SyncError('invalid');
-  const env = await seal(config.key, config, JSON.stringify(payload), nowIso());
-  return JSON.stringify(env);
+  const file = JSON.stringify(await seal(config.key, config, JSON.stringify(payload), nowIso()));
+  if (file.length > MAX_FILE_CHARS) throw new SyncError('toolarge');
+  return file;
 }
 
 /**

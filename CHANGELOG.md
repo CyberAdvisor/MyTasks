@@ -4,6 +4,22 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org): until the first release at mytasks.fyi (1.0.0), the middle number goes up for new features and the last number for fixes. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v0.9.1"></a>
+
+## 0.9.1 — 2026-11-13
+
+Follow-ups from the second look at the security review.
+
+### Fixed
+
+- A window left open while another changed the passphrase or token now uses the new settings, so its own Change Token can no longer put the old ones back. (#39)
+- Tasks too large to upload (an encrypted file over 5 MB) are never uploaded. Your gist keeps its last good file, your changes stay on this device, and Settings explains it. (#39)
+- A device whose clock ran fast now has its own changes' times corrected too, on the device and in your gist, without losing an edit made during the sync. (#39)
+- The checks on your gist are stricter: only real dates and times, written the way My Tasks writes them; only valid ordering keys; no task, record or setting twice. (#39)
+- Change Token accepts only a token from the GitHub account that owns your gist. (#39)
+- Error messages in the Settings sync dialogs are red, as in Setup. (#39)
+- The Limitations page says more precisely when changes made on two devices are kept. (#39)
+
 <a id="v0.9.0"></a>
 
 ## 0.9.0 — 2026-11-13

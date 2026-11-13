@@ -5,6 +5,8 @@
 
 interface FakeGist {
   id: string;
+  /** The account that owns it. */
+  owner: string;
   description: string;
   updated_at: string;
   files: Record<string, { content: string }>;
@@ -14,6 +16,8 @@ export class FakeGitHub {
   gists = new Map<string, FakeGist>();
   /** Tokens GitHub accepts, with the scopes it reports for each. */
   tokens = new Map<string, string>([['good', 'gist, repo']]);
+  /** The account each token belongs to; 'me' when not listed. */
+  logins = new Map<string, string>();
   /** Simulate no network. */
   offline = false;
   /** Simulate a rate limit until this Unix time. */
@@ -28,10 +32,11 @@ export class FakeGitHub {
   private clock = Date.parse('2026-11-11T10:00:00Z');
 
   /** Add a gist directly, as if made elsewhere. */
-  add(files: Record<string, string>, description = 'My Tasks'): string {
+  add(files: Record<string, string>, description = 'My Tasks', owner = 'me'): string {
     const id = `gist${this.next++}`;
     this.gists.set(id, {
       id,
+      owner,
       description,
       updated_at: this.tick(),
       files: Object.fromEntries(Object.entries(files).map(([k, v]) => [k, { content: v }])),
@@ -56,6 +61,7 @@ export class FakeGitHub {
   private view(g: FakeGist, withContent: boolean) {
     return {
       id: g.id,
+      owner: { login: g.owner },
       description: g.description,
       updated_at: g.updated_at,
       files: Object.fromEntries(
@@ -91,20 +97,22 @@ export class FakeGitHub {
       return this.json({}, 403, { 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': String(this.limitedUntil) });
     }
     const auth = new Headers(init.headers).get('Authorization') ?? '';
-    const scopes = this.tokens.get(auth.replace('Bearer ', ''));
+    const token = auth.replace('Bearer ', '');
+    const scopes = this.tokens.get(token);
     if (scopes === undefined) return this.json({ message: 'Bad credentials' }, 401);
+    const login = this.logins.get(token) ?? 'me';
     const path = url.pathname;
-    if (path === '/user') return this.json({ login: 'me' }, 200, { 'x-oauth-scopes': scopes });
+    if (path === '/user') return this.json({ login }, 200, { 'x-oauth-scopes': scopes });
     if (path === '/gists' && method === 'GET') {
       const page = Number(url.searchParams.get('page') ?? 1);
       const per = Number(url.searchParams.get('per_page') ?? 30);
-      const all = [...this.gists.values()].map((g) => this.view(g, false));
+      const all = [...this.gists.values()].filter((g) => g.owner === login).map((g) => this.view(g, false));
       return this.json(all.slice((page - 1) * per, page * per));
     }
     if (path === '/gists' && method === 'POST') {
       const body = JSON.parse(String(init.body)) as { description: string; public: boolean; files: Record<string, { content: string }> };
       const id = `gist${this.next++}`;
-      this.gists.set(id, { id, description: body.description, updated_at: this.tick(), files: body.files });
+      this.gists.set(id, { id, owner: login, description: body.description, updated_at: this.tick(), files: body.files });
       return this.json({ id }, 201);
     }
     const m = path.match(/^\/gists\/([^/]+)$/);
@@ -112,6 +120,8 @@ export class FakeGitHub {
     if (!g) return this.json({ message: 'Not Found' }, 404);
     if (method === 'GET') return this.json(this.view(g, true));
     if (method === 'PATCH') {
+      // Only the owner can change a gist; GitHub answers not found to anyone else.
+      if (g.owner !== login) return this.json({ message: 'Not Found' }, 404);
       const body = JSON.parse(String(init.body)) as { files: Record<string, { content: string }> };
       Object.assign(g.files, body.files);
       g.updated_at = this.tick();
