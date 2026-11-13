@@ -3,10 +3,11 @@
  *
  * One object store per entity. Schema changes must add a new
  * `this.version(n)` block with a forward migration; downgrades are not
- * supported (design doc, Section 4, Rules).
+ * supported (design doc, Section 4, Rules). The steps themselves are in
+ * migrations.ts, which also upgrades lists from a gist or a backup file.
  */
 import Dexie, { type Table } from 'dexie';
-import { tombstone } from '../model/tombstone';
+import { addContext, markMoved, stripDeleted } from './migrations';
 import type {
   Area,
   ChangeLogEntry,
@@ -49,26 +50,19 @@ export class MyTasksDB extends Dexie {
       changeLog: '++seq, entity, entityId, at',
       settings: 'key',
     });
-    // Version 2: contexts (FR-18). Existing to-dos and saved searches get no context.
+    // Version 2: contexts (FR-18). Existing tasks and saved searches get no context.
     this.version(2)
       .stores({
         todos: 'id, projectId, areaId, headingId, status, startDate, deadline, sortKey, contextId',
         contexts: 'id, sortKey',
       })
       .upgrade(async (tx) => {
-        await tx.table('todos').toCollection().modify((t) => {
-          t.contextId ??= null;
-        });
-        await tx.table('savedSearches').toCollection().modify((x) => {
-          x.contextId ??= null;
-        });
+        await tx.table('todos').toCollection().modify(addContext);
+        await tx.table('savedSearches').toCollection().modify(addContext);
       });
     // Version 3: completed items wait in their list until moved to Completed
     // (FR-12.2). Everything already completed or canceled counts as moved.
     this.version(3).stores({}).upgrade(async (tx) => {
-      const markMoved = (x: { status: string; completedAt: string | null; modifiedAt: string; loggedAt?: string | null }) => {
-        x.loggedAt ??= x.status === 'open' ? null : (x.completedAt ?? x.modifiedAt);
-      };
       await tx.table('todos').toCollection().modify(markMoved);
       await tx.table('projects').toCollection().modify(markMoved);
     });
@@ -78,7 +72,7 @@ export class MyTasksDB extends Dexie {
     this.version(4).stores({}).upgrade(async (tx) => {
       for (const name of ['areas', 'projects', 'headings', 'todos', 'checklistItems', 'tags', 'contexts', 'savedSearches']) {
         await tx.table(name).toCollection().modify((record, ctx) => {
-          if (record.deletedAt) ctx.value = tombstone(record);
+          if (record.deletedAt) ctx.value = stripDeleted(record);
         });
       }
     });

@@ -4,6 +4,23 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org): until the first release at mytasks.fyi (1.0.0), the middle number goes up for new features and the last number for fixes. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v0.10.0"></a>
+
+## 0.10.0 — 2026-11-13
+
+Back up and restore.
+
+### Added
+
+- **Save Backup** in Settings › Backup downloads a file of your tasks, projects, areas, tags, contexts, saved searches and synced settings. It works whatever state your gist is in, and never holds your token, passphrase or gist connection. The file is not encrypted. On iPhone and iPad, the installed app saves it through the share sheet. (#40)
+- **Restore from Backup…** replaces all your tasks with a backup file's, on this device, in your gist and, once they sync, on your other devices. The whole file is checked first, and the confirmation says what will happen and offers to save a backup first. Restore can't be undone. (#40)
+- My Tasks asks the browser to keep its storage, rather than clear it when space runs low. (#40)
+
+### Changed
+
+- A gist saved by an older version of My Tasks is upgraded when it's read, and saved back in the current format. (#40)
+- Uploads and backup files are taken as one consistent copy of your tasks, even while another window is making changes. (#40)
+
 <a id="v0.9.1"></a>
 
 ## 0.9.1 — 2026-11-13

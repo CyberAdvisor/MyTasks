@@ -56,6 +56,9 @@ tests/          Unit tests; tests/fakeGitHub.ts fakes the gist API
 - Only read fields other than those three after filtering out deleted records.
 - Sync merges record by record; the later `modifiedAt` wins. A `modifiedAt` later than now, from the gist or on this device, counts as now; the corrected copy is pushed and saved on this device. The merge records the time this device had for each row it writes (`seen` in `payload.ts`), and `applyRemote` writes a row only while the device still has that time, or when the row is later, so an edit made during a sync is never overwritten.
 - This device's token, gist id and encryption key live in a separate database, `mytasks-device`, and never sync.
+- Schema upgrades are per-record steps in `src/lib/db/migrations.ts`. Dexie's upgrade blocks in `database.ts` call them, and `upgradeList` uses the same steps for a list from an older version (a gist, or a backup file). **A new schema version adds its step there, a `this.version(n)` block, an entry in `STEPS`, and raises `SCHEMA_VERSION`.**
+- `readLocal` (`src/lib/sync/local.ts`) reads every synced table and the settings in one read transaction, so uploads and backup files are one consistent snapshot.
+- Once a device is connected, the app asks the browser to keep its storage (`navigator.storage.persist()`); the answer isn't shown.
 
 ## Sync
 
@@ -68,6 +71,13 @@ tests/          Unit tests; tests/fakeGitHub.ts fakes the gist API
 - Every GitHub request, its answer included, has a 30-second limit (`REQUEST_TIMEOUT_MS`); no answer in time counts as offline, so the 15-second offline retries take over.
 - A rate limit schedules the next try for just after its reset time (or GitHub's `Retry-After`, or a minute when it gives neither).
 - The full text of a long gist file is fetched only from `https://gist.githubusercontent.com`.
+- A list read from the gist (`checkList` in `cycle.ts`) from a newer schema is refused (`newer`); one from an older schema is upgraded with `upgradeList`, checked, and marked `upgradedFrom` (in memory only), so the merge pushes it back at the current schema.
+
+## Back up and restore (FR-12.8)
+
+- `src/lib/backup.ts` builds the file: a header (`format: "mytasks-backup"`, `formatVersion`, `schema`, `savedAt`, `appVersion`) and the same tables and synced settings as the gist, from `readLocal`. It is unencrypted, and holds nothing from `mytasks-device`. Saving needs no network. In the installed iPhone and iPad app it goes through the share sheet (`saveMethod`); everywhere else it is an ordinary download. Messages say "downloaded", never "backed up".
+- `readBackup` checks a file completely before anything changes: at most 5 MB, the format marker, the format version and schema (older upgraded, newer refused), then `checkList`, the gist's own checks.
+- `SyncEngine.restore` runs under the sync lock. It reads and opens the gist first (any error: nothing changes), builds the replacement (`replacement` in `payload.ts`: the backup's records and synced settings stamped now; a tombstone stamped now for every other id on the device or in the gist; defaults for synced settings the file lacks), and checks it with `sealPayload` (validation and 5 MB). Then `replaceLocal` writes the device in one transaction, reading its ids again inside it, and the gist is overwritten. If only that write fails, the device is restored and the next sync pushes it (`pending`). Restore clears the undo step. `tests/backup.test.ts` has the named test of this policy with two devices.
 
 ## Install and offline
 

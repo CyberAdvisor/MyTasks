@@ -1,7 +1,7 @@
 <!--
   Modal dialog asking the user to pick one of several actions.
-  Used for: completing a project with open to-dos, deleting an area,
-  emptying the Trash.
+  Used for: completing a project with open tasks, deleting an area,
+  emptying the Trash, restoring a backup (with its points as a list).
 -->
 <script lang="ts" module>
   export interface Choice {
@@ -15,11 +15,17 @@
   let {
     title,
     message = '',
+    points = [],
+    note = '',
     choices,
     onchoose,
   }: {
     title: string;
     message?: string;
+    /** Shown as a list under the message. */
+    points?: string[];
+    /** A short status line above the buttons, such as a result. */
+    note?: string;
     choices: Choice[];
     /** Called with the chosen value, or null when cancelled. */
     onchoose: (value: string | null) => void;
@@ -42,6 +48,12 @@
 >
   <h2 id="choice-title">{title}</h2>
   {#if message}<p>{message}</p>{/if}
+  {#if points.length}
+    <ul>
+      {#each points as point (point)}<li>{point}</li>{/each}
+    </ul>
+  {/if}
+  {#if note}<p class="note" role="status">{note}</p>{/if}
   <div class="actions">
     <button type="button" class="btn-plain" onclick={() => onchoose(null)}>Cancel</button>
     {#each choices as c (c.value)}
@@ -73,6 +85,19 @@
     color: var(--text-2);
     font-size: 14px;
     line-height: 1.45;
+  }
+  ul {
+    margin: -8px 0 16px;
+    padding-left: 20px;
+    color: var(--text-2);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  li + li {
+    margin-top: 4px;
+  }
+  .note {
+    color: var(--text);
   }
   .actions {
     display: flex;

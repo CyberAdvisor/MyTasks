@@ -60,7 +60,7 @@ Comparison as of November 2026. Prices are in US dollars and can change.
 2. Confirm you've read the [risks and limitations](https://mytasks.fyi/limitations/), connect it to your free GitHub account with a token (the app shows you how), and choose a passphrase.
 3. My Tasks creates a secret, encrypted gist in your account to hold your tasks. Connect your other devices with the same token and passphrase, and they all stay in step.
 
-Every device keeps its own working copy, so the app is fast and works without a connection. Changes are encrypted and sent to your gist a moment after you make them.
+Every device keeps its own working copy, so the app is fast and works without a connection. Changes are encrypted and sent to your gist a moment after you make them. You can also save a backup file of your tasks in Settings and restore it later.
 
 ## Status
 
