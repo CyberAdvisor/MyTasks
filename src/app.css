@@ -25,6 +25,18 @@ body {
   height: 100%;
 }
 
+/* Shown instead of the app inside another page's frame (lib/framed.ts). */
+.framed-notice {
+  margin: 0;
+  padding: 24px 16px;
+  font-size: 15px;
+  text-align: center;
+}
+
+.framed-notice a {
+  color: var(--accent-text);
+}
+
 button {
   font: inherit;
   color: inherit;

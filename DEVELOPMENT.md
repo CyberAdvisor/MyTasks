@@ -56,6 +56,14 @@ tests/          Unit tests; tests/fakeGitHub.ts fakes the gist API
 - Sync merges record by record; the later `modifiedAt` wins.
 - This device's token, gist id and encryption key live in a separate database, `mytasks-device`, and never sync.
 
+## Sync
+
+- Syncs and the Settings actions (Change Token, Change Passphrase, Enter Passphrase, Recreate Gist) run one at a time across every open window, under one Web Lock (`src/lib/sync/lock.ts`); without Web Locks they still run one at a time within the window. Each one first checks that the device is still connected, and does nothing if not.
+- Disconnect stops new syncs, takes the same lock (so it waits for a running one in any window), clears this device, then tells the other windows over a `BroadcastChannel`; they stop and reload to Setup.
+- Every GitHub request, its answer included, has a 30-second limit (`REQUEST_TIMEOUT_MS`); no answer in time counts as offline, so the 15-second offline retries take over.
+- A rate limit schedules the next try for just after its reset time (or GitHub's `Retry-After`, or a minute when it gives neither).
+- The full text of a long gist file is fetched only from `https://gist.githubusercontent.com`.
+
 ## Install and offline
 
 `vite-plugin-pwa` writes the web app manifest and a Workbox service worker that precaches the whole app, so it opens with no connection. The icons are made at build time from `public/favicon.svg` (`pwa-assets.config.ts`). The service worker handles only the app's own files: requests to GitHub always go to the network.
@@ -83,7 +91,7 @@ The app links to the website from Setup, the sidebar's ? button, Settings › Ab
 
 The website has its own, stricter policy (`SITE_CSP` in `src/lib/csp.ts`): its own scripts and styles only, nothing inline, and no connections. `tests/website.test.ts` checks every page for it, the shared header and footer, and every link.
 
-The built page carries a strict Content Security Policy in a `<meta>` tag (`src/lib/csp.ts`, added by `vite.config.ts`): scripts only from the app, no `eval`, and no connections except the app and GitHub's gist API. GitHub Pages can't send headers, so `frame-ancestors` and violation reports are not available. The dev server leaves the policy out, because it needs its own live-reload connection; `npm run preview` serves a build with it.
+The built page carries a strict Content Security Policy in a `<meta>` tag (`src/lib/csp.ts`, added by `vite.config.ts`): scripts only from the app, no `eval`, and no connections except the app and GitHub's gist API. GitHub Pages can't send headers, so `frame-ancestors` and violation reports are not available. Instead, the app checks whether it is inside a frame when it starts (`src/lib/framed.ts`); if so it starts nothing and shows a message with a link that opens it on its own. The dev server leaves the policy out, because it needs its own live-reload connection; `npm run preview` serves a build with it.
 
 ## Versions
 

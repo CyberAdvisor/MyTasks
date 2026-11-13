@@ -5,13 +5,21 @@
  * Every failure becomes a GistError with a code the UI turns into words:
  * - `token`: the token was rejected (bad, expired or revoked)
  * - `scope`: the token works but lacks the `gist` scope
- * - `offline`: no answer (no network, or GitHub unreachable)
+ * - `offline`: no answer (no network, GitHub unreachable, or no answer
+ *   within REQUEST_TIMEOUT_MS)
  * - `ratelimit`: GitHub is limiting requests until `retryAt`
  * - `notfound`: the gist no longer exists
- * - `server`: any other error from GitHub
+ * - `server`: any other error from GitHub, including a raw-file address
+ *   that is not on gist.githubusercontent.com
  */
 
 const API = 'https://api.github.com';
+
+/** The only place the full text of a long gist file is fetched from. */
+export const RAW_ORIGIN = 'https://gist.githubusercontent.com';
+
+/** How long a request, its answer included, may take before it counts as offline. */
+export const REQUEST_TIMEOUT_MS = 30_000;
 
 /** The one file in the My Tasks gist. */
 export const GIST_FILE = 'mytasks.json';
@@ -38,23 +46,57 @@ export interface GistRef {
   updatedAt: string;
 }
 
-/** Turn an unsuccessful response into a GistError. */
+/**
+ * Turn an unsuccessful response into a GistError. A rate limit carries when
+ * it ends: GitHub's reset time, or else its Retry-After seconds.
+ */
 function errorFor(res: Response): GistError {
   const remaining = res.headers.get('x-ratelimit-remaining');
-  if ((res.status === 403 || res.status === 429) && (remaining === '0' || res.status === 429)) {
+  const retryAfter = res.headers.get('retry-after');
+  if ((res.status === 403 || res.status === 429) && (remaining === '0' || retryAfter !== null || res.status === 429)) {
     const reset = Number(res.headers.get('x-ratelimit-reset'));
-    return new GistError('ratelimit', reset ? new Date(reset * 1000) : null);
+    const after = Number(retryAfter);
+    if (reset) return new GistError('ratelimit', new Date(reset * 1000));
+    if (after) return new GistError('ratelimit', new Date(Date.now() + after * 1000));
+    return new GistError('ratelimit');
   }
   if (res.status === 401 || res.status === 403) return new GistError('token');
   if (res.status === 404) return new GistError('notfound');
   return new GistError('server');
 }
 
-/** One API request. Resolves to the response once it is known to be OK. */
-async function request(method: string, path: string, token: string, body?: unknown): Promise<Response> {
-  let res: Response;
+/**
+ * Fetch `url` and read its answer with `read`, all within REQUEST_TIMEOUT_MS.
+ * No answer in time, or no network, is `offline`; an unsuccessful answer
+ * becomes its GistError.
+ */
+async function timedFetch<T>(url: string, init: RequestInit, read: (res: Response) => Promise<T>): Promise<T> {
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), REQUEST_TIMEOUT_MS);
   try {
-    res = await fetch(API + path, {
+    let res: Response;
+    try {
+      res = await fetch(url, { ...init, signal: abort.signal });
+    } catch {
+      throw new GistError('offline');
+    }
+    if (!res.ok) throw errorFor(res);
+    try {
+      return await read(res);
+    } catch (e) {
+      if (abort.signal.aborted) throw new GistError('offline');
+      throw e;
+    }
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** One API request, its successful answer read with `read`. */
+function request<T>(method: string, path: string, token: string, read: (res: Response) => Promise<T>, body?: unknown): Promise<T> {
+  return timedFetch(
+    API + path,
+    {
       method,
       headers: {
         Accept: 'application/vnd.github+json',
@@ -63,12 +105,22 @@ async function request(method: string, path: string, token: string, body?: unkno
       },
       body: body === undefined ? undefined : JSON.stringify(body),
       cache: 'no-store',
-    });
+    },
+    read,
+  );
+}
+
+/** Read an answer as JSON. */
+const json = <T>(res: Response) => res.json() as Promise<T>;
+
+/** True when `url` is a gist raw-file address on RAW_ORIGIN. */
+export function isRawUrl(url: unknown): url is string {
+  if (typeof url !== 'string') return false;
+  try {
+    return new URL(url).origin === RAW_ORIGIN;
   } catch {
-    throw new GistError('offline');
+    return false;
   }
-  if (!res.ok) throw errorFor(res);
-  return res;
 }
 
 /**
@@ -77,8 +129,7 @@ async function request(method: string, path: string, token: string, body?: unkno
  * gist requests later with `token` if they lack access.)
  */
 export async function checkToken(token: string): Promise<void> {
-  const res = await request('GET', '/user', token);
-  const scopes = res.headers.get('x-oauth-scopes');
+  const scopes = await request('GET', '/user', token, async (res) => res.headers.get('x-oauth-scopes'));
   if (scopes !== null && !scopes.split(',').map((s) => s.trim()).includes('gist')) throw new GistError('scope');
 }
 
@@ -86,11 +137,7 @@ export async function checkToken(token: string): Promise<void> {
 export async function findGists(token: string): Promise<GistRef[]> {
   const found: GistRef[] = [];
   for (let page = 1; ; page++) {
-    const list = (await (await request('GET', `/gists?per_page=100&page=${page}`, token)).json()) as {
-      id: string;
-      updated_at: string;
-      files: Record<string, unknown>;
-    }[];
+    const list = await request('GET', `/gists?per_page=100&page=${page}`, token, json<{ id: string; updated_at: string; files: Record<string, unknown> }[]>);
     for (const g of list) if (g.files?.[GIST_FILE]) found.push({ id: g.id, updatedAt: g.updated_at });
     if (list.length < 100) break;
   }
@@ -100,36 +147,33 @@ export async function findGists(token: string): Promise<GistRef[]> {
 /**
  * The My Tasks file in a gist, or null when the gist no longer has it.
  * GitHub cuts long files short in the API answer; then the full file is
- * fetched from its raw address.
+ * fetched from its raw address, which must be on gist.githubusercontent.com.
  */
 export async function readGist(token: string, id: string): Promise<string | null> {
-  const gist = (await (await request('GET', `/gists/${id}`, token)).json()) as {
-    files: Record<string, { content?: string; truncated?: boolean; raw_url?: string } | undefined>;
-  };
+  const gist = await request(
+    'GET',
+    `/gists/${id}`,
+    token,
+    json<{ files: Record<string, { content?: string; truncated?: boolean; raw_url?: string } | undefined> }>,
+  );
   const file = gist.files?.[GIST_FILE];
   if (!file) return null;
   if (!file.truncated && typeof file.content === 'string') return file.content;
-  let res: Response;
-  try {
-    res = await fetch(file.raw_url!, { cache: 'no-store' });
-  } catch {
-    throw new GistError('offline');
-  }
-  if (!res.ok) throw errorFor(res);
-  return res.text();
+  if (!isRawUrl(file.raw_url)) throw new GistError('server');
+  return timedFetch(file.raw_url, { cache: 'no-store' }, (res) => res.text());
 }
 
 /** Create the secret My Tasks gist holding `content`. Resolves to its id. */
 export async function createGist(token: string, content: string): Promise<string> {
-  const res = await request('POST', '/gists', token, {
+  const created = await request('POST', '/gists', token, json<{ id: string }>, {
     description: GIST_DESCRIPTION,
     public: false,
     files: { [GIST_FILE]: { content } },
   });
-  return ((await res.json()) as { id: string }).id;
+  return created.id;
 }
 
 /** Replace the My Tasks file in an existing gist. */
 export async function writeGist(token: string, id: string, content: string): Promise<void> {
-  await request('PATCH', `/gists/${id}`, token, { files: { [GIST_FILE]: { content } } });
+  await request('PATCH', `/gists/${id}`, token, async () => undefined, { files: { [GIST_FILE]: { content } } });
 }
