@@ -8,6 +8,14 @@ export const TOKEN = 'good';
 export const PASSPHRASE = 'correct horse battery';
 
 /**
+ * How long to wait for the lists after entering the passphrase. Deriving the
+ * key takes 600,000 PBKDF2 rounds on purpose (FR-19.6); with several tests
+ * doing it at once, WebKit on a Mac can take well over Playwright's default
+ * 5 seconds.
+ */
+const KEY_DERIVATION_TIMEOUT = 30_000;
+
+/**
  * Open the app and connect it through Setup with the fake GitHub's token.
  * With no gist yet it creates one; with one, it unlocks it.
  */
@@ -26,7 +34,7 @@ export async function connect(page: Page): Promise<void> {
   } else {
     await unlock.click();
   }
-  await expect(page.getByRole('navigation', { name: 'Lists' })).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Lists' })).toBeVisible({ timeout: KEY_DERIVATION_TIMEOUT });
 }
 
 /** Open a built-in list or a project from the sidebar. */
