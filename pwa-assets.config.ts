@@ -1,10 +1,10 @@
 // App icons (FR-0.1), made at build time by vite-plugin-pwa from the logo.
-// The logo is the M-check monogram (design doc Section 6, FR-V.5); replacing
+// The logo is the MT monogram (design doc Section 6, FR-V.5); replacing
 // public/favicon.svg replaces every icon.
 import { defineConfig } from '@vite-pwa/assets-generator/config';
 
-/** Icons drawn on a full square fill it with the logo's dark coral, not white. */
-export const ICON_FILL = '#712B13';
+/** Icons drawn on a full square fill it with the logo's dark teal, not white. */
+export const ICON_FILL = '#0F5B52';
 const fill = { resizeOptions: { background: ICON_FILL } };
 
 export default defineConfig({
