@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Tasks — a free, private task manager</title>
+<meta name="description" content="A calm, focused task manager. Free, open source and private: your tasks are encrypted in your own GitHub account.">
+<link rel="icon" href="/app/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/site.css">
+<script src="/assets/site.js"></script>
+</head>
+<body>
+<!-- Shared header: keep the same on every page (tests/website.test.ts). -->
+<header class="site"><div class="wrap">
+  <a class="brand" href="/"><svg width="30" height="30" viewBox="0 0 120 120" aria-hidden="true"><rect width="120" height="120" rx="27" fill="#712b13"/><g fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><path d="M26 86V40l20 24 20-24v22" stroke="#f5c4b3"/><path d="M62 70l12 12 22-34" stroke="#fff"/></g></svg>My Tasks</a>
+  <nav class="main">
+    <a href="/#features">Features</a><a href="/guide/">Guide</a><a href="/compare/">Compare</a><a href="/limitations/">Limitations</a>
+    <a class="btn" href="/app/">Open the app</a>
+  </nav>
+</div></header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Plan. Do. Succeed.</h1>
+    <p class="lede">A calm, focused task manager — free, open source, and private. It runs on every device you own, works offline, and keeps your tasks encrypted in your own GitHub account.</p>
+    <div class="ctas"><a class="btn big" href="/app/">Open the app</a><a class="btn big ghost" href="/guide/">Read the guide</a></div>
+    <p class="small">Free. No subscription. No account with us. iPhone, iPad, Mac, Windows, Linux and Android.</p>
+    <p class="donate"><a class="btn ghost" href="https://ko-fi.com/Z8O623D716"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M8 3.5v2M12 3.5v2"/></g></svg>Support My Tasks on Ko-fi</a></p>
+    <div class="shots">
+      <picture><source srcset="/assets/shots/desktop-dark.png" media="(prefers-color-scheme: dark)"><img class="desk" src="/assets/shots/desktop-light.png" alt="My Tasks on a Mac, showing Today grouped by priority" width="2880" height="1800"></picture>
+      <img class="phone" src="/assets/shots/phone-light.png" alt="My Tasks on an iPhone, showing Today grouped by priority" width="1170" height="2532">
+    </div>
+  </section>
+
+  <aside class="callout" id="before">
+    <h2>Before you rely on it</h2>
+    <p>My Tasks is ready for use, within its limitations. Please read these before you put anything important in it:</p>
+    <ul>
+      <li>You need a <strong>GitHub account</strong> and a personal access token. Your tasks are kept, encrypted, in a secret gist in your account. (A gist is a file stored in your GitHub account. A secret gist isn't listed or searchable, but anyone with its web address can open it, which is why My Tasks encrypts it.)</li>
+      <li><strong>A forgotten passphrase can't be recovered.</strong> Without it, your tasks can't be decrypted.</li>
+      <li>If you edit the same task on two devices before they sync, <strong>the later edit wins</strong> and the other is lost.</li>
+      <li>No reminders or notifications, no widgets, no Siri.</li>
+      <li>Android is best effort.</li>
+    </ul>
+    <a href="/limitations/">Read all the limitations →</a>
+  </aside>
+
+  <section class="block" id="features">
+    <h2>Everything in its place</h2>
+    <p class="sub">A clear structure for everything you need to do.</p>
+    <div class="grid3">
+      <div class="card"><h3>Today, and what's next</h3><p>Inbox, Today, Scheduled, Unscheduled and Deferred. Tasks roll into Today when their day comes; deadlines are flagged in red.</p></div>
+      <div class="card"><h3>Areas, projects, headings</h3><p>Group work into areas and projects, split projects with headings, and add checklists and notes to any task. Focus on one area to see only its tasks.</p></div>
+      <div class="card"><h3>Priorities</h3><p>Five priority levels with names you choose. Due and overdue tasks can get P1 automatically.</p></div>
+      <div class="card"><h3>Contexts</h3><p>Mark where or how a task gets done — Errands, Phone, Computer — and filter Today by it.</p></div>
+      <div class="card"><h3>Group Today your way</h3><p>See Today as one list, or grouped by project, priority or context. Save searches to the sidebar.</p></div>
+      <div class="card"><h3>Made for the keyboard</h3><p>Quick Entry, Quick Find and a full set of keyboard shortcuts, wherever the browser allows them.</p></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>Free, private, secure</h2>
+    <p class="sub">No server of ours ever sees your tasks.</p>
+    <div class="grid3">
+      <div class="card"><h3>Free and open source</h3><p>No subscription, no ads, no tracking. The code is on GitHub under the MIT licence.</p></div>
+      <div class="card"><h3>Encrypted end to end</h3><p>Your tasks are encrypted on your device with your passphrase before it leaves. <a href="/security/">How it works</a></p></div>
+      <div class="card"><h3>Yours to keep</h3><p>Your tasks live in your own GitHub account, not ours. Every device keeps a working copy, so it works offline. <a href="/privacy/">Privacy</a></p></div>
+    </div>
+  </section>
+
+  <section class="block" id="how">
+    <h2>How it works</h2>
+    <p class="sub">About five minutes on your first device; one minute on each one after that.</p>
+    <div class="steps">
+      <div class="card"><h3>Open the app</h3><p>Go to mytasks.fyi/app in Safari, Chrome or Edge.</p></div>
+      <div class="card"><h3>Connect GitHub</h3><p>Create a token with the gist permission and paste it in. <a href="/guide/#token">Step by step</a></p></div>
+      <div class="card"><h3>Choose a passphrase</h3><p>It encrypts your tasks. Write it down: it can't be recovered.</p></div>
+      <div class="card"><h3>Install it</h3><p>Add it to your Home Screen or Dock, then connect your other devices the same way.</p></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>How it compares</h2>
+    <p class="sub">Coming from another task manager? <a href="/compare/">See how My Tasks compares</a>.</p>
+  </section>
+
+  <section class="block" id="book">
+    <h2>Learn to use it</h2>
+    <div class="book home">
+      <a href="/book/"><img class="cover" src="/book/cover.jpg" alt="The cover of My Tasks, Your Way" width="320" height="512"></a>
+      <div>
+        <h3>The book: My Tasks, Your Way</h3>
+        <p>Want to learn how My Tasks can help you manage your busy life? Read the book, where I give you a living example: a week in the life of one busy person, with a small business, a small team and a family. Free, as an EPUB or PDF.</p>
+        <p><a class="btn" href="/book/">Get the book</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Common questions</h2>
+    <div class="faq">
+      <details><summary>Is My Tasks really free?</summary><p>Yes. Every feature, on every device, at no cost: there's no paid tier or trial. It's open source under the MIT licence. If it helps you, you can <a href="https://ko-fi.com/Z8O623D716">support it on Ko-fi</a>, but you don't have to.</p></details>
+      <details><summary>Is my data safe?</summary><p>Your tasks are encrypted on your device, with your passphrase (AES-256-GCM), before they're sent to a secret gist in your own GitHub account. GitHub, or anyone else who reaches the gist, sees only scrambled data, and only your GitHub account can change it. Your passphrase is never stored or sent anywhere, so it can't be recovered: if you lose it and no device is still connected, your tasks in the gist can't be decrypted. Write it down somewhere safe. For a copy of your own, use <strong>Save Backup</strong> in Settings › Backup to save all your tasks as a file on your computer. The file isn't encrypted, so keep it somewhere private. <a href="/security/">How the encryption works</a>.</p></details>
+      <details><summary>What happens if this project is abandoned?</summary><p>My Tasks has no server or account of its own, so your tasks don't depend on it. The website and app are plain static files, open source under the MIT licence. Anyone can clone the repository from GitHub and publish it on GitHub Pages or any other static hosting service, such as Cloudflare Pages or Netlify, and keep using it with the same gist for as long as they like. <a href="/self-hosting/">Your own copy</a> explains how. Your tasks stay in your gist and your backups either way.</p></details>
+      <details><summary>Why do I need a GitHub account?</summary><p>My Tasks has no server of its own. Your tasks are kept in a secret gist in your GitHub account, which is how your devices stay in step. <a href="/guide/#token">How to connect it</a>.</p></details>
+      <details><summary>Can I take my data with me?</summary><p>Yes. <strong>Save Backup</strong> in Settings › Backup downloads all your tasks as a file whenever you like, <strong>Archive</strong> saves old completed tasks to a CSV file, and the gist is in your own account. <a href="/guide/#backup">Back up and restore</a>.</p></details>
+      <details><summary>Does it work offline?</summary><p>Yes. Installed, My Tasks opens and works with no connection, and your changes sync when you're back online.</p></details>
+      <details><summary>Can I import tasks from another app?</summary><p>Yes. <strong>Import…</strong> in Settings adds tasks from a CSV file to what you have, after showing you what it holds. A script for your Mac writes that file from Things 3. <a href="/import/">Import from other apps</a>.</p></details>
+      <details><summary>Does it have reminders?</summary><p>No. A web app without a server can't send reminders or notifications. For a task that needs an alert at a set time, add a reminder for it in your device's reminders app, such as Apple Reminders. <a href="/limitations/#not-possible">What a web app can't do</a>.</p></details>
+    </div>
+  </section>
+
+  <section class="block" id="help">
+    <h2>Help and what's next</h2>
+    <div class="grid3">
+      <div class="card"><h3>Ask or suggest</h3><p>Questions, ideas and news of each new milestone, in <a href="https://www.reddit.com/r/mytasksfyi/">r/mytasksfyi</a> on Reddit.</p></div>
+      <div class="card"><h3>See what's coming</h3><p>What's planned, milestone by milestone, on the <a href="/roadmap/">Roadmap</a>.</p></div>
+      <div class="card"><h3>Report a bug</h3><p>Something not working as it should? <a href="https://github.com/CyberAdvisor/MyTasks/issues">Report it on GitHub</a>.</p></div>
+    </div>
+  </section>
+
+  <section class="closing">
+    <h2>Ready when you are.</h2>
+    <a class="btn big" href="/app/">Open the app</a>
+  </section>
+</main>
+
+<!-- Shared footer: keep the same on every page (tests/website.test.ts). -->
+<footer class="site"><div class="wrap">
+  <div class="cols">
+    <div><h2>Product</h2><a href="/#features">Features</a><a href="/#how">How it works</a><a href="/compare/">Compare</a><a href="/roadmap/">Roadmap</a><a href="/app/">Open the app</a></div>
+    <div><h2>Help</h2><a href="/guide/">Guide</a><a href="/book/">The book</a><a href="/methods/">Ways to organize</a><a href="/import/">Import from other apps</a><a href="/#faq">Common questions</a><a href="https://www.reddit.com/r/mytasksfyi/">Community (r/mytasksfyi)</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a></div>
+    <div><h2>Project</h2><a href="/about/">About</a><a href="/self-hosting/">Your own copy</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://ko-fi.com/Z8O623D716">Donate</a></div>
+  </div>
+  <div class="base"><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a><span>Open source, <a href="https://github.com/CyberAdvisor/MyTasks/blob/main/LICENSE">MIT licence</a></span></div>
+</div></footer>
+</body>
+</html>

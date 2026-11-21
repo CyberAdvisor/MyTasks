@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ways to organize — My Tasks</title>
+<meta name="description" content="How to set up My Tasks for Getting Things Done, PARA or the Eisenhower matrix.">
+<link rel="icon" href="/app/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+<!-- Shared header: keep the same on every page (tests/website.test.ts). -->
+<header class="site"><div class="wrap">
+  <a class="brand" href="/"><svg width="30" height="30" viewBox="0 0 120 120" aria-hidden="true"><rect width="120" height="120" rx="27" fill="#712b13"/><g fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><path d="M26 86V40l20 24 20-24v22" stroke="#f5c4b3"/><path d="M62 70l12 12 22-34" stroke="#fff"/></g></svg>My Tasks</a>
+  <nav class="main">
+    <a href="/#features">Features</a><a href="/guide/">Guide</a><a href="/compare/">Compare</a><a href="/limitations/">Limitations</a>
+    <a class="btn" href="/app/">Open the app</a>
+  </nav>
+</div></header>
+
+<main class="page">
+  <h1>Ways to organize</h1>
+  <p>My Tasks works well on its own, but if you already follow a method, here's how to set it up for three popular ones. Each uses only what's in My Tasks today; the <a href="/guide/">Guide</a> explains every feature.</p>
+  <div class="toc"><strong>On this page</strong>
+    <ol>
+      <li><a href="#gtd">Getting Things Done (GTD)</a></li>
+      <li><a href="#para">PARA</a></li>
+      <li><a href="#eisenhower">The Eisenhower matrix</a></li>
+    </ol>
+  </div>
+
+  <h2 id="gtd">Getting Things Done (GTD)</h2>
+  <p>David Allen's method: get everything out of your head into a trusted system, decide the next action for each thing, do it in the right place, and review the whole system each week.</p>
+  <h3>Set it up</h3>
+  <ol>
+    <li><strong>Areas</strong> for the parts of your life (Work, Home, Health), and a <strong>project</strong> for each outcome that takes more than one step.</li>
+    <li><strong>Contexts</strong> for where or how you can act: in Settings › Contexts, add @Home, @Computer, @Errands and @Phone, and a <strong>Waiting</strong> context for things you're waiting on from others.</li>
+    <li>Make projects whose steps go in order <strong>sequential</strong>: in Settings › Sequential Projects, list a tag such as "next" with a priority and context, then tag those projects with it. Each keeps just its next action in Today.</li>
+  </ol>
+  <h3>Day to day</h3>
+  <ul>
+    <li><strong>Capture:</strong> add everything to the Inbox, with Quick Entry (Ctrl Space) from anywhere in the app.</li>
+    <li><strong>Clarify and organize:</strong> empty the Inbox by moving each task to a project or area and giving it a context. Something for later gets a start date and waits in Scheduled; a maybe goes to <strong>Deferred</strong> (GTD's Someday/Maybe).</li>
+    <li><strong>Engage:</strong> in Today, choose <strong>Group By › Contexts</strong> from the ⋯ after the title, or use the bar under the title to see only the context you're in.</li>
+    <li><strong>Weekly review:</strong> empty the Inbox; open Quick Find and choose <strong>All Projects</strong> to check each has a next action; look through Scheduled and Deferred; and save a search for your Waiting context to check what you're waiting on.</li>
+  </ul>
+
+  <h2 id="para">PARA</h2>
+  <p>Tiago Forte's method sorts everything into four places: <strong>Projects</strong> (with a goal and an end), <strong>Areas</strong> (ongoing responsibilities), <strong>Resources</strong> (topics of interest) and <strong>Archives</strong> (anything finished or inactive).</p>
+  <h3>Set it up</h3>
+  <ol>
+    <li><strong>Areas</strong> for your responsibilities (Health, Finances, Home, each client), each holding its <strong>projects</strong>.</li>
+    <li>A <strong>Resources</strong> area for topics you're collecting, such as Recipes or Books to Read. Give its projects a start date of <strong>Deferred</strong>, so their tasks stay out of Today and Unscheduled until you pick one up.</li>
+    <li><strong>Tags</strong> for anything that cuts across all four, such as a person's name or a quarter's goal.</li>
+  </ol>
+  <h3>Day to day</h3>
+  <ul>
+    <li>Work from Today and the projects in your areas.</li>
+    <li><strong>Archive</strong> a project when it's done: choose <strong>Complete Project</strong> from its ⋯ menu. Quick Find's <strong>Completed Projects</strong> shows them all, and Completed holds the finished tasks.</li>
+    <li>To shelve a project without finishing it, give it a start date of <strong>Deferred</strong>; bring it back by clearing it.</li>
+  </ul>
+
+  <h2 id="eisenhower">The Eisenhower matrix</h2>
+  <p>Sort each task by whether it's urgent and whether it's important: <strong>do</strong> urgent, important tasks first; <strong>schedule</strong> important ones that aren't urgent; <strong>delegate</strong> urgent ones that aren't important; and <strong>eliminate</strong> the rest.</p>
+  <h3>Set it up</h3>
+  <ol>
+    <li>In Settings › Priority Settings, rename the levels: P1 <strong>Do first</strong>, P2 <strong>Schedule</strong>, P3 <strong>Delegate</strong> and P4 <strong>Eliminate</strong>. Leave P5 unused, or use it for "not sorted yet".</li>
+    <li>Leave <strong>Set P1 automatically for due and overdue tasks in Today</strong> on: a task due today is urgent. Turn off <strong>Set P2 by default for tasks added to Today</strong>, so you choose each task's quadrant yourself.</li>
+    <li>Use <strong>deadlines</strong> for real due dates, so urgent tasks come to Today on their own.</li>
+  </ol>
+  <h3>Day to day</h3>
+  <ul>
+    <li>In Today, choose <strong>Group By › Priorities</strong> from the ⋯ after the title: your tasks appear in the four quadrants, Do first at the top.</li>
+    <li>Give each new task its quadrant as you add it. Give Schedule tasks a start date; hand Delegate tasks on and keep them in a Waiting context; delete or complete Eliminate tasks rather than letting them pile up.</li>
+  </ul>
+</main>
+
+<!-- Shared footer: keep the same on every page (tests/website.test.ts). -->
+<footer class="site"><div class="wrap">
+  <div class="cols">
+    <div><h2>Product</h2><a href="/#features">Features</a><a href="/#how">How it works</a><a href="/compare/">Compare</a><a href="/roadmap/">Roadmap</a><a href="/app/">Open the app</a></div>
+    <div><h2>Help</h2><a href="/guide/">Guide</a><a href="/book/">The book</a><a href="/methods/">Ways to organize</a><a href="/import/">Import from other apps</a><a href="/#faq">Common questions</a><a href="https://www.reddit.com/r/mytasksfyi/">Community (r/mytasksfyi)</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a></div>
+    <div><h2>Project</h2><a href="/about/">About</a><a href="/self-hosting/">Your own copy</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://ko-fi.com/Z8O623D716">Donate</a></div>
+  </div>
+  <div class="base"><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a><span>Open source, <a href="https://github.com/CyberAdvisor/MyTasks/blob/main/LICENSE">MIT licence</a></span></div>
+</div></footer>
+</body>
+</html>

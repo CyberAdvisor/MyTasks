@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About — My Tasks</title>
+<meta name="description" content="Why My Tasks exists, what it holds to, and who makes it.">
+<link rel="icon" href="/app/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+<!-- Shared header: keep the same on every page (tests/website.test.ts). -->
+<header class="site"><div class="wrap">
+  <a class="brand" href="/"><svg width="30" height="30" viewBox="0 0 120 120" aria-hidden="true"><rect width="120" height="120" rx="27" fill="#712b13"/><g fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><path d="M26 86V40l20 24 20-24v22" stroke="#f5c4b3"/><path d="M62 70l12 12 22-34" stroke="#fff"/></g></svg>My Tasks</a>
+  <nav class="main">
+    <a href="/#features">Features</a><a href="/guide/">Guide</a><a href="/compare/">Compare</a><a href="/limitations/">Limitations</a>
+    <a class="btn" href="/app/">Open the app</a>
+  </nav>
+</div></header>
+
+<main class="page">
+  <h1>About</h1>
+
+  <h2 id="why">Why My Tasks</h2>
+  <p>My Tasks is a calm, focused task manager for people who want their tasks organized without paying for a subscription or handing them to another company. It brings together the best ideas from popular task managers, adds a few of its own, and keeps everything in your own GitHub account.</p>
+
+  <h2 id="principles">What it holds to</h2>
+  <ul>
+    <li><strong>Free for good.</strong> Every feature, on every device, with no paid tier.</li>
+    <li><strong>No My Tasks server.</strong> The app runs on your devices and keeps your tasks in a gist in your own account.</li>
+    <li><strong>Encrypted on your device.</strong> Your tasks are encrypted with your passphrase before they leave it. See <a href="/security/">Security</a>.</li>
+    <li><strong>Open source.</strong> Anyone can read the code, <a href="/self-hosting/">host their own copy</a> or change it, under the MIT licence.</li>
+    <li><strong>Simple rather than perfect.</strong> Practical choices over clever ones; what a web app can't do is set out plainly in <a href="/limitations/">Limitations</a>.</li>
+  </ul>
+
+  <h2 id="who">Who makes it</h2>
+  <p>Made by Michael Lines, a retired long-time IT developer and executive, who now enjoys creating utilities and apps for himself and sharing them with the world for free. For more on this and his other projects, including his blogs and books, see <a href="https://michaellines.fyi">michaellines.fyi</a>.</p>
+
+  <h2 id="contact">Get in touch</h2>
+  <p>Questions and ideas are welcome in <a href="https://www.reddit.com/r/mytasksfyi/">r/mytasksfyi</a> on Reddit, and bugs in <a href="https://github.com/CyberAdvisor/MyTasks/issues">GitHub issues</a>. If My Tasks helps you, you can <a href="https://ko-fi.com/Z8O623D716">support it on Ko-fi</a>.</p>
+</main>
+
+<!-- Shared footer: keep the same on every page (tests/website.test.ts). -->
+<footer class="site"><div class="wrap">
+  <div class="cols">
+    <div><h2>Product</h2><a href="/#features">Features</a><a href="/#how">How it works</a><a href="/compare/">Compare</a><a href="/roadmap/">Roadmap</a><a href="/app/">Open the app</a></div>
+    <div><h2>Help</h2><a href="/guide/">Guide</a><a href="/book/">The book</a><a href="/methods/">Ways to organize</a><a href="/import/">Import from other apps</a><a href="/#faq">Common questions</a><a href="https://www.reddit.com/r/mytasksfyi/">Community (r/mytasksfyi)</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a></div>
+    <div><h2>Project</h2><a href="/about/">About</a><a href="/self-hosting/">Your own copy</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://ko-fi.com/Z8O623D716">Donate</a></div>
+  </div>
+  <div class="base"><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a><span>Open source, <a href="https://github.com/CyberAdvisor/MyTasks/blob/main/LICENSE">MIT licence</a></span></div>
+</div></footer>
+</body>
+</html>

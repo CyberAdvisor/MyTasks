@@ -1,0 +1,25 @@
+/**
+ * Display names, icons and colors for the built-in lists
+ * (design doc, Section 6, Color).
+ *
+ * The Completed list keeps the internal key `logbook` (its former name), so
+ * its address stays `#/logbook` and saved routes keep working.
+ */
+import type { BuiltInList } from './model/lists';
+
+interface ListMeta {
+  title: string;
+  icon: 'inbox' | 'star' | 'calendar' | 'layers' | 'archive' | 'logbook' | 'trash';
+  /** CSS color token for the icon. */
+  color: string;
+}
+
+export const LIST_META: Record<BuiltInList, ListMeta> = {
+  inbox: { title: 'Inbox', icon: 'inbox', color: 'var(--c-inbox)' },
+  today: { title: 'Today', icon: 'star', color: 'var(--c-today)' },
+  scheduled: { title: 'Scheduled', icon: 'calendar', color: 'var(--c-scheduled)' },
+  unscheduled: { title: 'Unscheduled', icon: 'layers', color: 'var(--c-unscheduled)' },
+  deferred: { title: 'Deferred', icon: 'archive', color: 'var(--c-deferred)' },
+  logbook: { title: 'Completed', icon: 'logbook', color: 'var(--c-logbook)' },
+  trash: { title: 'Trash', icon: 'trash', color: 'var(--c-trash)' },
+};

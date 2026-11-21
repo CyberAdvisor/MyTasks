@@ -1,0 +1,16 @@
+{
+  "app": "mytasks-calendar",
+  "format": 1,
+  "updatedAt": "2026-11-19T17:00:00.000Z",
+  "kdf": {
+    "name": "PBKDF2",
+    "hash": "SHA-256",
+    "iterations": 600000,
+    "salt": "AAECAwQFBgcICQoLDA0ODw=="
+  },
+  "cipher": {
+    "name": "AES-GCM",
+    "iv": "ZGVmZ2hpamtsbW5v"
+  },
+  "data": "8cLp7c5mmRGj4yzJUXXOt6m0j6c/DAZ83YVgxEB+waB7yGJ5f3gRxI5/n9utxh+gBn7MXrF+QNziaNDc8lzoXjAfMt+Sn+OmJ3lX1Rz1lOn6vl0IlfZQZkfYj0bQVpnLLVCzYLiGxsEkr9aeDds62l3zyeXsjfJwVvkNeplzxXqNQGfN0OmfpoPjmZruRet9rAnVStR+XwvhAT71qnyHgt6gCxT0MP/UZJNp5hlukxP36Idys/kPHsBZ1m133y7dNYyIL46ixsFn5camQlJO60bDdar3tlipRquAn1/RCh/EX9akAX3TqpBR219VefS1RaXiRUgIK/xeouDbT5WmFA6FTDAVDZeSpErztgtPhOfkQxtqab1VQHUZLCMeSQ5MTYeQzrjC9whqpMmmznVl0k9vfitfXqhFhMX6J+8yBOnAsndGRopC54GsXwIZyw6+Nr4uZp+/2P/Sz61Nd/ybTjV34BrUpJGf1iTg6nw76XyZuedhD3NGcgJRulJNVNcMw6mNT+AAlgv74BVBrWiFPkmX0x6uLdJ92uEEoozSTP33/a0koAoyVg0rblhJYKTt1o2tmyf1J0RUuPsmnh+8rahwSxbGRA1LG/Zrsn4oXfE9ChAyUrL7r9i29vkpKkJ+pTBy4Z4eMUEmbpk/rPiducbnqufuoTRP7Q/EsXzP2Kh/zfRr3/tMIOsak3boi2qx21XYhMtvyPY53TxYuMhnohlud1GK9jHj2iXNgwMy0EihPgkJMh7x8YIEzVIo7qYK/w8+GJ+aOAUpo4HorSTc7lNJvi4kdp8rINXjGvQQTkeH9RA/kNVbKiUgwxta5YhqCX/Gbg/6oHKinzXHI5p/hdZXAsMECpys7bSVq/k9VOQLqCaBgtfS98ZUA9vFMjWhCpOAnjv73X6HZv7jblYXlHLmQoarUPKiHDY7UQj54ZjdP8EU7/1uQFGZLHI5kDPwnA6e5ThbHBjWnVMJDQ=="
+}

@@ -1,0 +1,26 @@
+# Dependabot version updates: once a month, one grouped pull request for npm
+# packages and one for GitHub Actions, so each can be tested and merged in one go.
+# Security updates come as soon as an advisory is published, separately
+# (Settings › Code security › Dependabot security updates).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      npm:
+        patterns: ['*']
+    ignore:
+      # svelte-check 4 accepts TypeScript 5 or 6 only, so TypeScript 7 fails npm ci.
+      # Remove this rule once svelte-check accepts TypeScript 7.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ['*']

@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide — My Tasks</title>
+<meta name="description" content="How to set up My Tasks, add your devices and use it day to day.">
+<link rel="icon" href="/app/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+<!-- Shared header: keep the same on every page (tests/website.test.ts). -->
+<header class="site"><div class="wrap">
+  <a class="brand" href="/"><svg width="30" height="30" viewBox="0 0 120 120" aria-hidden="true"><rect width="120" height="120" rx="27" fill="#712b13"/><g fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><path d="M26 86V40l20 24 20-24v22" stroke="#f5c4b3"/><path d="M62 70l12 12 22-34" stroke="#fff"/></g></svg>My Tasks</a>
+  <nav class="main">
+    <a href="/#features">Features</a><a href="/guide/">Guide</a><a href="/compare/">Compare</a><a href="/limitations/">Limitations</a>
+    <a class="btn" href="/app/">Open the app</a>
+  </nav>
+</div></header>
+
+<main class="page">
+  <h1>Guide</h1>
+  <p>How to set up My Tasks, add your other devices, and use it day to day. Please read the <a href="/limitations/">risks and limitations</a> first. Using GTD, PARA or the Eisenhower matrix? See <a href="/methods/">Ways to organize</a>. For a friendlier tour of how it all fits together, read the free book, <a href="/book/">My Tasks, Your Way</a>.</p>
+  <div class="toc"><strong>On this page</strong>
+    <ol>
+      <li><a href="#before">Before you start</a></li>
+      <li><a href="#install">Install My Tasks</a></li>
+      <li><a href="#token">Create a GitHub token</a></li>
+      <li><a href="#passphrase">Choose a passphrase</a></li>
+      <li><a href="#another-device">Add another device</a></li>
+      <li><a href="#everyday">Everyday use</a></li>
+      <li><a href="#repeating">Repeating tasks and projects</a></li>
+      <li><a href="#calendar">Calendar events</a></li>
+      <li><a href="#backup">Back up and restore</a></li>
+      <li><a href="#task-limit">How many tasks</a></li>
+      <li><a href="#keyboard">Keyboard shortcuts</a></li>
+      <li><a href="#troubleshooting">Troubleshooting</a></li>
+    </ol>
+  </div>
+
+  <h2 id="before">Before you start</h2>
+  <ul>
+    <li>A free <a href="https://github.com/signup">GitHub account</a>. My Tasks keeps your tasks, encrypted, in a secret gist there: a file in your account that isn't listed or searchable.</li>
+    <li>Safari on iPhone or iPad (iOS 18.4 or later) or on a Mac (macOS 14 or later), or Chrome or Edge on Mac, Windows or Linux. Android works but isn't tested.</li>
+    <li>About five minutes for your first device.</li>
+  </ul>
+
+  <h2 id="install">Install My Tasks</h2>
+  <p>Open <a href="/app/">mytasks.fyi/app</a>. Installed, My Tasks opens in its own window, works offline and keeps its data safe. On iPhone and iPad, install it <strong>before</strong> you connect: the Home Screen app keeps its own copy, separate from Safari.</p>
+  <table>
+    <tr><th>Device</th><th>How to install</th></tr>
+    <tr><td>iPhone, iPad</td><td>In Safari, tap the Share button, then <strong>Add to Home Screen</strong>, then <strong>Add</strong>. Open My Tasks from your Home Screen.</td></tr>
+    <tr><td>Mac (Safari)</td><td>Choose <strong>File › Add to Dock…</strong>, then <strong>Add</strong>. Open My Tasks from the Dock.</td></tr>
+    <tr><td>Chrome or Edge</td><td>Click <strong>Install My Tasks</strong> at the bottom of the sidebar, or the install button at the right of the address bar.</td></tr>
+    <tr><td>Firefox</td><td>Firefox can't install web apps. My Tasks works in a tab, or use Chrome, Edge or Safari.</td></tr>
+  </table>
+
+  <h2 id="token">Create a GitHub token</h2>
+  <p>The first screen asks for a personal access token, which lets My Tasks keep your tasks in a gist in your account.</p>
+  <ol>
+    <li>Click <strong>How to get a token</strong>, then the link to <a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=My%20Tasks">GitHub's new token page</a>, and sign in. It opens with the name "My Tasks" and the <strong>gist</strong> box ticked.</li>
+    <li>Choose an expiry, such as 90 days. When it expires, the sidebar says the token isn't valid: make a new one and use Change Token in Settings › Sync on each device. GitHub also removes tokens that go unused for a year.</li>
+    <li>Leave only <strong>gist</strong> ticked, then click <strong>Generate token</strong>.</li>
+    <li>Copy the token (it starts with <code>ghp_</code>) and paste it into My Tasks.</li>
+    <li>Read the <a href="/limitations/">risks and limitations</a>, tick the box that says you have, and click <strong>Connect</strong>.</li>
+  </ol>
+  <p>A token with the gist permission can read and change all of your gists, so give it an expiry. It stays on your device and is used only with GitHub.</p>
+
+  <h2 id="passphrase">Choose a passphrase</h2>
+  <p>On your first device, choose a passphrase of at least 12 characters and type it twice. A password manager, or four random words, makes a good one. My Tasks encrypts your tasks with it before anything leaves your device, and creates a secret gist named "My Tasks".</p>
+  <p><strong>Write it down or keep it in a password manager.</strong> It can't be recovered. If you forget it and no device is still connected, your data is lost.</p>
+
+  <h2 id="another-device">Add another device</h2>
+  <ol>
+    <li>Open <a href="/app/">mytasks.fyi/app</a> on the device and install it.</li>
+    <li>Paste a token: the same one, or a new one made the same way.</li>
+    <li>My Tasks finds your "My Tasks" gist. Enter your passphrase.</li>
+  </ol>
+  <p>Anything already on that device is merged in. From then on, each device syncs a few seconds after every change, and when you open it.</p>
+
+  <h2 id="everyday">Everyday use</h2>
+  <ul>
+    <li><strong>Lists.</strong> Inbox holds new tasks. A task you move out of the Inbox while you're looking at it stays there, with its new date, under “1 task moved out of the Inbox” until you click OK or open another list. When you move one out from elsewhere, or add one that the list on screen can't show, a message says where it went, with Show to open that list. While a task is open for editing, it stays where it is in its list and moves when you close it. Today shows what's due today, Scheduled what's coming, Unscheduled what's open with no date, and Deferred what you've set aside. Completed and Trash hold the rest.</li>
+    <li><strong>Adding tasks.</strong> Use the + button, or press <kbd>N</kbd> or <kbd>Space</kbd> in a list. Quick Entry (<kbd>Ctrl</kbd> <kbd>Space</kbd>) adds one to the Inbox from anywhere in the app.</li>
+    <li><strong>Completing and canceling.</strong> Click a task’s checkbox to complete it; it stays in its list, struck through, for a moment. To cancel a task instead (it’s shown with an ✕), Alt-click its checkbox (Option-click on a Mac), or right-click it and choose <strong>Complete › Mark as Canceled</strong>. Uncheck a task to reopen it.</li>
+    <li><strong>Checklists.</strong> Open a task and add a checklist; <kbd>Return</kbd> starts the next item, and pasting several lines adds one item per line. Drag the handle (≡) at the end of an item to move it; on iPhone and iPad it’s always there, and with a mouse it shows when you point at the item. To delete an item, erase its text and press <kbd>Delete</kbd> once more, or leave it empty: empty items go when the task closes.</li>
+    <li><strong>Start dates and deadlines.</strong> Give a task a start date and it moves to Today when that day comes. A deadline shows the days left and turns red when it's due; on that day the task moves into Today. A start date can't be later than the deadline. In either picker you can type the date in the field at the top and press Return: “tom”, “fri” (the next Friday), “next fri” (Friday of next week; weeks run Sunday to Saturday, as the calendar), “in 3 days”, “in 2 weeks”, “jan 12”, “12/25” or “2027-01-12”. To set a task aside for some day, choose <strong>Deferred</strong> at the bottom of the Start Date picker; choosing a date takes it out of Deferred again. On each task, a yellow star means it’s in Today, a grey date (such as “Fri” or “Dec 3”) means it’s scheduled for that day, and a dashed checkbox means it’s deferred; an unscheduled task has no mark.</li>
+    <li><strong>Repeating tasks and projects.</strong> Tasks and projects can repeat on a schedule: see <a href="#repeating">Repeating tasks and projects</a>.</li>
+    <li><strong>Sequential projects.</strong> In Settings › Sequential Projects, list a tag with a priority and a context. A project with that tag keeps one task in Today: when you complete it, the next task in the project moves in, with that priority and context, and shows its place, such as “Vacation · task 2 of 5”. Unchecking a task takes back the task it moved. If more than one of the project’s tasks ends up in Today, right-click the one to keep (or open it and tap ⋯) and choose Reset Other Tasks….</li>
+    <li><strong>Areas, projects and headings.</strong> Create them with <strong>New List</strong> at the bottom of the sidebar. Drag tasks and projects to rearrange them. Drag a task onto Inbox, Today, Scheduled, Unscheduled, Deferred or Trash in the sidebar to move it there; Scheduled asks for the date. A heading’s ⋯ menu can <strong>Archive</strong> it, which completes its tasks and moves them to Completed, or <strong>Convert to Project</strong>, which makes it a project of its own with its tasks. Deleting an area asks whether to keep its projects and tasks or move them to the Trash. A task’s second line names its project, and its heading after it, such as “Vacation : Packing”. The arrow beside an area in the sidebar, or a heading in a project, hides or shows what’s under it; your other devices keep the same. Drag the sidebar’s right edge to resize it; double-click the edge to reset it. To hide the sidebar, drag its edge all the way to the left, then pull the window’s left edge to the right to bring it back. On iPad, tap the sidebar button above a list’s title. Cmd+/ (Ctrl+/ on Windows) hides and shows it too.</li>
+    <li><strong>Focus on an area.</strong> Right-click an area in the sidebar and choose <strong>Focus on this Area</strong> (on iPhone and iPad, open the area and tap ⋯). Every list, count and search then shows only that area’s projects and tasks, plus the Inbox, until you tap the ✕ on “Focus: <em>area</em>” or choose <strong>Leave Focus</strong>. Tasks you add to Today or Scheduled meanwhile go in that area. Each device keeps its own focus.</li>
+    <li><strong>Sort by date.</strong> Choose <strong>Sort by Date</strong> in a project’s ⋯ menu to list its tasks that aren’t under a heading with the ones you can do now first, then those starting later by their start date, then deferred ones. Each heading has its own <strong>Sort by Date</strong> in its ⋯ menu. Tasks always stay under their heading. Choose it again for your own order. Your other devices keep the same.</li>
+    <li><strong>Right-click menus.</strong> Right-click (or Control-click) a saved search, area or project in the sidebar for its commands, such as Duplicate Project or New Project, without leaving the page you’re on. Right-click a task for its menu; on iPhone and iPad, open the task and tap ⋯ for the same menu, and in the Trash, tap a task to put it back.</li>
+    <li><strong>Several tasks at once.</strong> Cmd-click (Ctrl-click on Windows) tasks to select several, Shift-click to select every task between two, or hold <kbd>Shift</kbd> and press <kbd>↑</kbd> or <kbd>↓</kbd>; <kbd>Cmd</kbd> <kbd>A</kbd> selects the whole list. The Move dialog has a filter box at the top: type part of an area’s, project’s or heading’s name to find it. Then right-click any of them to give them all a start date, project, tags, deadline, priority or context, complete them, duplicate them or delete them; the toolbar’s Start Date and Move, and the keyboard shortcuts, work on all of them too. One Undo takes the whole change back. Drag any of them to move them all together. Press <kbd>Esc</kbd> to keep just one selected. On iPhone and iPad, tap <strong>Select</strong> in the ⋯ menu after a list’s, project’s, area’s or saved search’s title, tap the tasks you want, then use the bar along the bottom: Start Date, Move, Delete, and ⋯ for priority, context, tags, deadline, completing and duplicating. Tap <strong>Done</strong> when you’re finished. Swiping a task from right to left starts selecting too, with that task selected; swiping it from left to right opens its start date.</li>
+    <li><strong>Printing.</strong> Choose <strong>Print…</strong> in the ⋯ menu after a list’s, project’s, area’s or saved search’s title, or press Cmd+P (Ctrl+P), to print the page as you see it, with the date it was printed. The installed app on iPhone and iPad can’t print; print from a Mac, or from My Tasks in Safari.</li>
+    <li><strong>Priorities.</strong> Set P1 to P5 on any task. In Settings you can rename the levels, and turn off the automatic P1 for due tasks and P2 for tasks added to Today.</li>
+    <li><strong>Contexts and tags.</strong> Add contexts (where or how something gets done) in Settings, and tags on any task. The bar under each list's title filters by tag. To see the tasks in one context, choose Group By › Contexts in Today's ⋯ menu, make a saved search with that context, or search for its name.</li>
+    <li><strong>Nested tags.</strong> In Settings › Tags, drag a tag by its icon onto another to nest it there, such as Groceries under Errand, or use the tag’s ⋯ button (also on iPhone and iPad). Filtering by Errand then shows tasks tagged Groceries too; the bar shows “Errand…”, and selecting it adds a Groceries pill to narrow it down. Deleting a tag deletes the tags nested under it.</li>
+    <li><strong>Tag shortcuts.</strong> In Settings › Tags, click a tag’s box and press a letter or digit, such as G. Then <kbd>Control</kbd> <kbd>G</kbd> adds the tag to the selected tasks, or removes it if they all have it, and <kbd>Control</kbd> <kbd>Option</kbd> <kbd>G</kbd> filters the list by it; press it again to go back to the tag it’s nested under, or to clear the filter. On Windows, use <kbd>Alt</kbd> and <kbd>Alt</kbd> <kbd>Shift</kbd>.</li>
+    <li><strong>Today grouping.</strong> Click the ⋯ after the Today title and choose Group By: All, Projects, Priorities or Contexts. Drag a task into another group to give it that group’s priority, project or context.</li>
+    <li><strong>Saved searches.</strong> Search with Quick Find (type, then press <kbd>Return</kbd>), then <strong>Save Search</strong> to keep it in the sidebar. Its ⋯ menu has <strong>Edit Search…</strong> to change its name, text, tag or context. Quick Find also opens three built-in lists: <strong>Deadlines</strong>, <strong>All Projects</strong> and <strong>Completed Projects</strong>. Type part of the name, such as “dead”.</li>
+    <li><strong>Completed tasks</strong> stay in their list, struck through, until they move to Completed: daily by default, at midnight. In Settings › Completed Items choose <strong>Immediately</strong>, <strong>Daily</strong> or <strong>Manually</strong>. To move them yourself, choose <strong>Move Completed Items</strong> in the ⋯ menu after a list’s, project’s or area’s title, or right-click a task; it moves only what’s waiting in that list. The same settings can show waiting completed tasks at the bottom of their list, and checked checklist items at the bottom of their checklist.</li>
+    <li><strong>Appearance.</strong> Settings › Appearance chooses Light, Dark, or System to follow your device. Each device keeps its own choice.</li>
+    <li><strong>Undo and Redo.</strong> Press <kbd>Cmd</kbd> <kbd>Z</kbd> to undo your last change, and again to go further back, up to 10 changes; <kbd>Shift</kbd> <kbd>Cmd</kbd> <kbd>Z</kbd> redoes them. On touch devices, tap Undo in the message that follows a delete or move, and again for each change before it.</li>
+    <li><strong>Sync.</strong> The bottom of the sidebar shows when your tasks last synced; click it to sync now. Settings › Sync has Sync Now, Change Token, Change Passphrase and Disconnect This Device, and shows what’s in your gist: how many tasks and projects are open, completed, in the Trash and deleted, and the file’s size against its 5 MB limit. To make room, Settings › Archive moves old completed items to a file. A device that hasn’t synced for over 170 days (an old iPad in a drawer, say) waits instead: Settings › Sync explains, and offers to save a backup and then replace its tasks with the ones in your gist. This keeps tasks deleted long ago on your other devices from coming back.</li>
+  </ul>
+
+  <h2 id="repeating">Repeating tasks and projects</h2>
+  <p>A task or a whole project can repeat: a weekly review, a monthly bill, a trip you pack for every year. You set it up once, and My Tasks makes a fresh copy each time it comes round.</p>
+
+  <h3 id="repeat-setup">Making something repeat</h3>
+  <p>Right-click a task (or open it and tap ⋯) and choose <strong>Repeat…</strong>. For a project, choose <strong>Repeat…</strong> in the ⋯ menu after its title, or right-click it in the sidebar. Then choose:</p>
+  <ul>
+    <li><strong>Regularly</strong>: every so many days; weeks, on the days you pick; months, on a date such as the 16th or the last day, or a day such as the 2nd Tuesday or the last Friday; or years, in the month you pick.</li>
+    <li><strong>After completion</strong>: a set time after you finish the last copy, such as 2 weeks after.</li>
+    <li>When the first copy comes, and whether the repeat ends: never, after a number of copies, or on a date.</li>
+    <li>Whether each copy gets a deadline, and starts some days before it.</li>
+  </ul>
+  <p>On iPhone, the same choices come in a Repeat screen laid out for touch.</p>
+
+  <h3 id="repeat-templates">Templates and copies</h3>
+  <p>What you set to repeat becomes its <strong>template</strong>: the pattern each copy is made from. A repeating task shows a blue repeat icon and the date of its next copy. A repeating project shows a repeat icon in the sidebar, and its page says “You’re editing the template of a repeating project”, with its rule and next dates under the title; click them to change the rule.</p>
+  <p>Each <strong>copy</strong> is an ordinary task or project that you work on and check off as usual; a task’s copy has a small grey repeat icon. A project’s copy is the whole project: its notes, tags and area, its headings, and its tasks with their checklists, in the same order, all open and unchecked. Archived headings and tasks in the Trash are left out. In a copy, <strong>Show Repeating Task</strong> or <strong>Show Repeating Project</strong> takes you to its template.</p>
+  <p>A repeating project’s template keeps no dates or completions on its tasks, since those belong to each copy, and its tasks show only on its page, never in Today, Unscheduled, search or the counts. A repeating task inside it stops repeating when the project starts repeating, so it isn’t made twice.</p>
+
+  <h3 id="repeat-when">When copies appear</h3>
+  <ul>
+    <li>Copies are made when you open My Tasks, at midnight, and when you come back to it, so each one is there on its day.</li>
+    <li>If My Tasks wasn’t opened for several of the dates, one copy is made, for the latest, so a week away doesn’t fill Today.</li>
+    <li>A repeat after completion waits: its next copy comes only once you’ve finished the last one.</li>
+    <li>Copies are shared across your devices. Two devices making the same copy end up with one.</li>
+    <li>A task’s copy appears in Today. A project’s copy appears in the sidebar; its tasks have no start dates of their own, so they’re listed in Unscheduled, as in any project, until you give them one.</li>
+    <li>Scheduled shows what’s coming: a repeating task on its next date, and a repeating project’s template on its next copy’s date, with how many tasks it has.</li>
+  </ul>
+
+  <h3 id="repeat-ahead">Working ahead</h3>
+  <ul>
+    <li><strong>A repeating task:</strong> check off the template itself, or choose <strong>Complete › Mark as Completed</strong>, and its next copy is made and completed now, dated on its day; the template moves on to the date after. <strong>Mark as Canceled</strong> skips the next copy the same way. A repeat after completion counts its next date from today.</li>
+    <li><strong>A repeating project:</strong> choose <strong>Complete Project</strong> on the template. Its next copy is made now, on its date, and completed, with its tasks completed or canceled as you choose, and the template moves on.</li>
+    <li><strong>A task in a project’s template:</strong> checking it off, or giving it a start date or a deadline, asks <strong>Create Copy Now?</strong> Create Copy makes the next copy at once, makes your change on that copy’s task, and opens the copy. The template stays as it was and moves on to the date after. One Undo takes it all back.</li>
+  </ul>
+
+  <h3 id="repeat-menu">The Repeat menu</h3>
+  <p>Right-click a repeating task, or a repeating project’s template, and choose <strong>Repeat</strong> (on iPhone and iPad, open it and tap ⋯; on iPhone you can also tap a task’s rule). It has:</p>
+  <ul>
+    <li><strong>Edit Rule…</strong> to change the schedule.</li>
+    <li><strong>Show Previous Copy</strong> to go to the latest copy.</li>
+    <li><strong>Create Next Copy</strong> to make the next copy now, on its day, and move the template on.</li>
+    <li><strong>Pause</strong> to stop making copies for a while; the rule then says “paused”, and a paused project leaves Scheduled. <strong>Resume</strong> starts it again, making any copy that has come due.</li>
+    <li><strong>Stop…</strong> to end the repeat, after asking: the template and the copies it has made become ordinary tasks or projects, and no more copies are made.</li>
+  </ul>
+  <p>The banner on a project’s template has <strong>Show Previous Copy</strong> and <strong>Create Next Copy</strong> too.</p>
+
+  <h3 id="repeat-other">What else affects a repeat</h3>
+  <ul>
+    <li>Completing a project, or archiving a heading, stops the repeating tasks in it, after saying so; they go to Completed as ordinary tasks.</li>
+    <li>Duplicating a repeating task, a repeating project or any copy gives an ordinary task or project. A template’s menu has no Duplicate.</li>
+    <li>Deleting a project’s template asks first: the template and all future copies go, and copies already made stay.</li>
+    <li>When a repeat reaches its end, after its last copy or on its end date, the template goes to Completed.</li>
+  </ul>
+
+  <h3 id="repeat-import">Importing them</h3>
+  <p>Import… brings in repeating tasks and repeating projects from a CSV file, through its <code>repeat</code> columns, and the script for Things 3 writes them for you. A repeating project comes in as its template, always as a new project, and if its first date is today or earlier, today’s copy is made as it comes in. A task inside it can’t have a start date, deadline or repeat of its own. The columns and an example are on <a href="/import/">Import from other apps</a>.</p>
+
+  <h2 id="calendar">Calendar events</h2>
+  <p>My Tasks can show the events from your Mac’s calendars in Today and in Scheduled, on all your devices. A small helper on your Mac reads the calendars you choose and puts the events in your gist, encrypted with your passphrase like your tasks. Events are read-only: click or tap one to see its time, place, link, attendees and notes. Without the helper, no events show.</p>
+  <p>You need your Mac, the GitHub token and passphrase you use for My Tasks, and about ten minutes.</p>
+  <ol>
+    <li>Open <strong>Terminal</strong> (in Applications › Utilities).</li>
+    <li>Paste these three lines and press Return. They make a folder for the helper in your home folder, download it there (<a href="https://github.com/CyberAdvisor/MyTasks/blob/main/helper/calendar_sync.py">read it on GitHub</a>), and install the one package it needs for the encryption, for your user only (no admin rights needed).
+<pre><code>mkdir -p ~/MyTasksHelper && cd ~/MyTasksHelper
+curl -fsSLO https://raw.githubusercontent.com/CyberAdvisor/MyTasks/main/helper/calendar_sync.py
+python3 -m pip install --user cryptography</code></pre>
+      If your Mac offers to install the command line developer tools, install them (they include Python) and paste the lines again.</li>
+    <li>Run the setup and answer its questions: your token, which gist if you have more than one, your passphrase, the calendars to show and how many months ahead besides this one (1 to 6; press Return for 4). If macOS asks whether Terminal may access your calendars, click <strong>Allow</strong>. Your token and passphrase are kept in your Mac’s Keychain.
+<pre><code>python3 calendar_sync.py setup</code></pre>
+      At the end it prints a <strong>start</strong> line. Copy it.</li>
+    <li>Open <strong>Shortcuts</strong>, create a new shortcut named <strong>My Tasks Calendar</strong>, add the <strong>Run Shell Script</strong> action, and paste the start line into it. It ends in <code>--every 15</code>: the helper reads your calendars every 15 minutes (5 to 60) and writes only when something changed.</li>
+    <li>Run the shortcut. The first time, macOS asks whether Shortcuts may access your calendars: click <strong>Allow</strong>. The helper then keeps running in the background.</li>
+    <li>Optional: so it starts again after your Mac restarts, add an automation in Shortcuts › Automation: <strong>Time of Day</strong>, daily, running <strong>My Tasks Calendar</strong>. Running it while the helper is already running just replaces it.</li>
+  </ol>
+  <p>Within a few minutes the events appear in My Tasks: in Today, under the title; in Scheduled, above each of the next seven days’ tasks, and then listed by day for the rest of this month and each month after it (a repeating event once, with how many times it occurs). <strong>Settings › Calendar Events</strong> shows when the helper last wrote them, and hides or shows them on all your devices. In Terminal, in the helper’s folder, <code>python3 calendar_sync.py status</code> says whether it’s running and when it last wrote; <code>stop</code> stops it.</p>
+  <p>If you change your passphrase in My Tasks, run the setup again on your Mac: until then the helper stops writing, and My Tasks says so in Settings.</p>
+
+  <h2 id="backup">Back up and restore</h2>
+  <p>Your gist is where every device's tasks are kept; a backup file is a separate copy that you keep yourself.</p>
+  <ul>
+    <li><strong>Save Backup</strong> in Settings › Backup downloads a file of your tasks, projects, areas, tags, contexts, saved searches and synced settings. On iPhone and iPad, choose <strong>Save to Files</strong> in the share sheet. The file is <strong>not encrypted</strong>: keep it somewhere safe.</li>
+    <li><strong>Restore from Backup…</strong> replaces all your tasks with the file's, on this device, in your gist and, once they sync, on your other devices. Anything created since the backup is deleted. It can't be undone, so the confirmation offers <strong>Save Backup First</strong>.</li>
+    <li>Restore needs a working sync connection. Your theme, token, passphrase and gist connection don't change.</li>
+  </ul>
+  <p><strong>Import…</strong> in Settings › Import From Other Apps adds tasks from a CSV file, such as one from another app, to what you have. It shows what the file holds first, and one Undo takes it all back. The file’s columns, a template and a sample are on <a href="/import/">Import from other apps</a>.</p>
+  <h3 id="archive">Archive</h3>
+  <p>Settings › <strong>Archive</strong> keeps your gist small. It saves completed and canceled tasks and projects finished more than a number of days ago (90 unless you change it) to a new CSV file, then removes them from My Tasks on every device. A completed project goes with its headings and tasks, and checklists go with their tasks; repeating tasks stay. It asks first, and if the file isn’t saved nothing is removed. Removing is final, like Empty Trash, so keep the file: Import… can bring items back from it.</p>
+
+  <h2 id="task-limit">How many tasks</h2>
+  <p>My Tasks holds up to <strong>5,000 tasks</strong>, counting completed tasks and the Trash: that's as many as your gist can sync. From 4,500, the bottom of the sidebar shows how many you have. At 5,000, adding a task says there's no room, and keeps what you typed.</p>
+  <ul>
+    <li>To make room while keeping a record, use <a href="#archive">Archive</a>: it saves old completed tasks to a file, then removes them.</li>
+    <li>Or empty the Trash, then delete completed tasks you no longer need: in Completed, select them (<kbd>Cmd</kbd> <kbd>A</kbd> selects them all) and press <kbd>Delete</kbd>, then empty the Trash.</li>
+    <li>To keep a record of them first, save a backup in Settings › Backup.</li>
+    <li>A repeating task still makes its next copy, and tasks from your other devices still arrive, even at the limit.</li>
+  </ul>
+
+  <h2 id="keyboard">Keyboard shortcuts</h2>
+  <p>The installed app uses the shortcuts in the first column. In a browser tab, some of those belong to the browser, so the second column applies. On Windows and Linux, use <kbd>Ctrl</kbd> for <kbd>Cmd</kbd>. Press <kbd>?</kbd> in the app for the full list.</p>
+  <table>
+    <tr><th>Action</th><th>Installed app</th><th>Browser tab</th></tr>
+    <tr><td>New task</td><td><kbd>Cmd</kbd> <kbd>N</kbd> or <kbd>Space</kbd></td><td><kbd>N</kbd> or <kbd>Space</kbd></td></tr>
+    <tr><td>New heading</td><td><kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>N</kbd></td><td><kbd>Opt</kbd> <kbd>H</kbd></td></tr>
+    <tr><td>New project</td><td><kbd>Cmd</kbd> <kbd>Opt</kbd> <kbd>N</kbd></td><td>the same</td></tr>
+    <tr><td>Quick Entry</td><td><kbd>Ctrl</kbd> <kbd>Space</kbd></td><td><kbd>Ctrl</kbd> <kbd>Space</kbd></td></tr>
+    <tr><td>Quick Find (type, then <kbd>Return</kbd> to search)</td><td><kbd>Cmd</kbd> <kbd>F</kbd>, or just start typing</td><td><kbd>/</kbd> or <kbd>Cmd</kbd> <kbd>F</kbd></td></tr>
+    <tr><td>Complete</td><td><kbd>Cmd</kbd> <kbd>K</kbd></td><td><kbd>X</kbd></td></tr>
+    <tr><td>Cancel</td><td><kbd>Cmd</kbd> <kbd>Opt</kbd> <kbd>K</kbd></td><td><kbd>Shift</kbd> <kbd>X</kbd></td></tr>
+    <tr><td>Start Date</td><td><kbd>Cmd</kbd> <kbd>S</kbd></td><td><kbd>W</kbd></td></tr>
+    <tr><td>Deadline</td><td><kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>D</kbd></td><td><kbd>D</kbd></td></tr>
+    <tr><td>Move</td><td><kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>M</kbd></td><td><kbd>M</kbd></td></tr>
+    <tr><td>Tags</td><td><kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>T</kbd></td><td><kbd>#</kbd></td></tr>
+    <tr><td>Checklist</td><td><kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>C</kbd></td><td><kbd>C</kbd></td></tr>
+    <tr><td>Today, Unscheduled, Deferred</td><td><kbd>Cmd</kbd> <kbd>T</kbd>, <kbd>Cmd</kbd> <kbd>R</kbd>, <kbd>Cmd</kbd> <kbd>O</kbd></td><td><kbd>T</kbd>, <kbd>U</kbd>, <kbd>F</kbd></td></tr>
+    <tr><td>Duplicate</td><td><kbd>Cmd</kbd> <kbd>D</kbd></td><td><kbd>Opt</kbd> <kbd>D</kbd></td></tr>
+    <tr><td>Delete (to the Trash)</td><td><kbd>Delete</kbd></td><td>the same</td></tr>
+    <tr><td>Priority 1 to 5, or clear</td><td><kbd>Opt</kbd> <kbd>1</kbd>–<kbd>5</kbd>, <kbd>Opt</kbd> <kbd>0</kbd></td><td>the same</td></tr>
+    <tr><td>Add or remove a tag, or filter by it (each tag’s key is set in Settings › Tags)</td><td><kbd>Control</kbd> <kbd>key</kbd>, <kbd>Control</kbd> <kbd>Opt</kbd> <kbd>key</kbd></td><td>the same</td></tr>
+    <tr><td>Go to Inbox, Today, Scheduled, Unscheduled, Deferred, Completed, Trash</td><td><kbd>Cmd</kbd> <kbd>1</kbd> to <kbd>Cmd</kbd> <kbd>7</kbd></td><td><kbd>G</kbd> then <kbd>I</kbd>, <kbd>T</kbd>, <kbd>S</kbd>, <kbd>U</kbd>, <kbd>D</kbd> or <kbd>C</kbd> (no key for Trash)</td></tr>
+    <tr><td>Change how Today is grouped</td><td><kbd>Cmd</kbd> <kbd>G</kbd></td><td><kbd>G</kbd> <kbd>G</kbd></td></tr>
+    <tr><td>Show or hide the sidebar</td><td><kbd>Cmd</kbd> <kbd>/</kbd></td><td>the same</td></tr>
+    <tr><td>Print</td><td><kbd>Cmd</kbd> <kbd>P</kbd></td><td>the same</td></tr>
+    <tr><td>Next or previous field in an open task or Quick Entry: title, notes, Start Date, Tags, Checklist, Deadline, Priority, Context (each picker opens as you reach it)</td><td><kbd>Tab</kbd>, <kbd>Shift</kbd> <kbd>Tab</kbd></td><td>the same</td></tr>
+    <tr><td>Move between a picker’s options, then choose</td><td><kbd>↑</kbd> <kbd>↓</kbd>, then <kbd>Return</kbd></td><td>the same</td></tr>
+    <tr><td>Select the task above or below as well</td><td><kbd>Shift</kbd> <kbd>↑</kbd>, <kbd>Shift</kbd> <kbd>↓</kbd></td><td>the same</td></tr>
+    <tr><td>Move a task, or a checklist item you’re typing in, up or down</td><td><kbd>Cmd</kbd> <kbd>↑</kbd>, <kbd>Cmd</kbd> <kbd>↓</kbd> (for a checklist item, <kbd>Opt</kbd> <kbd>↑</kbd> <kbd>↓</kbd> too)</td><td>the same</td></tr>
+    <tr><td>Select every task in the list</td><td><kbd>Cmd</kbd> <kbd>A</kbd></td><td>the same</td></tr>
+    <tr><td>Undo</td><td><kbd>Cmd</kbd> <kbd>Z</kbd></td><td><kbd>Cmd</kbd> <kbd>Z</kbd></td></tr>
+    <tr><td>Redo</td><td><kbd>Shift</kbd> <kbd>Cmd</kbd> <kbd>Z</kbd></td><td><kbd>Shift</kbd> <kbd>Cmd</kbd> <kbd>Z</kbd></td></tr>
+    <tr><td>All shortcuts</td><td><kbd>?</kbd></td><td><kbd>?</kbd></td></tr>
+  </table>
+
+  <h2 id="troubleshooting">Troubleshooting</h2>
+  <table>
+    <tr><th>You see</th><th>What to do</th></tr>
+    <tr><td>Token not valid, or it is missing the gist scope.</td><td>Create a new token with only <strong>gist</strong> ticked, then use Change Token in Settings › Sync.</td></tr>
+    <tr><td>Offline — changes saved on this device</td><td>Nothing: your changes are kept and sync when GitHub can be reached again.</td></tr>
+    <tr><td>Passphrase changed</td><td>The passphrase was changed on another device. Click <strong>Enter it</strong> and type the new one.</td></tr>
+    <tr><td>Your tasks are too large to upload.</td><td>Your changes are still on this device and your gist is unchanged. Remove what you don't need, such as long notes, then use Sync Now in Settings › Sync.</td></tr>
+    <tr><td>This token belongs to a different GitHub account, or can't reach your gist.</td><td>Make the token in the GitHub account that owns your gist. If the gist was deleted, use Disconnect This Device in Settings › Sync and set it up again.</td></tr>
+    <tr><td>Your My Tasks gist was not found.</td><td>It may have been deleted on GitHub. Click <strong>Recreate Gist</strong> to make it again from the tasks on this device.</td></tr>
+    <tr><td>This file isn't a My Tasks backup, or the backup is damaged.</td><td>Choose a file saved with Save Backup. Nothing was changed.</td></tr>
+    <tr><td>Restore needs a working sync connection.</td><td>Fix the problem shown in Settings › Sync, or wait until you're online, then restore again. Nothing was changed.</td></tr>
+    <tr><td>Storage is full</td><td>This device has no room left for My Tasks. Free up space on it, then reload the app. Changes made before are kept.</td></tr>
+    <tr><td>Couldn't save</td><td>The change you just made hasn't happened. Click <strong>Reload</strong> and try again. If it keeps happening, <a href="https://github.com/CyberAdvisor/MyTasks/issues">report it on GitHub</a>.</td></tr>
+    <tr><td>Update available</td><td>Click <strong>Restart</strong> to load the new version. What you're typing is saved first.</td></tr>
+    <tr><td>Your tasks were saved by a newer version of My Tasks.</td><td>Reload the app to update it.</td></tr>
+    <tr><td>A list looks different on iPhone and in Safari</td><td>The installed app and Safari keep separate copies. Use the installed app.</td></tr>
+  </table>
+  <p>Something else? Ask in <a href="https://www.reddit.com/r/mytasksfyi/">r/mytasksfyi</a> on Reddit, or <a href="https://github.com/CyberAdvisor/MyTasks/issues">report a bug on GitHub</a>.</p>
+</main>
+
+<!-- Shared footer: keep the same on every page (tests/website.test.ts). -->
+<footer class="site"><div class="wrap">
+  <div class="cols">
+    <div><h2>Product</h2><a href="/#features">Features</a><a href="/#how">How it works</a><a href="/compare/">Compare</a><a href="/roadmap/">Roadmap</a><a href="/app/">Open the app</a></div>
+    <div><h2>Help</h2><a href="/guide/">Guide</a><a href="/book/">The book</a><a href="/methods/">Ways to organize</a><a href="/import/">Import from other apps</a><a href="/#faq">Common questions</a><a href="https://www.reddit.com/r/mytasksfyi/">Community (r/mytasksfyi)</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a></div>
+    <div><h2>Project</h2><a href="/about/">About</a><a href="/self-hosting/">Your own copy</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://ko-fi.com/Z8O623D716">Donate</a></div>
+  </div>
+  <div class="base"><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a><span>Open source, <a href="https://github.com/CyberAdvisor/MyTasks/blob/main/LICENSE">MIT licence</a></span></div>
+</div></footer>
+</body>
+</html>

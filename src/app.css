@@ -1,0 +1,370 @@
+/*
+ * Global styles (design doc, Section 6). Colors come from tokens.css.
+ */
+@import './tokens.css';
+:root {
+  /* Shadows and layers, named so each kind looks and stacks the same everywhere (review C14). */
+  --shadow-dialog: 0 20px 60px rgba(0, 0, 0, 0.25);
+  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.16);
+  --shadow-menu: 0 8px 24px rgba(0, 0, 0, 0.22);
+  --shadow-toast: 0 6px 20px rgba(0, 0, 0, 0.25);
+  /* Lowest to highest. */
+  --z-resize: 2;
+  --z-sidebar-menu: 10;
+  --z-reveal: 20;
+  --z-popover: 30;
+  --z-drop-when: 40;
+  --z-toast: 50;
+  --z-context-menu: 60;
+  --z-drop-line: 99;
+  --z-drag: 100;
+  --z-sheet-backdrop: 1000;
+  --z-sheet: 1001;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --radius: 6px;
+  /* Task rows with a mouse (Section 6, Row); 48 px on touch (TodoRow). */
+  --row-h: 32px;
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg);
+  /* Text drawn as the Mac's own apps draw it: thinner and crisper, most
+     noticeably light on dark. Other systems ignore it. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+/* No double-tap zoom; pinch zoom is blocked in lib/pwa/noZoom.ts. */
+html {
+  touch-action: manipulation;
+}
+
+#app {
+  height: 100%;
+}
+
+/* Shown instead of the app inside another page's frame (lib/framed.ts). */
+.framed-notice {
+  margin: 0;
+  padding: 24px 16px;
+  font-size: 15px;
+  text-align: center;
+}
+
+.framed-notice a {
+  color: var(--accent-text);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Plain icon-and-text button used across views. */
+/* Plain text buttons (Group, Empty Trash, Restore…), at the sidebar's 13 px. */
+.btn-plain {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  color: var(--text-2);
+  font-size: 13px;
+}
+/* In dialogs, Cancel and Done match the coloured button beside them. */
+dialog .btn-plain {
+  font-size: inherit;
+}
+.btn-plain:hover {
+  background: var(--hover-bg);
+}
+
+/* The main action of a form: Connect, Unlock, Change Passphrase. */
+.btn-primary {
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--on-accent);
+  padding: 8px 16px;
+  font-weight: 600;
+}
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* A labelled text field in a form (Setup and the sync dialogs). */
+.form-label {
+  display: block;
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.form-field {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0 0 14px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--field);
+  font-size: 15px;
+}
+.form-error {
+  margin: 12px 0 0;
+  color: var(--danger);
+  font-size: 14px;
+}
+
+/* Chip-style buttons in cards and dialogs. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-2);
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  background: var(--chip-bg);
+  border: 0;
+}
+.chip:hover {
+  background: var(--hover-bg);
+}
+
+/* Tag pill on rows, the to-do card and the project header. */
+.tag-pill {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--tag-bg);
+  color: var(--accent-text);
+  white-space: nowrap;
+}
+
+/* Items inside popover menus (Popover.svelte). */
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  /* One line, as in the right-click menus ("Move Completed Items" wrapped). */
+  white-space: nowrap;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 7px 10px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--text);
+}
+.menu-item:hover,
+.menu-item:focus-visible {
+  background: var(--hover-bg);
+}
+.menu-item.active {
+  font-weight: 600;
+}
+/* Menu icons are blue; destructive items stay red
+   (design doc Section 6). Icons given their own
+   colour, such as the When picker's star, keep it. */
+.menu-item > svg {
+  color: var(--accent);
+}
+.menu-item.danger,
+.menu-item.danger > svg {
+  color: var(--danger);
+}
+
+/* The bold ⋯ right after a project or area title (FR-2.1, FR-2.5). */
+.more-btn {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  padding: 4px 6px;
+  border-radius: var(--radius);
+  display: inline-flex;
+  flex: none;
+}
+.more-btn:hover,
+.more-btn[aria-expanded='true'] {
+  background: var(--hover-bg);
+}
+
+/* Value chips under a project or area title; each reopens its picker. */
+.title-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: -8px 0 10px 38px;
+}
+.title-chips .tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+/* An item that can't be chosen right now, e.g. Move Completed Items with nothing waiting. */
+.menu-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.menu-item:disabled:hover {
+  background: none;
+}
+/* A small heading inside a menu, e.g. Today's "Group By". */
+.menu-label {
+  padding: 6px 10px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+/* Keeps a label in line when its menu item shows no icon. */
+.menu-icon-space {
+  width: 15px;
+  flex: none;
+}
+.menu-sep {
+  height: 1px;
+  background: var(--rule);
+  margin: 4px 6px;
+  border: 0;
+}
+
+/* Priority chip shown on rows and in the card. */
+.prio {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: var(--on-strong);
+  white-space: nowrap;
+}
+.prio-1 { background: var(--p1); }
+.prio-2 { background: var(--p2); }
+.prio-3 { background: var(--p3); }
+.prio-4 { background: var(--p4); }
+.prio-5 { background: var(--p5); }
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/*
+ * Drag and drop (FR-10.10). The floating copy follows the pointer, the
+ * original stays in place faded, a line shows where the item will land, and a
+ * zone receiving an item from elsewhere is highlighted.
+ */
+[data-drag-type] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+/* A checklist item is dragged only by its handle; its text stays selectable (Safari won't edit a field inside unselectable text). */
+[data-drag-type='checklist'] {
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+.drag-ghost {
+  position: fixed;
+  z-index: var(--z-drag);
+  margin: 0;
+  pointer-events: none;
+  list-style: none;
+  background: var(--bg);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  opacity: 0.95;
+}
+/* How many selected tasks are being dragged together (FR-10.3b). */
+.drag-count {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--danger);
+  color: var(--on-strong);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+  text-align: center;
+}
+.drag-source {
+  opacity: 0.35;
+}
+/* A slide zone (a checklist): the other items glide aside while one is dragged, and the dragged one shows only as its lifted copy. */
+.drop-zone-checklist > [data-drag-type] {
+  transition: transform 150ms ease;
+}
+.drag-lifted {
+  opacity: 0;
+}
+.drag-settling {
+  transition: none !important;
+}
+.drop-line {
+  position: fixed;
+  z-index: var(--z-drop-line);
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+  pointer-events: none;
+}
+.drop-target {
+  border-radius: var(--radius);
+  background: rgba(47, 111, 219, 0.1);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+body.is-dragging,
+body.is-dragging * {
+  cursor: grabbing !important;
+}
+/* Give empty zones of the dragged type some room to drop into. */
+body.dragging-todo .drop-zone-todo,
+body.dragging-project .drop-zone-project {
+  min-height: 12px;
+}

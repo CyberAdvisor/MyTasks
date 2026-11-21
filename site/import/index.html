@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Import from other apps — My Tasks</title>
+<meta name="description" content="How to bring tasks into My Tasks from other apps with a CSV file, and what the file holds.">
+<link rel="icon" href="/app/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+<!-- Shared header: keep the same on every page (tests/website.test.ts). -->
+<header class="site"><div class="wrap">
+  <a class="brand" href="/"><svg width="30" height="30" viewBox="0 0 120 120" aria-hidden="true"><rect width="120" height="120" rx="27" fill="#712b13"/><g fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><path d="M26 86V40l20 24 20-24v22" stroke="#f5c4b3"/><path d="M62 70l12 12 22-34" stroke="#fff"/></g></svg>My Tasks</a>
+  <nav class="main">
+    <a href="/#features">Features</a><a href="/guide/">Guide</a><a href="/compare/">Compare</a><a href="/limitations/">Limitations</a>
+    <a class="btn" href="/app/">Open the app</a>
+  </nav>
+</div></header>
+
+<main class="page">
+  <h1>Import from other apps</h1>
+  <p>My Tasks imports tasks from a CSV file: a plain spreadsheet file that most task apps can export, and that you can make yourself in Numbers, Excel or Google Sheets. This page describes the file it reads.</p>
+  <div class="toc"><strong>On this page</strong>
+    <ol>
+      <li><a href="#how">How import works</a></li>
+      <li><a href="#files">The template and a sample</a></li>
+      <li><a href="#columns">The columns</a></li>
+      <li><a href="#examples">Examples</a></li>
+      <li><a href="#things">From Things 3</a></li>
+    </ol>
+  </div>
+
+  <h2 id="how">How import works</h2>
+  <ul>
+    <li><strong>Import…</strong> in Settings › Import From Other Apps reads the file, shows what it holds (“120 tasks, 8 projects and 3 areas”) and adds it all when you choose Import. One Undo (Cmd+Z, or Undo on iPhone and iPad) takes it all back.</li>
+    <li>It <strong>adds</strong> to what you have and never replaces it. An area, project or tag with the same name as one you already have is added to; anything new is created.</li>
+    <li>If any row has a problem, nothing is imported, and the message names the row so you can fix it.</li>
+    <li>Import counts toward the <a href="/guide/#task-limit">5,000-task limit</a>, and is refused if it would go past it.</li>
+    <li>An archive file from Settings › Archive is in this format, so importing it brings its items back, completed, to Completed.</li>
+  </ul>
+
+  <h2 id="files">The template and a sample</h2>
+  <ul>
+    <li><a href="/assets/import/mytasks-import-template.csv">mytasks-import-template.csv</a>: the header row only, ready to fill in.</li>
+    <li><a href="/assets/import/mytasks-import-sample.csv">mytasks-import-sample.csv</a>: two areas, a project with headings, a task with a checklist, four kinds of repeating task and a repeating project.</li>
+  </ul>
+  <p>Save the file as CSV in UTF-8, with the header row first. Columns can be in any order, and any column can be left out or left blank: a blank takes the app’s usual default. Dates are written <code>YYYY-MM-DD</code>, such as <code>2026-12-08</code>.</p>
+
+  <h2 id="columns">The columns</h2>
+  <p>Each row is one item, and its <code>type</code> says which: <code>area</code>, <code>project</code>, <code>heading</code>, <code>task</code> or <code>checklist</code> (one checklist item).</p>
+  <div class="table-scroll">
+  <table>
+    <tr><th>Column</th><th>Used on</th><th>What to put</th></tr>
+    <tr><td><code>type</code></td><td>every row</td><td>area, project, heading, task or checklist</td></tr>
+    <tr><td><code>title</code></td><td>every row</td><td>The name of the item</td></tr>
+    <tr><td><code>id</code></td><td>any</td><td>Optional: any text, unique in the file, so other rows can point to this one</td></tr>
+    <tr><td><code>parent_id</code></td><td>any</td><td>Optional: the <code>id</code> of the area, project, heading or task this row belongs in. Exact even when names repeat</td></tr>
+    <tr><td><code>notes</code></td><td>project, task</td><td>Plain text; line breaks are fine inside quotes</td></tr>
+    <tr><td><code>area</code></td><td>project, task</td><td>The area’s name, when there’s no <code>parent_id</code></td></tr>
+    <tr><td><code>project</code></td><td>heading, task</td><td>The project’s name</td></tr>
+    <tr><td><code>heading</code></td><td>task</td><td>The heading’s name within its project</td></tr>
+    <tr><td><code>tags</code></td><td>area, project, task</td><td>Tag names separated by <code>;</code>; <code>Errand/Shop</code> for a nested tag</td></tr>
+    <tr><td><code>start</code></td><td>project, task</td><td>inbox, today, date, unscheduled or deferred. Blank: the Inbox, or Unscheduled for a task in a project or area</td></tr>
+    <tr><td><code>start_date</code></td><td>project, task</td><td>The start date, with <code>start</code> set to date or left blank. With deferred, the date wins: the item comes in scheduled on that date</td></tr>
+    <tr><td><code>deadline</code></td><td>project, task</td><td>The deadline</td></tr>
+    <tr><td><code>priority</code></td><td>task</td><td>1 to 5 (P1 to P5)</td></tr>
+    <tr><td><code>context</code></td><td>task</td><td>The context’s name; a new one is created</td></tr>
+    <tr><td><code>checked</code></td><td>checklist</td><td>yes or no</td></tr>
+    <tr><td><code>status</code></td><td>project, task</td><td>open, completed or canceled. Blank: open</td></tr>
+    <tr><td><code>completed_date</code></td><td>project, task</td><td>When it was completed or canceled</td></tr>
+    <tr><td><code>created_date</code></td><td>any</td><td>When it was created. Blank: the day you import</td></tr>
+    <tr><td><code>repeat</code></td><td>task, project</td><td>regularly or after_completion. Blank: not repeating</td></tr>
+    <tr><td><code>repeat_every</code></td><td>task, project</td><td>A number, such as 2 for every two weeks. Blank: 1</td></tr>
+    <tr><td><code>repeat_unit</code></td><td>task, project</td><td>day, week, month or year</td></tr>
+    <tr><td><code>repeat_weekdays</code></td><td>task, project</td><td>For weekly repeats: days separated by <code>;</code>, such as <code>mon;thu</code></td></tr>
+    <tr><td><code>repeat_month_day</code></td><td>task, project</td><td>For monthly and yearly repeats: <code>15</code>, <code>last</code>, <code>2nd tue</code> or <code>last fri</code></td></tr>
+    <tr><td><code>repeat_month</code></td><td>task, project</td><td>For yearly repeats: jan to dec</td></tr>
+    <tr><td><code>repeat_first</code></td><td>task, project</td><td>The date of the first copy</td></tr>
+    <tr><td><code>repeat_ends_after</code></td><td>task, project</td><td>Stop after this many copies</td></tr>
+    <tr><td><code>repeat_ends_on</code></td><td>task, project</td><td>Stop on this date</td></tr>
+    <tr><td><code>repeat_deadline</code></td><td>task, project</td><td>yes to give each copy a deadline on its date</td></tr>
+    <tr><td><code>repeat_start_early</code></td><td>task, project</td><td>With a deadline: how many days earlier each copy starts</td></tr>
+    <tr><td><code>repeat_paused</code></td><td>task, project</td><td>yes to import the repeat paused</td></tr>
+  </table>
+  </div>
+  <p>A few rules make a file easy to type by hand:</p>
+  <ul>
+    <li><strong>Checklist rows</strong> belong to the task row just above them, unless they have a <code>parent_id</code>.</li>
+    <li><strong>Names</strong> are matched to your existing areas, projects and tags without regard to capitals.</li>
+    <li><strong>Order:</strong> tasks, headings and checklist items keep the order they have in the file. With ids, rows can come in any order.</li>
+    <li>A repeating task is imported as the repeating task itself; My Tasks makes its copies on their dates, as for one you set up in the app.</li>
+    <li>A repeating project is imported as its template, always as a new project. Its tasks, headings and checklists are what each copy will hold, so a task in it takes no start date, deadline or repeat of its own. If its first date is today or earlier, today’s copy is made as it comes in.</li>
+  </ul>
+
+  <h2 id="examples">Examples</h2>
+  <h3>A project with headings</h3>
+<pre><code>type,title,area,project,heading,start
+project,Kitchen refresh,Home,,,
+heading,Choose,,Kitchen refresh,,
+heading,Do,,Kitchen refresh,,
+task,Order handles,,Kitchen refresh,Choose,today
+task,Paint the cabinets,,Kitchen refresh,Do,deferred</code></pre>
+  <h3>A task with a checklist</h3>
+<pre><code>type,title,checked
+task,Pick a cabinet colour,
+checklist,Get sample pots,yes
+checklist,Paint test patches,no</code></pre>
+  <h3>Repeating on the second Tuesday of each month</h3>
+<pre><code>type,title,area,repeat,repeat_unit,repeat_month_day,repeat_first
+task,Team planning meeting notes,Work,regularly,month,2nd tue,2026-12-08</code></pre>
+  <h3>A project repeating every Friday</h3>
+<pre><code>type,title,area,project,repeat,repeat_unit,repeat_weekdays,repeat_first
+project,Weekly review,Work,,regularly,week,fri,2026-12-04
+task,Clear the inbox,,Weekly review,,,,
+task,Plan next week,,Weekly review,,,,</code></pre>
+
+  <h2 id="things">From Things 3</h2>
+  <p>A small script that you run on your Mac reads Things 3 and writes this file for you: your areas, projects, headings, open tasks with their checklists, tags, notes, dates, deadlines, and repeating tasks and projects. Completed and trashed items aren’t included, and Things tags come across as tags. It only reads Things; it never changes anything there, and nothing leaves your Mac.</p>
+  <ol>
+    <li>Open <strong>Terminal</strong> (in Applications › Utilities).</li>
+    <li>Paste these two lines and press Return. The first downloads the script (<a href="https://github.com/CyberAdvisor/MyTasks/blob/main/helper/things_export.py">read it on GitHub</a>) into your Downloads folder; the second runs it there.
+<pre><code>cd ~/Downloads && curl -fsSLO https://raw.githubusercontent.com/CyberAdvisor/MyTasks/main/helper/things_export.py
+python3 things_export.py</code></pre></li>
+    <li>If macOS asks whether Terminal may access data from other apps, click <strong>Allow</strong>. If your Mac offers to install the command line developer tools instead, install them (they include Python) and run the second line again.</li>
+    <li>The script says how many items it wrote to <strong>Things export</strong> with today’s date, in your Downloads folder. Repeating to-dos and projects come across as the repeating item itself; the copies Things has already made are left out, as My Tasks makes its own.</li>
+    <li>In My Tasks, open <strong>Settings › Import From Other Apps › Import…</strong>, choose that file, check the preview, and click <strong>Import</strong>.</li>
+  </ol>
+  <p>To bring in only part of it, open the file in Numbers or Excel, delete the rows you don’t want, and save it as CSV first. Each task row keeps its Things id in the <code>id</code> column, which links its checklist rows to it.</p>
+</main>
+
+
+<!-- Shared footer: keep the same on every page (tests/website.test.ts). -->
+<footer class="site"><div class="wrap">
+  <div class="cols">
+    <div><h2>Product</h2><a href="/#features">Features</a><a href="/#how">How it works</a><a href="/compare/">Compare</a><a href="/roadmap/">Roadmap</a><a href="/app/">Open the app</a></div>
+    <div><h2>Help</h2><a href="/guide/">Guide</a><a href="/book/">The book</a><a href="/methods/">Ways to organize</a><a href="/import/">Import from other apps</a><a href="/#faq">Common questions</a><a href="https://www.reddit.com/r/mytasksfyi/">Community (r/mytasksfyi)</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a></div>
+    <div><h2>Project</h2><a href="/about/">About</a><a href="/self-hosting/">Your own copy</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://ko-fi.com/Z8O623D716">Donate</a></div>
+  </div>
+  <div class="base"><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a><span>Open source, <a href="https://github.com/CyberAdvisor/MyTasks/blob/main/LICENSE">MIT licence</a></span></div>
+</div></footer>
+</body>
+</html>

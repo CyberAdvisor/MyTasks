@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roadmap — My Tasks</title>
+<meta name="description" content="What's planned for My Tasks, grouped by milestone and the version it's planned for.">
+<link rel="icon" href="/app/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+<!-- Shared header: keep the same on every page (tests/website.test.ts). -->
+<header class="site"><div class="wrap">
+  <a class="brand" href="/"><svg width="30" height="30" viewBox="0 0 120 120" aria-hidden="true"><rect width="120" height="120" rx="27" fill="#712b13"/><g fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><path d="M26 86V40l20 24 20-24v22" stroke="#f5c4b3"/><path d="M62 70l12 12 22-34" stroke="#fff"/></g></svg>My Tasks</a>
+  <nav class="main">
+    <a href="/#features">Features</a><a href="/guide/">Guide</a><a href="/compare/">Compare</a><a href="/limitations/">Limitations</a>
+    <a class="btn" href="/app/">Open the app</a>
+  </nav>
+</div></header>
+
+<main class="page">
+  <h1>Roadmap</h1>
+  <p class="updated">Last updated November 20, 2026</p>
+  <p>What’s planned for My Tasks, grouped by milestone and the version it’s planned for, then a backlog of ideas. Items with a ✓ are done, with the version they arrived in. Plans can change; items marked research are being looked into, not promised.</p>
+
+  <h2>Coming next</h2>
+  <p>Nothing is under active development right now. See the Backlog below, or suggest something in <a href="https://www.reddit.com/r/mytasksfyi/">r/mytasksfyi</a>.</p>
+
+  <h2>Backlog</h2>
+  <p>These items aren’t under active development, but may be considered in the future.</p>
+  <section class="milestone">
+    <h3>Multi-gist</h3>
+    <ul>
+      <li>Switch between gists, for example one for work and one for personal tasks</li>
+      <li>Other places to keep your tasks (research)</li>
+    </ul>
+  </section>
+  <section class="milestone">
+    <h3>Teamwork</h3>
+    <ul>
+      <li>Small teams sharing a gist, with an assigned field on tasks (research)</li>
+    </ul>
+  </section>
+  <section class="milestone">
+    <h3>Natural-language entry</h3>
+    <ul>
+      <li>Type a task with its details in plain words, such as “Call Sam tomorrow”, and have them set for you, with a setting to turn it on or off</li>
+    </ul>
+  </section>
+
+  <h2>Completed</h2>
+  <section class="milestone done">
+    <h3>Milestone 14 · Repeating projects <span class="ver">v1.6.0 to v1.6.2</span></h3>
+    <ul>
+      <li class="done">Repeat a project as you repeat a task: each copy is the whole project, with its headings, tasks and checklists <span class="ver">v1.6.0</span></li>
+      <li class="done">The template: its rule and next dates, Show Previous Copy and Create Next Copy, and listed in Scheduled on its next date <span class="ver">v1.6.0</span></li>
+      <li class="done">Work ahead on the next copy from the template, and complete, pause or stop a repeating project <span class="ver">v1.6.1</span></li>
+      <li class="done">Import and the Things script bring repeating projects in <span class="ver">v1.6.2</span></li>
+      <li class="done">A Guide section on repeating tasks and projects (<a href="/guide/#repeating">Guide</a>)</li>
+    </ul>
+  </section>
+
+  <section class="milestone done">
+    <h3>Milestone 13 · Calendar events <span class="ver">v1.5.0 to v1.5.4</span></h3>
+    <ul>
+      <li class="done">Today’s and coming events from your Mac’s calendars, shown in Today and Scheduled on all your devices, through a small helper you run on your Mac <span class="ver">v1.5.2</span></li>
+      <li class="done">Click an event to see its details: when and where, the link, attendees and notes <span class="ver">v1.5.2</span></li>
+      <li class="done">A guide to setting up the helper (<a href="/guide/#calendar">Guide</a>) <span class="ver">v1.5.2</span></li>
+      <li class="done">Scheduled laid out by day for a week, then the rest of the month, months and years, with your events <span class="ver">v1.5.2</span></li>
+      <li class="done">The privacy, security and limitations pages brought up to date for calendar events</li>
+    </ul>
+  </section>
+
+  <section class="milestone done">
+    <h3>Milestone 12 · Import <span class="ver">v1.4.0 to v1.4.4</span></h3>
+    <ul>
+      <li class="done">One file format for bringing in tasks from other apps: areas, projects, headings, tasks, checklists and repeating tasks (<a href="/import/">Import from other apps</a>) <span class="ver">v1.4.0</span></li>
+      <li class="done">Import… in Settings, adding to what you have <span class="ver">v1.4.0</span></li>
+      <li class="done">Archive: old completed items saved to a file and removed, to keep your gist small <span class="ver">v1.4.2</span></li>
+      <li class="done">What’s in your gist, in Settings › Sync: tasks and projects by state, and the file’s size <span class="ver">v1.4.3</span></li>
+      <li class="done">A script for your Mac that writes that file from Things 3 <span class="ver">v1.4.4</span></li>
+    </ul>
+  </section>
+  <section class="milestone done">
+    <h3>Milestone 11 · Review fixes <span class="ver">v1.3.0 to v1.3.15</span></h3>
+    <ul>
+      <li class="done">A clear message when a change can’t be saved <span class="ver">v1.3.0</span></li>
+      <li class="done">Task names easier to read on phones <span class="ver">v1.3.1</span></li>
+      <li class="done">Reorder checklist items by dragging, on iPhone and iPad too <span class="ver">v1.3.2 to v1.3.4</span></li>
+      <li class="done">No pinch zoom in the iPhone app <span class="ver">v1.3.3</span></li>
+      <li class="done">The filter bar shows tags only <span class="ver">v1.3.5</span></li>
+      <li class="done">What you’re typing kept when you leave the app <span class="ver">v1.3.6</span></li>
+      <li class="done">Repeating tasks kept right when their project is completed or the task is duplicated <span class="ver">v1.3.8</span></li>
+      <li class="done">Matching menus, long titles that wrap on iPhone, and a filter in the Move dialog <span class="ver">v1.3.9 to v1.3.11</span></li>
+      <li class="done">Dates shown in one order, month then day; the calendar starts on Sunday <span class="ver">v1.3.12</span></li>
+      <li class="done">The same space above the first task everywhere, and Sync now from the sidebar <span class="ver">v1.3.14</span></li>
+      <li class="done">Deleted items cleaned up after 180 days <span class="ver">v1.3.15</span></li>
+      <li class="done">Behind-the-scenes tidying <span class="ver">v1.3.7, v1.3.13</span></li>
+    </ul>
+  </section>
+  <section class="milestone done">
+    <h3>Milestone 10 · Power editing <span class="ver">v1.2.0 to v1.2.20</span></h3>
+    <ul>
+      <li class="done">A task’s heading shown after its project, such as “Vacation : Packing” <span class="ver">v1.2.0</span></li>
+      <li class="done">See where a task went when you move it out of the Inbox <span class="ver">v1.2.1</span></li>
+      <li class="done">Focus on one area, so only its projects and tasks show <span class="ver">v1.2.3</span></li>
+      <li class="done">Type dates in plain words, such as “next fri” <span class="ver">v1.2.4</span></li>
+      <li class="done">Undo and redo more than one change <span class="ver">v1.2.7</span></li>
+      <li class="done">Select several tasks and change their priority, context or project, or delete them <span class="ver">v1.2.9</span></li>
+      <li class="done">Repeating tasks, including completing or skipping the next one early <span class="ver">v1.2.13</span></li>
+      <li class="done">Drag tasks onto the sidebar’s lists and between Today’s groups, several at once <span class="ver">v1.2.14</span></li>
+      <li class="done">Swipe a task on iPhone and iPad: left to right for its start date, right to left to select <span class="ver">v1.2.15</span></li>
+      <li class="done">Nested tags, and a shortcut key for each tag <span class="ver">v1.2.16</span></li>
+      <li class="done">Speed with long lists, up to 5,000 tasks in all, with a warning as you near that limit <span class="ver">v1.2.20</span></li>
+    </ul>
+  </section>
+  <section class="milestone done">
+    <h3>Milestone 9 · This website <span class="ver">website only, with v1.1.19 and v1.1.20</span></h3>
+    <ul>
+      <li>A guide to hosting or changing your own copy</li>
+      <li>A page comparing My Tasks with other popular task managers</li>
+      <li>Help, suggestions and news in the r/mytasksfyi community on Reddit</li>
+      <li>A way to support My Tasks with a donation</li>
+      <li>Common questions on the Home page</li>
+      <li>Setup guides for GTD, PARA and the Eisenhower matrix</li>
+      <li>An About page</li>
+      <li>A simpler header, and a footer in three columns</li>
+    </ul>
+  </section>
+  <section class="milestone done">
+    <h3>Milestone 8 · Tidy and polish <span class="ver">v1.1.0 to v1.1.18</span></h3>
+    <ul>
+      <li>Collapsible areas, and collapsible headings in projects</li>
+      <li>Empty-list illustrations, a new logo, and a sidebar you can resize</li>
+      <li>Print a list</li>
+      <li>Right-click menus for projects, areas and saved searches in the sidebar</li>
+      <li>A mark on each task showing when it’s planned: a star for Today, the day for a scheduled task, a dashed box for a deferred one</li>
+      <li>“When” is now called Start Date; a start date can’t be later than the deadline, and a task moves into Today on its deadline</li>
+      <li>A full check against the design, and testing on iPhone and iPad</li>
+      <li>Sort a project’s tasks by date</li>
+      <li>The full task menu on touch screens, as a sheet on phones</li>
+      <li>A cleaner look on Mac, iPad and iPhone: new sizes for the sidebar and rows, new dark colours, and a sidebar you can hide</li>
+      <li>Sequential projects: when a task is done, the next one moves into Today, with a priority and context you choose</li>
+      <li>Automated tests of the interface</li>
+    </ul>
+  </section>
+  <section class="milestone done">
+    <h3>Milestone 7 · Ready for release <span class="ver">v0.7.1 to v1.0.0</span></h3>
+    <ul>
+      <li>An independent review of security and privacy, and its fixes</li>
+      <li>Back up and restore your tasks, in Settings</li>
+    </ul>
+  </section>
+  <section class="milestone done">
+    <h3>Milestone 6 · Finishing touches <span class="ver">v0.4.1 to v0.7.0</span></h3>
+    <ul>
+      <li>Typing straight into a new task, and a final Empty Trash</li>
+      <li>This website, with its guide, limitations, privacy and security pages</li>
+      <li>Confirming the risks and limitations at setup, and links to this website from the app</li>
+    </ul>
+  </section>
+  <section class="milestone done">
+    <h3>Milestone 5 · Sync, install and hosting <span class="ver">v0.1.0 to v0.4.0</span></h3>
+    <ul>
+      <li>Light and dark themes, and the Completed list</li>
+      <li>Encrypted sync between your devices through your own GitHub gist</li>
+      <li>Install as an app that works offline, hosted at mytasks.fyi</li>
+    </ul>
+  </section>
+  <section class="milestone done">
+    <h3>Milestone 4 · Drag and drop, keyboard and undo <span class="ver">v0.1.0 to v0.2.2</span></h3>
+    <ul>
+      <li>Drag and drop in lists and the sidebar, keyboard shortcuts, and undo</li>
+      <li>Each task’s right-click menu, and the menus after each list’s title</li>
+      <li>Contexts, and grouping Today by project, priority or context</li>
+    </ul>
+  </section>
+  <section class="milestone done">
+    <h3>Milestones 1 to 3 · The foundations <span class="ver">v0.1.0</span></h3>
+    <ul>
+      <li>Inbox, Today, Scheduled, Unscheduled, Deferred, Completed and Trash</li>
+      <li>Areas, projects, headings, tags, checklists, notes, dates and deadlines</li>
+      <li>Priorities, saved searches, search and Quick Entry</li>
+    </ul>
+  </section>
+</main>
+
+<!-- Shared footer: keep the same on every page (tests/website.test.ts). -->
+<footer class="site"><div class="wrap">
+  <div class="cols">
+    <div><h2>Product</h2><a href="/#features">Features</a><a href="/#how">How it works</a><a href="/compare/">Compare</a><a href="/roadmap/">Roadmap</a><a href="/app/">Open the app</a></div>
+    <div><h2>Help</h2><a href="/guide/">Guide</a><a href="/book/">The book</a><a href="/methods/">Ways to organize</a><a href="/import/">Import from other apps</a><a href="/#faq">Common questions</a><a href="https://www.reddit.com/r/mytasksfyi/">Community (r/mytasksfyi)</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a></div>
+    <div><h2>Project</h2><a href="/about/">About</a><a href="/self-hosting/">Your own copy</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://ko-fi.com/Z8O623D716">Donate</a></div>
+  </div>
+  <div class="base"><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a><span>Open source, <a href="https://github.com/CyberAdvisor/MyTasks/blob/main/LICENSE">MIT licence</a></span></div>
+</div></footer>
+</body>
+</html>

@@ -1,0 +1,19 @@
+// Cloudflare hosting for mytasks.fyi (NFR-13): a Worker that serves only the
+// built files in dist/ (the website, with the app in dist/app/), with no
+// Worker code. .github/workflows/deploy.yml deploys it from main when the
+// repository has the Cloudflare secrets; otherwise it publishes to GitHub Pages.
+// site/_headers adds the headers GitHub Pages can't send.
+{
+  "name": "mytasks",
+  "compatibility_date": "2026-11-16",
+  // The temporary address for checking before the cutover: a separate data store.
+  "workers_dev": true,
+  // mytasks.fyi, the address every device keeps its data under: it must never change.
+  "routes": [{ "pattern": "mytasks.fyi", "custom_domain": true }],
+  "assets": {
+    "directory": "./dist",
+    // /guide serves /guide/index.html at /guide/, as GitHub Pages does.
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  }
+}

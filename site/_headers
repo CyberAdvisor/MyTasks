@@ -1,0 +1,20 @@
+# Response headers for Cloudflare (NFR-11, NFR-13). GitHub Pages can't send
+# headers and serves this file as plain text; Cloudflare reads it instead.
+# The pages' own Content Security Policy stays in their meta tags (so a copy on
+# GitHub Pages keeps it); this header adds what a meta tag can't carry:
+# no other site may show My Tasks in a frame.
+/*
+  Content-Security-Policy: frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# Always check for a newer copy, so a deploy shows at once.
+/assets/site.css
+  Cache-Control: no-cache
+/sw.js
+  Cache-Control: no-cache
+/app/sw.js
+  Cache-Control: no-cache
+# The book's files keep one address across editions: check for a newer copy.
+/book/*
+  Cache-Control: no-cache

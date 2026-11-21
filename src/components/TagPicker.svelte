@@ -1,0 +1,134 @@
+<!--
+  Tag picker contents (FR-6.2): tick tags on or off, or type a new tag name
+  and press Enter to create and add it. The owner decides where the choice
+  is written (a stored to-do, project or area, or a Quick Entry draft).
+  Any choice closes the picker. For several selected tasks
+  (FR-10.1), a tag only some of them have shows a dash; choosing it adds it
+  to all of them, and choosing a ticked tag removes it from all. Nested tags
+  (FR-6.1b) are indented under their parent.
+-->
+<script lang="ts">
+  import Icon from './Icon.svelte';
+  import { snapshot } from '../lib/state/live';
+  import { go } from '../lib/state/route';
+  import { tagTree } from '../lib/model/tags';
+  import * as repo from '../lib/db/repo';
+  import type { ID } from '../lib/model/types';
+
+  let {
+    tagIds,
+    someIds = [],
+    ontoggle,
+    ondone,
+  }: {
+    /** The tags currently set (on every task, for several). */
+    tagIds: ID[];
+    /** For several tasks: the tags only some of them have. */
+    someIds?: ID[];
+    /** Called to add (`on`) or remove a tag. */
+    ontoggle: (tagId: ID, on: boolean) => void;
+    /** Called after a choice, so the owner can close the picker. */
+    ondone: () => void;
+  } = $props();
+
+  let filter = $state('');
+  let input: HTMLInputElement;
+
+  let tree = $derived(tagTree($snapshot.tags));
+  let tags = $derived(tree.map((x) => x.tag));
+  let shown = $derived(tree.filter(({ tag }) => tag.title.toLowerCase().includes(filter.trim().toLowerCase())));
+  let exact = $derived(tags.find((t) => t.title.toLowerCase() === filter.trim().toLowerCase()));
+
+  $effect(() => input.focus());
+
+  function toggle(tagId: ID) {
+    ontoggle(tagId, !tagIds.includes(tagId));
+    ondone();
+  }
+
+  /** Enter adds the matching tag, or creates a new one with the typed name. */
+  async function onKey(e: KeyboardEvent) {
+    if (e.key !== 'Enter' || !filter.trim()) return;
+    e.preventDefault();
+    const name = filter;
+    filter = '';
+    const tagId = exact?.id ?? (await repo.createTag(name));
+    ontoggle(tagId, true);
+    ondone();
+  }
+</script>
+
+<div class="picker">
+  <input
+    bind:this={input}
+    bind:value={filter}
+    onkeydown={onKey}
+    class="filter"
+    placeholder="Find or create a tag"
+    aria-label="Find or create a tag"
+    autocomplete="off"
+  />
+  <ul>
+    {#each shown as { tag, depth } (tag.id)}
+      <li style:padding-left="{depth * 14}px">
+        <button
+          type="button"
+          class="menu-item"
+          role="menuitemcheckbox"
+          aria-checked={tagIds.includes(tag.id) ? true : someIds.includes(tag.id) ? 'mixed' : false}
+          onclick={() => toggle(tag.id)}
+        >
+          <span class="tick"
+            >{#if tagIds.includes(tag.id)}<Icon name="check" size={13} color="var(--accent)" />{:else if someIds.includes(tag.id)}<span class="some">–</span>{/if}</span
+          >
+          {tag.title || 'Untitled'}
+        </button>
+      </li>
+    {/each}
+  </ul>
+  {#if filter.trim() && !exact}
+    <p class="hint">Press Enter to create “{filter.trim()}”</p>
+  {:else if !tags.length}
+    <p class="hint">No tags yet. Type a name and press Enter.</p>
+  {/if}
+  <hr class="menu-sep" />
+  <button type="button" class="menu-item manage" onclick={() => go({ kind: 'settings' })}>Manage Tags…</button>
+</div>
+
+<style>
+  .picker {
+    width: 220px;
+  }
+  .filter {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 5px 8px;
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .tick {
+    width: 14px;
+    display: inline-flex;
+  }
+  .some {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .hint {
+    margin: 4px 10px;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+  .manage {
+    color: var(--text-2);
+    font-size: 13px;
+  }
+</style>

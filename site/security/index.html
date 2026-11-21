@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security — My Tasks</title>
+<meta name="description" content="How My Tasks protects your tasks, and what it can’t protect against.">
+<link rel="icon" href="/app/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+<!-- Shared header: keep the same on every page (tests/website.test.ts). -->
+<header class="site"><div class="wrap">
+  <a class="brand" href="/"><svg width="30" height="30" viewBox="0 0 120 120" aria-hidden="true"><rect width="120" height="120" rx="27" fill="#712b13"/><g fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><path d="M26 86V40l20 24 20-24v22" stroke="#f5c4b3"/><path d="M62 70l12 12 22-34" stroke="#fff"/></g></svg>My Tasks</a>
+  <nav class="main">
+    <a href="/#features">Features</a><a href="/guide/">Guide</a><a href="/compare/">Compare</a><a href="/limitations/">Limitations</a>
+    <a class="btn" href="/app/">Open the app</a>
+  </nav>
+</div></header>
+
+<main class="page">
+  <h1>Security</h1>
+  <p class="updated">Last updated November 19, 2026</p>
+  <p>How My Tasks protects your tasks, and what it can't protect against. The code is open source, so you can <a href="https://github.com/CyberAdvisor/MyTasks">check it yourself</a>.</p>
+
+  <h2>Encryption</h2>
+  <ul>
+    <li>Your tasks are encrypted on your device before it is sent to your gist, using the browser's built-in Web Crypto.</li>
+    <li>The key is derived from your passphrase with PBKDF2-SHA-256, 600,000 rounds and a random 16-byte salt.</li>
+    <li>Your tasks are encrypted with AES-256-GCM, with a fresh 12-byte IV every time it's saved. GCM also detects any change to the encrypted file.</li>
+    <li>Each device asks for your passphrase once and keeps the key in a form the browser won't let any script read out. The app doesn't store your passphrase or send it anywhere.</li>
+    <li>Change Passphrase re-encrypts your gist with a new salt. Your other devices then ask for the new passphrase. Older versions of the gist stay in its history, encrypted with the passphrase in use at the time.</li>
+    <li>GitHub can see that your gist exists, its size and when it changes, but not your tasks.</li>
+  </ul>
+
+  <h2>Your GitHub token</h2>
+  <ul>
+    <li>My Tasks uses a classic personal access token with only the <strong>gist</strong> permission. That permission covers all of your gists, not only My Tasks'.</li>
+    <li>Each device keeps its token in the browser's storage, unencrypted, and uses it only with GitHub's API.</li>
+    <li>Give the token an expiry, such as 90 days. When it expires, make a new one and use Change Token in Settings › Sync on each device.</li>
+    <li>If a device is lost, revoke its token at <a href="https://github.com/settings/tokens">github.com/settings/tokens</a>.</li>
+  </ul>
+
+  <h2>The calendar helper</h2>
+  <ul>
+    <li>The helper is an optional script you run on your Mac to bring your calendar events into My Tasks (<a href="/guide/#calendar">Guide</a>). It keeps your GitHub token and passphrase in your Mac's login Keychain, not in a file.</li>
+    <li>It encrypts your events the same way as your tasks, with the key from your passphrase and your gist's salt, and connects only to GitHub's gist API. It writes only its own file in the gist, never your tasks.</li>
+    <li>If you change your passphrase in the app, the helper stops writing until you run its setup again with the new one.</li>
+    <li>In the app, events are display only: every event is checked before it's shown, notes and other text are plain text, and only web links can be opened.</li>
+  </ul>
+
+  <h2>The app and this website</h2>
+  <ul>
+    <li>Both are static files served over HTTPS by Cloudflare. There is no My Tasks server. Cloudflare also sends headers that stop other sites from showing My Tasks in a frame.</li>
+    <li>A strict Content Security Policy lets the app run only its own scripts, never <code>eval</code>, and connect only to itself and GitHub's gist API. This website may not connect anywhere.</li>
+    <li>Notes are always shown as plain text, never as HTML, so pasted text can't run in the app.</li>
+    <li>Every file read from your gist is checked field by field before it is used, and a file that fails is never applied. The app also checks its own data before uploading it.</li>
+  </ul>
+
+  <h2>What it can't protect against</h2>
+  <ul>
+    <li>Anyone who can use your unlocked device: each device's working copy is not encrypted.</li>
+    <li>Anyone who has both your token and your passphrase.</li>
+    <li>Anyone who can use your Mac while you're signed in, if you've set up the calendar helper: the token and passphrase are in your login Keychain.</li>
+    <li>Malicious browser extensions, or malware on your device.</li>
+    <li>A malicious update to the app. My Tasks runs whatever code is published to mytasks.fyi, so a harmful change to that code, or to GitHub's hosting, could read your tasks once they're decrypted on your device. The code is public, so changes can be checked.</li>
+    <li>Someone with access to your GitHub account deleting your gist. They can't read it without your passphrase.</li>
+    <li>A forgotten passphrase: if no device is still connected, your data is lost.</li>
+  </ul>
+
+  <h2 id="report">Reporting a vulnerability</h2>
+  <p>Please report security problems privately, through <a href="https://github.com/CyberAdvisor/MyTasks/security/advisories/new">GitHub's private vulnerability reporting</a>, not in a public issue. Include what you found and how to reproduce it.</p>
+</main>
+
+<!-- Shared footer: keep the same on every page (tests/website.test.ts). -->
+<footer class="site"><div class="wrap">
+  <div class="cols">
+    <div><h2>Product</h2><a href="/#features">Features</a><a href="/#how">How it works</a><a href="/compare/">Compare</a><a href="/roadmap/">Roadmap</a><a href="/app/">Open the app</a></div>
+    <div><h2>Help</h2><a href="/guide/">Guide</a><a href="/book/">The book</a><a href="/methods/">Ways to organize</a><a href="/import/">Import from other apps</a><a href="/#faq">Common questions</a><a href="https://www.reddit.com/r/mytasksfyi/">Community (r/mytasksfyi)</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a></div>
+    <div><h2>Project</h2><a href="/about/">About</a><a href="/self-hosting/">Your own copy</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://ko-fi.com/Z8O623D716">Donate</a></div>
+  </div>
+  <div class="base"><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a><span>Open source, <a href="https://github.com/CyberAdvisor/MyTasks/blob/main/LICENSE">MIT licence</a></span></div>
+</div></footer>
+</body>
+</html>

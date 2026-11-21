@@ -1,0 +1,53 @@
+/*
+ * Printing the current page (FR-12.5): only the list itself, at full length,
+ * black on white whatever the appearance. Selectors are global on purpose:
+ * Svelte keeps each component's own class names, so these reach them.
+ */
+@media print {
+  /* Always the light colours: every token is a light-dark() pair. */
+  :root,
+  :root[data-theme='dark'] {
+    color-scheme: light;
+  }
+
+  /* Everything that isn't the list: sidebar, toolbars, menus and their buttons, toasts. */
+  .side,
+  .toolbar,
+  .plus,
+  .back,
+  .sidebar-btn,
+  .toast,
+  [role='toolbar'],
+  [role='separator'],
+  [role='menu'],
+  .more-btn,
+  header .actions,
+  button[aria-label='Add task under heading'],
+  button[aria-label='Heading actions'],
+  button[aria-label='Saved search actions'] {
+    display: none !important;
+  }
+
+  /* Let the page grow instead of scrolling inside its own box. */
+  html,
+  body,
+  #app,
+  .app,
+  main,
+  .scroll {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .scroll {
+    padding: 0 !important;
+  }
+  .column {
+    max-width: none !important;
+  }
+
+  /* A task never splits across two pages. */
+  li {
+    break-inside: avoid;
+  }
+}

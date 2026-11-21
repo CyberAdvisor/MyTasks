@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your own copy — My Tasks</title>
+<meta name="description" content="How to host your own copy of My Tasks, and change it.">
+<link rel="icon" href="/app/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+<!-- Shared header: keep the same on every page (tests/website.test.ts). -->
+<header class="site"><div class="wrap">
+  <a class="brand" href="/"><svg width="30" height="30" viewBox="0 0 120 120" aria-hidden="true"><rect width="120" height="120" rx="27" fill="#712b13"/><g fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"><path d="M26 86V40l20 24 20-24v22" stroke="#f5c4b3"/><path d="M62 70l12 12 22-34" stroke="#fff"/></g></svg>My Tasks</a>
+  <nav class="main">
+    <a href="/#features">Features</a><a href="/guide/">Guide</a><a href="/compare/">Compare</a><a href="/limitations/">Limitations</a>
+    <a class="btn" href="/app/">Open the app</a>
+  </nav>
+</div></header>
+
+
+<main class="page">
+  <h1>Your own copy</h1>
+  <p>My Tasks is open source under the MIT licence, so you can host your own copy, change it, or both. This page is for people comfortable with GitHub and a little code. To simply use My Tasks, you don't need any of this: see the <a href="/guide/">Guide</a>.</p>
+  <div class="toc"><strong>On this page</strong>
+    <ol>
+      <li><a href="#before">Before you start</a></li>
+      <li><a href="#host">Host it unchanged</a></li>
+      <li><a href="#change">Change it</a></li>
+      <li><a href="#updates">Get later updates</a></li>
+      <li><a href="#other-hosts">Other hosts</a></li>
+    </ol>
+  </div>
+
+  <h2 id="before">Before you start</h2>
+  <ul>
+    <li>A free <a href="https://github.com/signup">GitHub account</a>. Your copy is a fork of the <a href="https://github.com/CyberAdvisor/MyTasks">My Tasks repository</a>, published by GitHub Pages at no cost.</li>
+    <li>Your copy needs an address of its own, served from its root: your own domain or subdomain (such as <code>tasks.example.com</code>), or <code>yourname.github.io</code>. An address with a folder, such as <code>yourname.github.io/MyTasks/</code>, doesn't work, because the website and app link to each other from the root.</li>
+    <li>Choose the address once. Each device keeps its copy of your tasks under the address, so a new address starts empty on every device.</li>
+    <li>Your tasks stay in your own gist, whichever copy you use. A device that opens your copy for the first time is set up like a new device: connect it to your existing gist with your token and passphrase, as in <a href="/guide/#another-device">Add another device</a>.</li>
+    <li>A copy you host is yours to look after. Problems with it go to you, not to My Tasks.</li>
+  </ul>
+
+  <h2 id="host">Host it unchanged</h2>
+  <ol>
+    <li>Sign in to GitHub, open the <a href="https://github.com/CyberAdvisor/MyTasks">My Tasks repository</a> and click <strong>Fork</strong>, then <strong>Create fork</strong>. To use <code>yourname.github.io</code> as the address, name the fork <code>yourname.github.io</code> (with your own GitHub name).</li>
+    <li>In your fork, open the <strong>Actions</strong> tab and click the button that turns workflows on. GitHub turns them off in a new fork.</li>
+    <li>Open <strong>Settings › Pages</strong>. Under <strong>Build and deployment</strong>, set <strong>Source</strong> to <strong>GitHub Actions</strong>.</li>
+    <li>For your own domain: enter it under <strong>Custom domain</strong> on the same page, click <strong>Save</strong>, and point the domain at GitHub Pages as <a href="https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site">GitHub explains</a>. Then tick <strong>Enforce HTTPS</strong> when it's offered. My Tasks needs HTTPS to install and to encrypt.</li>
+    <li>In your fork, change <code>site/CNAME</code> to your domain, or delete it if you use <code>yourname.github.io</code>. Committing the change to main starts the first deploy.</li>
+    <li>When the <strong>Actions</strong> tab shows the run finished, open your address. The app is at <code>/app/</code>.</li>
+  </ol>
+  <p>Every push to main runs the tests, then publishes the website and app. If a test fails, nothing is published, and the run in the Actions tab shows why.</p>
+
+  <h2 id="change">Change it</h2>
+  <p>You need <a href="https://nodejs.org">Node</a> 20 or later and git. Clone your fork, then in its folder:</p>
+  <ol>
+    <li><code>npm install</code>, once.</li>
+    <li><code>npm run dev</code> runs the app on your computer at <code>http://localhost:5173/app/</code>, and reloads as you edit.</li>
+    <li><code>npm test</code> runs the unit tests, and <code>npm run test:ui</code> the interface tests in real browsers (the first time, run <code>npx playwright install chromium webkit</code>).</li>
+    <li>Commit and push to main to publish your change.</li>
+  </ol>
+  <p>The app is written in <a href="https://svelte.dev">Svelte</a> and TypeScript; the website is plain HTML in <code>site/</code>. <code>DEVELOPMENT.md</code> in the repository is the map of the code. In a copy at another address, also change:</p>
+  <ul>
+    <li><code>WEBSITE</code> in <code>src/lib/website.ts</code>: where the app's help links go.</li>
+    <li>The GitHub links in the website's shared footer, and the <strong>Report an issue</strong> link on the Limitations page, so they point at your fork.</li>
+  </ul>
+  <p>A change to how tasks are stored or synced can make a gist unreadable to other copies, including mytasks.fyi. If you use one gist with several copies, keep them on the same version.</p>
+
+  <h2 id="updates">Get later updates</h2>
+  <p>When My Tasks changes, your fork's page on GitHub shows that it is behind. Click <strong>Sync fork</strong>, then <strong>Update branch</strong>: that pushes to main, which publishes the update. If your changes touch the same lines, GitHub asks you to settle the difference first. The <a href="/roadmap/">Roadmap</a> shows what's coming.</p>
+
+  <h2 id="other-hosts">Other hosts</h2>
+  <p>Any host that serves static files works, as long as the copy is at the root of its address and served over HTTPS. Run <code>npm run build</code>, then publish the <code>dist/</code> folder, which holds the website with the app in <code>dist/app/</code>.</p>
+</main>
+
+<!-- Shared footer: keep the same on every page (tests/website.test.ts). -->
+<footer class="site"><div class="wrap">
+  <div class="cols">
+    <div><h2>Product</h2><a href="/#features">Features</a><a href="/#how">How it works</a><a href="/compare/">Compare</a><a href="/roadmap/">Roadmap</a><a href="/app/">Open the app</a></div>
+    <div><h2>Help</h2><a href="/guide/">Guide</a><a href="/book/">The book</a><a href="/methods/">Ways to organize</a><a href="/import/">Import from other apps</a><a href="/#faq">Common questions</a><a href="https://www.reddit.com/r/mytasksfyi/">Community (r/mytasksfyi)</a><a href="https://github.com/CyberAdvisor/MyTasks/issues">Report an issue</a></div>
+    <div><h2>Project</h2><a href="/about/">About</a><a href="/self-hosting/">Your own copy</a><a href="https://github.com/CyberAdvisor/MyTasks">Source on GitHub</a><a href="https://ko-fi.com/Z8O623D716">Donate</a></div>
+  </div>
+  <div class="base"><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a><span>Open source, <a href="https://github.com/CyberAdvisor/MyTasks/blob/main/LICENSE">MIT licence</a></span></div>
+</div></footer>
+</body>
+</html>
