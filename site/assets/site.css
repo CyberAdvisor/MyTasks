@@ -105,6 +105,10 @@ footer.site .base span { margin-left: auto; }
 kbd { font-family: inherit; font-size: 14px; background: var(--bg-2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
 .page table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 8px 0 16px; }
 .page th, .page td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+/* Privacy's "What is stored, and where": room for the Where column, so it isn't squeezed to a word a line; scrolls sideways on phones. */
+.page table.stored { min-width: 640px; }
+.page table.stored th:first-child { width: 24%; min-width: 10em; }
+.page table.stored th:nth-child(2) { width: 44%; }
 /* The Compare page: wider, for its five columns; cells centred as on the old Home table. */
 .page.wide { max-width: 1040px; }
 .page table.cmp { min-width: 760px; }
