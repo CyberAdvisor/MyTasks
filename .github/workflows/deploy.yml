@@ -60,12 +60,34 @@ jobs:
         with:
           path: dist
 
+  # Whether a pull request changes only the website and docs
+  # (scripts/websiteOnly.mjs); if so, the interface tests are skipped, which
+  # the main branch rule accepts as passing.
+  scope:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      website_only: ${{ steps.files.outputs.website_only }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" --jq '.[].filename' > changed.txt
+          echo "website_only=$(node scripts/websiteOnly.mjs < changed.txt)" >> "$GITHUB_OUTPUT"
+
   # The interface tests (npm run test:ui): real Chromium and WebKit against a
   # production build, with GitHub faked. Playwright's report is kept for 7
   # days when a test fails.
-  # Pull requests only; they stop after 15 minutes rather than hang (a normal run takes 4 to 5).
+  # Pull requests that can reach the app only; they stop after 15 minutes
+  # rather than hang (a normal run takes 4 to 5).
   interface:
-    if: github.event_name == 'pull_request'
+    needs: [scope]
+    if: github.event_name == 'pull_request' && needs.scope.outputs.website_only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

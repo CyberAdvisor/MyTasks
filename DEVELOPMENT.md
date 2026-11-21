@@ -26,6 +26,7 @@ The app shows only its Setup screen until it is connected to a GitHub Gist, so y
 
 `npm run test:ui` builds the app and runs `e2e/` in real browsers against it, served on port 4174 as `npm run preview` serves it (`playwright.config.ts`). Every test runs in desktop Chromium and desktop WebKit (close to Safari, the reference platform); `e2e/phone.spec.ts` runs in WebKit at iPhone size. They cover what the unit tests can't see: real IndexedDB transactions, Web Crypto, the Content Security Policy, the service worker, the website as served, and the phone layout.
 
+- In the pull request check they run only when the PR can reach the app. A PR that changes only `site/`, `docs/` or the top-level `.md` files (`scripts/websiteOnly.mjs`, job `scope` in the workflow) skips them, and the main branch rule accepts the skipped check.
 - GitHub is faked: `e2e/fakeGitHub.ts` answers the browser's requests from the unit tests' `FakeGitHub`, so nothing reaches GitHub. Two browser contexts given the same `FakeGitHub` act as two devices sharing a gist.
 - `e2e/app.ts` holds the shared steps: connecting through Setup, adding a task, and `watchErrors`, which collects uncaught errors and console errors, so a test can expect none.
 - The first run needs the browsers: `npx playwright install chromium webkit`. They go in your user folder, so no admin rights are needed.
