@@ -196,6 +196,6 @@ v1 is built in milestones, each a pull request.
 | 13 | Calendar events (1.5.0 to 1.5.4): a helper on the Mac that writes the chosen calendars' events to the gist (1.5.0), asking macOS for access (1.5.1); events in Today and Scheduled, with a details panel, and Scheduled grouped by day, month and year (1.5.2); a dated task never in Deferred (1.5.3); the tag bar kept clear of the events (1.5.4); the Privacy, Security, Limitations and Compare pages | Done |
 | 14 | Repeating projects (1.6.0 to 1.6.2): a project repeats as a task does, each copy the whole project, with the template's banner and Scheduled (1.6.0); working ahead, completing, pausing and stopping a repeating project (1.6.1); Import and the Things script bringing repeating projects in (1.6.2); the Guide's Repeating tasks and projects section | Done |
 | 15 | New logo (1.7.0): MT above a check in a circle, in teal, for the app, its icons and the website; screenshots on the website and in the README retaken; the book updated with its pictures retaken | Done |
-| 16 | Formatted notes (1.8.0): bold, italic, lists and clickable links in task and project notes; then clickable links in checklist items | In progress |
+| 16 | Formatted notes (1.8.0 to 1.8.2): bold, italic, lists and clickable links in task and project notes; fixes on phones; clickable links in checklist items | Done |
 
 The backlog is on the website's [Roadmap](https://mytasks.fyi/roadmap/) page.
