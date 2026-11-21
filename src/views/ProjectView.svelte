@@ -10,6 +10,7 @@
 -->
 <script lang="ts">
   import Icon from '../components/Icon.svelte';
+  import NotesField from '../components/NotesField.svelte';
   import ProgressPie from '../components/ProgressPie.svelte';
   import TodoList from '../components/TodoList.svelte';
   import MoreRows from '../components/MoreRows.svelte';
@@ -397,22 +398,21 @@
     </div>
   {/if}
 
-  <textarea
-    class="notes"
-    aria-label="Project notes"
-    placeholder="Notes"
-    rows="2"
-    bind:value={notes}
-    oninput={() => {
-      clearTimeout(notesTimer);
-      notesTimer = setTimeout(saveNotes, NOTES_DELAY_MS);
-    }}
-    onfocus={() => (notesFocused = true)}
-    onblur={() => {
-      notesFocused = false;
-      saveNotes();
-    }}
-  ></textarea>
+  <div class="notes-wrap">
+    <NotesField
+      label="Project notes"
+      bind:value={notes}
+      oninput={() => {
+        clearTimeout(notesTimer);
+        notesTimer = setTimeout(saveNotes, NOTES_DELAY_MS);
+      }}
+      onfocus={() => (notesFocused = true)}
+      onblur={() => {
+        notesFocused = false;
+        saveNotes();
+      }}
+    />
+  </div>
 
   <TagBar tags={offered} />
 
@@ -568,16 +568,9 @@
       display: flex;
     }
   }
-  .notes {
-    width: 100%;
-    border: 0;
-    outline: none;
-    resize: vertical;
-    font-size: 14px;
-    color: var(--text-2);
+  .notes-wrap {
     margin: 0 0 12px 38px;
     width: calc(100% - 38px);
-    background: transparent;
   }
   .heading {
     margin-top: 22px;

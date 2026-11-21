@@ -54,7 +54,7 @@
   <ul>
     <li>Both are static files served over HTTPS by Cloudflare. There is no My Tasks server. Cloudflare also sends headers that stop other sites from showing My Tasks in a frame.</li>
     <li>A strict Content Security Policy lets the app run only its own scripts, never <code>eval</code>, and connect only to itself and GitHub's gist API. This website loads nothing from outside except Statcounter's visit counter, which the app never does.</li>
-    <li>Notes are always shown as plain text, never as HTML, so pasted text can't run in the app.</li>
+    <li>Notes are stored as plain text and never shown as HTML, so pasted text can't run in the app. Their simple formatting (bold, italic, lists, links) is drawn by the app itself, and only web and email links become clickable, opening in a new tab when you click them.</li>
     <li>Every file read from your gist is checked field by field before it is used, and a file that fails is never applied. The app also checks its own data before uploading it.</li>
   </ul>
 

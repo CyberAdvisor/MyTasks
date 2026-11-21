@@ -50,7 +50,7 @@ A better task manager that is **free**, **private** and **secure**. My Tasks giv
 | Reminders and notifications | — ² | ✅ | ✅ | ✅ |
 | Board (Kanban) view | — | — | ✅ | — |
 | Sharing with others | — | — | ✅ | — |
-| Markdown in notes | — | ✅ | ✅ | — |
+| Markdown in notes | ✅ | ✅ | ✅ | — |
 | Widgets, Siri and Apple Watch | — ² | ✅ | ✅ | ✅ |
 
 ¹ Things and Todoist encrypt your data on their servers, but they hold the keys, so the company could read it.

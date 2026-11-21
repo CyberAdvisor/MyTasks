@@ -429,3 +429,20 @@ test('on phones too, the first task starts 26 px below the title or the tag row'
   await expect(page.getByText('Idea: a newsletter for launch day')).toBeVisible();
   expect(await titleGaps(page)).toEqual({ bar: null, first: 26 });
 });
+
+test('a tap on a note’s link opens it; a tap elsewhere edits the note (FR-7.4)', async ({ page, context }) => {
+  await fakeGitHub(context);
+  await connect(page);
+  await restoreSample(page);
+  await page.evaluate(() => (location.hash = '#/today'));
+  await page.getByText('Pick up dry cleaning', { exact: true }).tap();
+  await page.getByLabel('Notes', { exact: true }).fill('Ask for **Sam** at [the shop](https://example.com/shop)');
+  await page.getByLabel('Title', { exact: true }).tap();
+  const note = page.getByRole('textbox', { name: 'Notes', exact: true });
+  await context.route('https://example.com/**', (route) => route.fulfill({ body: 'shop' }));
+  const [tab] = await Promise.all([context.waitForEvent('page'), note.getByRole('link', { name: 'the shop' }).tap()]);
+  await tab.close();
+  await expect(note.locator('strong')).toBeVisible();
+  await note.locator('strong').tap();
+  await expect(page.locator('textarea[aria-label="Notes"]')).toBeFocused();
+});
