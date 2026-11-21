@@ -130,7 +130,12 @@ class Exporting(unittest.TestCase):
     def test_repeats(self):
         d = self.db
         d.task('r1', 'Weekly', start=2, rt1_recurrenceRule=rule(fu=256, of=[{'wd': 0}, {'wd': 3}]), rt1_nextInstanceStartDate=packed('2026-11-22'))
-        d.task('r1c', 'Weekly', start=1, startDate=packed(TODAY), rt1_repeatingTemplate='r1')
+        d.task('r1c', 'Weekly', start=1, startDate=packed('2026-11-18'), rt1_repeatingTemplate='r1')  # Wednesday's, still open
+        d.task('r1d', 'Weekly', start=1, startDate=packed('2026-11-15'), status=3, rt1_repeatingTemplate='r1')  # done: not counted
+        d.task('r8', 'No open copy', rt1_recurrenceRule=rule(fu=16), rt1_nextInstanceStartDate=packed('2026-11-20'))
+        d.task('r8c', 'No open copy', start=1, startDate=packed(TODAY), status=3, rt1_repeatingTemplate='r8')
+        d.task('r9', 'Copy in Anytime', rt1_recurrenceRule=rule(fu=16), rt1_nextInstanceStartDate=packed('2026-11-20'))
+        d.task('r9c', 'Copy in Anytime', start=1, rt1_repeatingTemplate='r9')
         d.task('r2', 'Second Tuesday', rt1_recurrenceRule=rule(fu=8, of=[{'wd': 2, 'wdo': 2}], rc=5))
         d.task('r3', 'Fifteenth', rt1_recurrenceRule=rule(fu=8, of=[{'dy': 14}]))
         d.task('r4', 'Last day', rt1_recurrenceRule=rule(fu=8, of=[{'dy': -1}], ed=1827532800.0))
@@ -138,9 +143,12 @@ class Exporting(unittest.TestCase):
         d.task('r6', 'After completion', deadline=262213760, rt1_recurrenceRule=rule(tp=1, fa=2, ts=-3), rt1_instanceCreationPaused=1)
         d.task('r7', 'Daily', rt1_recurrenceRule=rule(fu=16, fa=3, of=[{'dy': 0}]))
         _, rows = d.run()
-        self.assertEqual(len([r for r in rows if r['title'] == 'Weekly']), 1, 'the copy is left out')
+        self.assertEqual(len([r for r in rows if r['title'] == 'Weekly']), 1, 'the copies are left out')
         w = by_title(rows, 'Weekly')
-        self.assertEqual((w['repeat'], w['repeat_unit'], w['repeat_weekdays'], w['repeat_first']), ('regularly', 'week', 'sun;wed', '2026-11-22'))
+        self.assertEqual((w['repeat'], w['repeat_unit'], w['repeat_weekdays'], w['repeat_first']), ('regularly', 'week', 'sun;wed', '2026-11-18'),
+                         'starts at the open copy, not at Things’ next date')
+        self.assertEqual(by_title(rows, 'No open copy')['repeat_first'], '2026-11-20', 'with no open copy, Things’ next date')
+        self.assertEqual(by_title(rows, 'Copy in Anytime')['repeat_first'], TODAY, 'an open copy with no date counts as today’s')
         self.assertNotIn('start', w)
         t = by_title(rows, 'Second Tuesday')
         self.assertEqual((t['repeat_month_day'], t['repeat_ends_after']), ('2nd tue', '5'))
@@ -167,14 +175,14 @@ class Exporting(unittest.TestCase):
         d.task('h1', 'Plan', type=2, project='p1')
         d.task('t1', 'Inside it', project='p1')
         d.task('t2', 'Under the heading', heading='h1')
-        d.task('p1c', 'Monthly review', type=1, start=1, startDate=packed(TODAY), rt1_repeatingTemplate='p1')
+        d.task('p1c', 'Monthly review', type=1, start=1, startDate=packed('2026-11-01'), rt1_repeatingTemplate='p1')
         d.task('t1c', 'Inside the copy', project='p1c')
         _, rows = d.run()
         reviews = [r for r in rows if r['title'] == 'Monthly review']
         self.assertEqual([r['id'] for r in reviews], ['p1'], 'only the template; the copy is left out')
         p = reviews[0]
         self.assertEqual((p['type'], p['repeat'], p['repeat_unit'], p['repeat_month_day'], p['repeat_first']),
-                         ('project', 'regularly', 'month', '1', '2026-12-01'))
+                         ('project', 'regularly', 'month', '1', '2026-11-01'), 'starts at the open copy')
         self.assertNotIn('start', p)
         self.assertEqual(by_title(rows, 'Plan')['parent_id'], 'p1')
         self.assertEqual(by_title(rows, 'Inside it')['parent_id'], 'p1')

@@ -267,6 +267,17 @@ describe('importing', () => {
     const template = all.find((t) => t.repeat)!;
     expect(all.filter((t) => t.repeatOf === template.id).length).toBe(1);
   });
+
+  it('makes one copy for a first date already past, as for an open copy exported from Things', async () => {
+    const d = new Date(); d.setDate(d.getDate() - 3);
+    const past = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    await importCsv(`type,title,repeat,repeat_unit,repeat_first\ntask,Daily,regularly,day,${past}`);
+    const all = await todos();
+    const template = all.find((t) => t.repeat)!;
+    const copies = all.filter((t) => t.repeatOf === template.id);
+    expect(copies.length).toBe(1);
+    expect(inToday(copies[0], today())).toBe(true);
+  });
 });
 
 describe('importing repeating projects (FR-4.6, v1.6.2)', () => {
