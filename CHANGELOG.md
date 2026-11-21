@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.8.0"></a>
+
+## 1.8.0 — 2026-11-21
+
+### Added
+
+- **Formatted notes:** a task's or project's notes show **bold**, *italic*, bullet and numbered lists, and links once you leave them. Type `**bold**`, `*italic*` or `_italic_`, start lines with `- ` or `1. `, and write links as `[label](https://…)` or just the address. A click on a link opens it in a new tab; a click anywhere else on the notes edits them as typed. Notes are still saved as plain text, and only web and email links become clickable.
+
 <a id="v1.7.0"></a>
 
 ## 1.7.0 — 2026-11-21

@@ -16,6 +16,7 @@
   import { onHide } from '../lib/state/onHide';
   import Icon from './Icon.svelte';
   import { cycleTab } from '../lib/focusCycle';
+  import NotesField from './NotesField.svelte';
   import Popover from './Popover.svelte';
   import WhenPicker from './WhenPicker.svelte';
   import DeadlinePicker from './DeadlinePicker.svelte';
@@ -275,15 +276,9 @@
     />
   </div>
 
-  <label class="visually-hidden" for="notes-{todo.id}">Notes</label>
-  <textarea
-    id="notes-{todo.id}"
-    class="notes"
-    bind:value={notes}
-    oninput={scheduleSave}
-    placeholder="Notes"
-    rows="2"
-  ></textarea>
+  <div class="notes-wrap">
+    <NotesField id="notes-{todo.id}" label="Notes" bind:value={notes} oninput={scheduleSave} />
+  </div>
 
   <Checklist items={checklistItems} ops={checklistOps} bind:focusId={checklistFocus} />
 
@@ -529,15 +524,8 @@
     padding: 2px 0;
     background: transparent;
   }
-  .notes {
+  .notes-wrap {
     margin-left: 28px;
-    border: 0;
-    outline: none;
-    resize: vertical;
-    font-size: 14px;
-    color: var(--text-2);
-    line-height: 1.45;
-    background: transparent;
   }
   .tags {
     margin-left: 28px;

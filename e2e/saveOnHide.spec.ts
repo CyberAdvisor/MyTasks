@@ -34,7 +34,8 @@ test('an open task’s title and notes are kept when the app is closed straight 
   await page.getByText('Pick up dry cleaning', { exact: true }).dblclick();
   await typeThenLeave(page, page.getByLabel('Notes', { exact: true }), 'Ticket 42');
   await page.getByText('Pick up dry cleaning', { exact: true }).dblclick();
-  await expect(page.getByLabel('Notes', { exact: true })).toHaveValue('Ticket 42');
+  // A saved note shows as text until clicked (FR-7.4).
+  await expect(page.getByLabel('Notes', { exact: true })).toHaveText('Ticket 42');
   await typeThenLeave(page, page.getByLabel('Title', { exact: true }), ' today');
   await expect(page.getByText('Pick up dry cleaning today', { exact: true })).toBeVisible();
   expect(errors).toEqual([]);
@@ -44,7 +45,7 @@ test('a project’s title and notes are kept when the app is closed straight aft
   await openList(page, 'Kitchen refresh');
   const notes = page.getByLabel('Project notes');
   await typeThenLeave(page, notes, 'Budget £4k');
-  await expect(page.getByLabel('Project notes')).toHaveValue('Budget £4k');
+  await expect(page.getByLabel('Project notes')).toHaveText('Budget £4k');
   await typeThenLeave(page, page.getByLabel('Project title'), ' 2027');
   await expect(page.getByLabel('Project title')).toHaveValue('Kitchen refresh 2027');
 });
