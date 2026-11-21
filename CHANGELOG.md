@@ -4,6 +4,18 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.7.0"></a>
+
+## 1.7.0 — 2026-11-21
+
+### Changed
+
+- **A new logo:** "MT" above a check in a circle, in teal, in the sidebar, on Setup, in the browser tab, in every app icon and in the website's header. In a tab at its smallest size it shows just the MT. It follows the system's light or dark appearance in the tab, and Settings › Appearance in the app.
+
+### Good to know
+
+- **An installed app may keep its old icon** until it's removed and installed again. Your tasks stay in your gist, so after reinstalling, connect with your token and passphrase as before.
+
 <a id="v1.6.4"></a>
 
 ## 1.6.4 — 2026-11-21
