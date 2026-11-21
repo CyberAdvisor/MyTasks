@@ -127,6 +127,30 @@ class Exporting(unittest.TestCase):
         self.assertEqual([(r['title'], r['checked'], r['parent_id']) for r in items], [('Passport', 'yes', 't1'), ('Socks', 'no', 't1')])
         self.assertEqual(by_title(rows, 'Pack')['tags'], 'Errand/Shop')
 
+    def test_priority_tags_become_priorities(self):
+        d = self.db
+        c = d.con
+        c.execute("insert into TMTag values ('gp1', 'P1', null, null, 3), ('gp4', 'p4', null, null, 4), ('gx', 'P2', null, 'g1', 5)")
+        d.task('t1', 'Urgent')
+        d.task('t2', 'Two levels')
+        d.task('t3', 'Nested P2')
+        d.task('pr', 'A project', type=1)
+        c.execute("insert into TMTaskTag values ('t1', 'gp1'), ('t1', 'g1'), ('t2', 'gp4'), ('t2', 'gp1'), ('t3', 'gx'), ('pr', 'gp1')")
+        # A repeating to-do whose tags are on Things' open copy only, as when a tag is added to the copy.
+        d.task('r', 'Filter', rt1_recurrenceRule=rule(fu=16), rt1_nextInstanceStartDate=packed('2026-11-20'))
+        d.task('rc', 'Filter', startDate=packed(TODAY), rt1_repeatingTemplate='r')
+        c.execute("insert into TMTaskTag values ('rc', 'gp4'), ('rc', 'g1')")
+        _, rows = d.run()
+        u = by_title(rows, 'Urgent')
+        self.assertEqual((u['priority'], u['tags']), ('1', 'Errand'), 'P1 becomes the priority and leaves the tags')
+        self.assertEqual(by_title(rows, 'Two levels')['priority'], '1', 'the highest of several, any case')
+        n = by_title(rows, 'Nested P2')
+        self.assertEqual((n['priority'], n['tags']), ('', 'Errand/P2'), 'a nested tag stays a tag')
+        self.assertEqual(by_title(rows, 'A project')['tags'], 'P1', 'a project keeps it as a tag')
+        self.assertNotIn('priority', by_title(rows, 'A project'))
+        f = by_title(rows, 'Filter')
+        self.assertEqual((f['priority'], f['tags']), ('4', 'Errand'), 'the open copy’s tags count')
+
     def test_repeats(self):
         d = self.db
         d.task('r1', 'Weekly', start=2, rt1_recurrenceRule=rule(fu=256, of=[{'wd': 0}, {'wd': 3}]), rt1_nextInstanceStartDate=packed('2026-11-22'))

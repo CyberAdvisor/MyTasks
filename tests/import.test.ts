@@ -268,6 +268,14 @@ describe('importing', () => {
     expect(all.filter((t) => t.repeatOf === template.id).length).toBe(1);
   });
 
+  it('gives a repeating task’s copy the priority it was imported with, not Default P2', async () => {
+    await importCsv('type,title,repeat,repeat_unit,priority\ntask,Daily,regularly,day,1');
+    const all = await todos();
+    const template = all.find((t) => t.repeat)!;
+    expect(template.priority).toBe(1);
+    expect(all.find((t) => t.repeatOf === template.id)!.priority).toBe(1);
+  });
+
   it('makes one copy for a first date already past, as for an open copy exported from Things', async () => {
     const d = new Date(); d.setDate(d.getDate() - 3);
     const past = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
