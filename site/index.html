@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.statcounter.com; style-src 'self'; img-src 'self' https://c.statcounter.com; connect-src https://c.statcounter.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>My Tasks — a free, private task manager</title>
 <meta name="description" content="A calm, focused task manager. Free, open source and private: your tasks are encrypted in your own GitHub account.">
@@ -63,7 +63,7 @@
     <h2>Free, private, secure</h2>
     <p class="sub">No server of ours ever sees your tasks.</p>
     <div class="grid3">
-      <div class="card"><h3>Free and open source</h3><p>No subscription, no ads, no tracking. The code is on GitHub under the MIT licence.</p></div>
+      <div class="card"><h3>Free and open source</h3><p>No subscription, no ads, and no tracking in the app. The code is on GitHub under the MIT licence.</p></div>
       <div class="card"><h3>Encrypted end to end</h3><p>Your tasks are encrypted on your device with your passphrase before it leaves. <a href="/security/">How it works</a></p></div>
       <div class="card"><h3>Yours to keep</h3><p>Your tasks live in your own GitHub account, not ours. Every device keeps a working copy, so it works offline. <a href="/privacy/">Privacy</a></p></div>
     </div>
@@ -135,5 +135,9 @@
   </div>
   <div class="base"><a href="/limitations/">Limitations</a><a href="/privacy/">Privacy</a><a href="/security/">Security</a><span>Open source, <a href="https://github.com/CyberAdvisor/MyTasks/blob/main/LICENSE">MIT licence</a></span></div>
 </div></footer>
+<!-- Statcounter: the website's visit counting, never in the app (Privacy page). -->
+<script src="/assets/statcounter.js"></script>
+<script src="https://www.statcounter.com/counter/counter.js" async></script>
+<noscript><div class="statcounter"><img class="statcounter" src="https://c.statcounter.com/13368454/0/5ee24e58/1/" alt="" referrerpolicy="no-referrer-when-downgrade"></div></noscript>
 </body>
 </html>
