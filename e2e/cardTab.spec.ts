@@ -13,7 +13,7 @@ import { fakeGitHub } from './fakeGitHub';
 const focused = (page: Page) =>
   page.evaluate(() => {
     const el = document.activeElement as HTMLElement;
-    if (el.matches('input.title')) return 'Title';
+    if (el.matches('input.title, textarea.title')) return 'Title';
     const picker = el.closest('[data-popover]')?.getAttribute('data-popover');
     const name = el.getAttribute('aria-label') ?? el.getAttribute('placeholder') ?? el.textContent?.trim() ?? '';
     return picker ? `${picker}: ${name}` : name;

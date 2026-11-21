@@ -43,7 +43,7 @@ test('searches on Return, opens on the next Return, and clears when the text cha
   // With results showing, Return opens the highlighted one (shown in its list with its card open).
   await field.press('Enter');
   await expect(find).toBeHidden();
-  await expect(page.locator('main .card input.title')).toHaveValue('Buy milk');
+  await expect(page.locator('main .card textarea.title')).toHaveValue('Buy milk');
 
   expect(errors).toEqual([]);
   await context.close();

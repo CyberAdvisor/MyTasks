@@ -53,14 +53,32 @@
     box.setSelectionRange(box.value.length, box.value.length);
   }
 
-  /** A press on a link opens it; anywhere else starts editing. */
+  /**
+   * A press on a link opens it; anywhere else starts editing. With a mouse the
+   * press is cancelled so it can't focus the note (Safari doesn't focus links);
+   * a touch must not be cancelled, or iPhone drops the tap, so the note instead
+   * ignores the focus that comes with it.
+   */
+  let pressingLink = false;
   function onViewDown(e: PointerEvent) {
-    if ((e.target as Element).closest('a')) e.preventDefault();
+    if (!(e.target as Element).closest('a')) return;
+    if (e.pointerType === 'mouse') e.preventDefault();
+    else {
+      pressingLink = true;
+      setTimeout(() => (pressingLink = false), 1000);
+    }
   }
 
   function onViewClick(e: MouseEvent) {
-    if ((e.target as Element).closest('a')) return;
+    if ((e.target as Element).closest('a')) {
+      pressingLink = false;
+      return;
+    }
     void edit();
+  }
+
+  function onViewFocus() {
+    if (!pressingLink) void edit();
   }
 
   $effect(() => {
@@ -84,7 +102,7 @@
     onkeydown={(e) => {
       if (e.key === 'Enter' && !(e.target as Element).closest('a')) void edit();
     }}
-    onfocus={() => void edit()}
+    onfocus={onViewFocus}
   >
     <NoteText note={value} />
   </div>

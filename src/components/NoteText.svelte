@@ -50,6 +50,13 @@
   ol {
     padding-left: 1.4em;
   }
+  /* The open card sits inside the task list, which would make these nested lists with hollow bullets. */
+  ul {
+    list-style-type: disc;
+  }
+  ol {
+    list-style-type: decimal;
+  }
   strong {
     font-weight: 600;
     color: var(--text);

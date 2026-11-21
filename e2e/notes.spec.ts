@@ -33,6 +33,8 @@ test('a task’s note shows its styles and links, and becomes the text box again
   await expect(note.locator('strong')).toHaveText('before noon');
   await expect(note.locator('em')).toHaveText('politely');
   await expect(note.locator('li')).toHaveText(['receipt', 'the shop']);
+  // Solid bullets, though the card sits inside the task list.
+  await expect(note.locator('ul')).toHaveCSS('list-style-type', 'disc');
   const shop = note.getByRole('link', { name: 'the shop' });
   await expect(shop).toHaveAttribute('href', 'https://example.com/shop');
   await expect(shop).toHaveAttribute('target', '_blank');
