@@ -21,7 +21,12 @@ Left out, and why:
   copies from the repeating to-do or project, so they would be duplicates.
   An open copy still sets where the repeat starts: the template's first date
   is the earliest open copy's start date, so a copy in Today comes across
-  as today's copy (Things' next date is the one after it).
+  as today's copy (Things' next date is the one after it). Its tags count
+  too, as a tag added to the copy shows in Things but isn't on the template.
+
+Priorities: Things has none, so a to-do's tag named P1 to P5 (any case, not
+nested) becomes its priority, and is left out of its tags. With several, the
+highest (P1 first). Projects keep such tags as tags: priority is a task's.
 
 How Things stores things (checked in Things 3.23, database version 29,
 conv. 2026-11-18-A and 2026-11-19):
@@ -59,6 +64,7 @@ import re
 import sqlite3
 import sys
 
+PRIORITY_TAG = re.compile(r'^[Pp]([1-5])$')  # a Things tag that is a My Tasks priority
 GROUP = '~/Library/Group Containers/JLMPQHK86H.com.culturedcode.ThingsMac'
 DB_GLOB = 'ThingsData-*/Things Database.thingsdatabase/main.sqlite'
 
@@ -196,9 +202,29 @@ class Exporter:
             uuid = self.tags[uuid]['parent']
         return '/'.join(n.replace('/', '-').replace(';', ',') for n in names if n)
 
-    def tags_of(self, table: str, column: str, uuid: str) -> str:
+    def tag_list(self, table: str, column: str, uuid: str) -> list[str]:
         rows = self.q(f'select tags from {table} where {column} = ?', uuid)
-        return '; '.join(p for p in (self.tag_path(r['tags']) for r in rows) if p)
+        return [p for p in (self.tag_path(r['tags']) for r in rows) if p]
+
+    def tags_of(self, table: str, column: str, uuid: str) -> str:
+        return '; '.join(self.tag_list(table, column, uuid))
+
+    def task_tags(self, t) -> dict:
+        """tags and priority for a to-do: its own tags, with its earliest open copy's when it repeats;
+        a tag P1 to P5 becomes the priority (the highest one) and leaves the tags."""
+        paths = self.tag_list('TMTaskTag', 'tasks', t['uuid'])
+        if t['rt1_recurrenceRule']:
+            copy = self.open_copies(t['uuid'])[:1]
+            if copy:
+                paths += self.tag_list('TMTaskTag', 'tasks', copy[0]['uuid'])
+        tags, levels = [], []
+        for path in dict.fromkeys(paths):  # in order, each once
+            m = PRIORITY_TAG.match(path)
+            if m:
+                levels.append(int(m.group(1)))
+            else:
+                tags.append(path)
+        return {'tags': '; '.join(tags), 'priority': str(min(levels)) if levels else ''}
 
     def add(self, **cols) -> None:
         self.rows.append(cols)
@@ -213,13 +239,17 @@ class Exporter:
             return {'start': 'today'} if date <= self.today else {'start': 'date', 'start_date': date}
         return {'start': 'unscheduled' if start == 1 else 'deferred'}
 
-    def first_open_copy(self, uuid: str) -> str | None:
-        """The start date of the earliest open copy of a repeating to-do or project, or None.
+    def open_copies(self, uuid: str) -> list:
+        """The open copies of a repeating to-do or project, earliest first.
 
         A copy with no start date (moved to Anytime) counts as today's."""
-        dates = [packed_date(c['startDate']) or self.today
-                 for c in self.q('select startDate from TMTask where rt1_repeatingTemplate = ? and status = 0 and trashed = 0', uuid)]
-        return min(dates) if dates else None
+        rows = self.q('select uuid, startDate from TMTask where rt1_repeatingTemplate = ? and status = 0 and trashed = 0', uuid)
+        return sorted(({'uuid': c['uuid'], 'date': packed_date(c['startDate']) or self.today} for c in rows), key=lambda c: c['date'])
+
+    def first_open_copy(self, uuid: str) -> str | None:
+        """The start date of the earliest open copy of a repeating to-do or project, or None."""
+        copies = self.open_copies(uuid)
+        return copies[0]['date'] if copies else None
 
     def repeat_of(self, r, kind: str) -> dict:
         """The repeat columns of a repeating to-do or project (its template).
@@ -275,7 +305,7 @@ class Exporter:
                 parent = t['area'] if t['area'] in areas else ''
             cols = dict(
                 type='task', id=t['uuid'], parent_id=parent, title=t['title'] or 'Untitled',
-                notes=plain_notes(t['notes']), tags=self.tags_of('TMTaskTag', 'tasks', t['uuid']),
+                notes=plain_notes(t['notes']), **self.task_tags(t),
             )
             if t['rt1_recurrenceRule']:
                 cols.update(self.repeat_of(t, 'to-do'))
