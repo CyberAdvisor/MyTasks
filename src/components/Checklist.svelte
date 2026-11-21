@@ -7,6 +7,9 @@
   moves it. The handle at the end of each item drags it, with a mouse or on
   touch (at once, no long press); the rest of the item edits as usual. Pasting several lines adds one item per
   line. Empty items are removed when the card closes.
+  An item with a link shows its text with the link clickable (a new tab) until a
+  click, tap or Tab turns it into its text box (linkPress.ts); other items are
+  always the text box.
   With "Move checked items to the bottom of the checklist" on, checked items
   show below the unchecked ones (FR-7.5); display only, so unchecking an
   item puts it back in its place.
@@ -21,6 +24,8 @@
   import { droppedOrder, type ChecklistOps, type ChecklistRow } from '../lib/state/checklist.svelte';
   import { dragItem, dropZone, type DropZone } from '../lib/drag/drag';
   import type { ID } from '../lib/model/types';
+  import { hasLink, parseLinks } from '../lib/model/markdown';
+  import { linkPress } from '../lib/linkPress';
 
   let {
     items,
@@ -63,12 +68,26 @@
 
   const titleOf = (item: ChecklistRow) => drafts[item.id] ?? item.title;
 
+  /** The item being edited; an item with a link shows as text otherwise. */
+  let editing = $state<ID | null>(null);
+  const showsText = (item: ChecklistRow) => editing !== item.id && hasLink(titleOf(item));
+
+  /** Focus an item's text box, turning shown text into it first; `atEnd` puts the caret after the text. */
+  async function focusItem(id: ID, atEnd = false) {
+    editing = id;
+    await tick();
+    const box = list?.querySelector<HTMLInputElement>(`input[data-item="${CSS.escape(id)}"]`);
+    if (!box) return;
+    box.focus();
+    if (atEnd) box.setSelectionRange(box.value.length, box.value.length);
+  }
+
   // Move focus to a newly added item once it renders.
   $effect(() => {
     const id = focusId;
     if (!id || !items.some((c) => c.id === id)) return;
     void tick().then(() => {
-      list?.querySelector<HTMLInputElement>(`[data-item="${CSS.escape(id)}"]`)?.focus();
+      void focusItem(id);
       focusId = null;
     });
   });
@@ -84,7 +103,7 @@
     if (!id) return;
     void tick().then(() => {
       const lost = !document.activeElement || document.activeElement === document.body;
-      if (lost && moved === id) list?.querySelector<HTMLInputElement>(`[data-item="${CSS.escape(id)}"]`)?.focus();
+      if (lost && moved === id) void focusItem(id);
     });
   });
 
@@ -174,17 +193,39 @@
         >
           {#if item.completed}<Icon name="check" size={10} color="#fff" />{/if}
         </button>
-        <input
-          data-item={item.id}
-          value={titleOf(item)}
-          oninput={(e) => onInput(item.id, e.currentTarget.value)}
-          onblur={() => save(item.id)}
-          onkeydown={(e) => onKey(e, item, i)}
-          onpaste={(e) => onPaste(e, item)}
-          placeholder="Checklist item"
-          aria-label="Checklist item"
-          autocomplete="off"
-        />
+        {#if showsText(item)}
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+          <span
+            class="text"
+            data-item-view={item.id}
+            role="textbox"
+            tabindex="0"
+            aria-label="Checklist item"
+            {...linkPress(() => void focusItem(item.id, true))}
+          >
+            {#each parseLinks(titleOf(item)) as piece, k (k)}{#if piece.kind === 'link'}<a
+                  href={piece.href}
+                  target="_blank"
+                  rel="noopener noreferrer">{piece.children.map((c) => (c.kind === 'text' ? c.text : '')).join('')}</a
+                >{:else if piece.kind === 'text'}{piece.text}{/if}{/each}
+          </span>
+        {:else}
+          <input
+            data-item={item.id}
+            value={titleOf(item)}
+            oninput={(e) => onInput(item.id, e.currentTarget.value)}
+            onfocus={() => (editing = item.id)}
+            onblur={() => {
+              save(item.id);
+              if (editing === item.id) editing = null;
+            }}
+            onkeydown={(e) => onKey(e, item, i)}
+            onpaste={(e) => onPaste(e, item)}
+            placeholder="Checklist item"
+            aria-label="Checklist item"
+            autocomplete="off"
+          />
+        {/if}
         <span class="handle" data-drag-handle aria-hidden="true">
           <Icon name="grip" size={14} />
         </span>
@@ -232,9 +273,28 @@
     font-size: 14px;
     padding: 4px 0;
   }
-  .done input {
+  .done input,
+  .done .text {
     color: var(--text-done);
     text-decoration: line-through;
+  }
+  /* An item with a link, shown as text: the same size and place as its text box. */
+  .text {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    line-height: 1.35;
+    padding: 4px 0;
+    cursor: text;
+    overflow-wrap: anywhere;
+  }
+  .text:focus {
+    outline: none;
+  }
+  .text a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
   /* The drag handle: on hover with a mouse, always on touch. */
   .handle {

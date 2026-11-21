@@ -4,7 +4,7 @@
 
   - Showing: the note drawn by NoteText, links clickable (a new tab). A click or tap
     anywhere else on it, or Tab reaching it, turns it into the text box, the caret
-    at the end. A press on a link doesn't take focus, so the link opens instead.
+    at the end; a press on a link opens it instead (linkPress.ts).
   - Editing: a plain text box, growing with its text; leaving it shows the note again.
   - An empty note is always the text box, so its placeholder shows.
   The note itself stays plain text: what's typed is what's saved.
@@ -12,6 +12,7 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import NoteText from './NoteText.svelte';
+  import { linkPress } from '../lib/linkPress';
 
   let {
     value = $bindable(''),
@@ -53,33 +54,7 @@
     box.setSelectionRange(box.value.length, box.value.length);
   }
 
-  /**
-   * A press on a link opens it; anywhere else starts editing. With a mouse the
-   * press is cancelled so it can't focus the note (Safari doesn't focus links);
-   * a touch must not be cancelled, or iPhone drops the tap, so the note instead
-   * ignores the focus that comes with it.
-   */
-  let pressingLink = false;
-  function onViewDown(e: PointerEvent) {
-    if (!(e.target as Element).closest('a')) return;
-    if (e.pointerType === 'mouse') e.preventDefault();
-    else {
-      pressingLink = true;
-      setTimeout(() => (pressingLink = false), 1000);
-    }
-  }
-
-  function onViewClick(e: MouseEvent) {
-    if ((e.target as Element).closest('a')) {
-      pressingLink = false;
-      return;
-    }
-    void edit();
-  }
-
-  function onViewFocus() {
-    if (!pressingLink) void edit();
-  }
+  const press = linkPress(() => void edit());
 
   $effect(() => {
     // Fit again whenever the text changes while the box shows (typing, or a save from elsewhere).
@@ -97,12 +72,7 @@
     aria-label={label}
     aria-multiline="true"
     tabindex="0"
-    onpointerdown={onViewDown}
-    onclick={onViewClick}
-    onkeydown={(e) => {
-      if (e.key === 'Enter' && !(e.target as Element).closest('a')) void edit();
-    }}
-    onfocus={onViewFocus}
+    {...press}
   >
     <NoteText note={value} />
   </div>

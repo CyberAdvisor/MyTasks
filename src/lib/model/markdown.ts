@@ -105,6 +105,44 @@ export function parseInline(text: string, inLink = false): Inline[] {
   return out;
 }
 
+/**
+ * Only the links in a line, for checklist items (FR-7.1): `[label](url)` and bare
+ * addresses become links; everything else, `**` and `_` included, stays as typed.
+ */
+const LINKS = /\[([^\]\n]+)\]\(([^()\s]+)\)|((?:https?:\/\/|mailto:|www\.)[^\s<>]+)/g;
+
+export function parseLinks(text: string): Inline[] {
+  const out: Inline[] = [];
+  const addText = (s: string) => {
+    if (!s) return;
+    const prev = out[out.length - 1];
+    if (prev?.kind === 'text') prev.text += s;
+    else out.push({ kind: 'text', text: s });
+  };
+  const re = new RegExp(LINKS.source, 'g');
+  let at = 0;
+  for (let m = re.exec(text); m; m = re.exec(text)) {
+    const [whole, label, address, bare] = m;
+    const used = bare === undefined ? whole : trimAddress(bare);
+    const href = bare === undefined ? safeHref(address) : safeHref(used.startsWith('www.') ? `https://${used}` : used);
+    if (!href) {
+      re.lastIndex = m.index + 1;
+      continue;
+    }
+    addText(text.slice(at, m.index));
+    out.push({ kind: 'link', href, children: [{ kind: 'text', text: label ?? used }] });
+    at = m.index + used.length;
+    re.lastIndex = at;
+  }
+  addText(text.slice(at));
+  return out;
+}
+
+/** Whether a line has a link that `parseLinks` would make. */
+export function hasLink(text: string): boolean {
+  return parseLinks(text).some((p) => p.kind === 'link');
+}
+
 /** A bare address without the punctuation that usually ends the sentence around it. */
 function trimAddress(address: string): string {
   let s = address.replace(/[.,;:!?'"*_]+$/, '');

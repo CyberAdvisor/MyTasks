@@ -3,7 +3,7 @@
  * and that only http, https and mailto addresses become links.
  */
 import { describe, expect, it } from 'vitest';
-import { parseInline, parseNote, safeHref, type Inline } from '../src/lib/model/markdown';
+import { hasLink, parseInline, parseLinks, parseNote, safeHref, type Inline } from '../src/lib/model/markdown';
 
 const text = (t: string): Inline => ({ kind: 'text', text: t });
 const link = (href: string, label: string): Inline => ({ kind: 'link', href, children: [text(label)] });
@@ -92,5 +92,19 @@ describe('blocks', () => {
     expect(parseNote('# Title')).toEqual([{ kind: 'p', lines: [[text('# Title')]] }]);
     expect(parseNote('')).toEqual([]);
     expect(parseNote('\r\n\r\n')).toEqual([]);
+  });
+});
+
+describe('links in checklist items', () => {
+  it('makes only links, leaving style marks as typed', () => {
+    expect(parseLinks('**Book** at https://example.com/a, then [pay](https://pay.example)')).toEqual([
+      text('**Book** at '),
+      link('https://example.com/a', 'https://example.com/a'),
+      text(', then '),
+      link('https://pay.example/', 'pay'),
+    ]);
+    expect(parseLinks('[x](javascript:alert(1)) _plain_')).toEqual([text('[x](javascript:alert(1)) _plain_')]);
+    expect(hasLink('call www.example.com')).toBe(true);
+    expect(hasLink('no links here')).toBe(false);
   });
 });

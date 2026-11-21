@@ -83,3 +83,38 @@ test('a project’s notes show their styles too', async ({ page }) => {
   await note.locator('strong').click();
   await expect(page.locator('textarea[aria-label="Project notes"]')).toHaveValue('See www.example.com for **tiles**');
 });
+
+test('a checklist item with a link shows it clickable, and becomes its text box when clicked (FR-7.1)', async ({ page, context }) => {
+  await openList(page, 'Today');
+  await openCard(page);
+  await page.getByRole('button', { name: 'Add checklist' }).click();
+  await expect(page.locator('input[data-item]')).toBeFocused();
+  await page.keyboard.type('Pay at [the portal](https://pay.example/bill) **today**');
+  await page.keyboard.press('Enter');
+  // The new item, once it's there (until then the first item is the last one).
+  await expect(page.locator('ul[aria-label="Checklist"] li')).toHaveCount(2);
+  await expect(page.locator('ul[aria-label="Checklist"] li').last().locator('input')).toBeFocused();
+  await page.keyboard.type('Plain item');
+  await page.getByLabel('Title', { exact: true }).click();
+
+  const items = page.getByRole('list', { name: 'Checklist' });
+  const portal = items.getByRole('link', { name: 'the portal' });
+  await expect(portal).toHaveAttribute('href', 'https://pay.example/bill');
+  // Only links: the bold marks stay as typed, and an item with no link stays a text box.
+  await expect(items.locator('[data-item-view]')).toHaveText('Pay at the portal **today**');
+  await expect(items.locator('input[data-item]')).toHaveValue('Plain item');
+
+  await context.route('https://pay.example/**', (route) => route.fulfill({ body: 'pay' }));
+  const [tab] = await Promise.all([context.waitForEvent('page'), portal.click()]);
+  await tab.close();
+  await expect(portal).toBeVisible();
+
+  await items.locator('[data-item-view]').click({ position: { x: 4, y: 8 } });
+  const box = items.locator('input[data-item]').first();
+  await expect(box).toBeFocused();
+  await expect(box).toHaveValue('Pay at [the portal](https://pay.example/bill) **today**');
+  // Moving it keeps it the text box being edited.
+  await page.keyboard.press('Meta+ArrowDown');
+  await expect(items.locator('input[data-item]').last()).toBeFocused();
+  await expect(items.locator('input[data-item]').last()).toHaveValue('Pay at [the portal](https://pay.example/bill) **today**');
+});

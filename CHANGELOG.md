@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.8.2"></a>
+
+## 1.8.2 — 2026-11-21
+
+### Added
+
+- **Links in checklist items:** an item with a link, written as `[label](https://…)` or just the address, shows it clickable, opening in a new tab. A click or tap anywhere else on the item edits it as typed. Other marks, such as `**`, stay as typed in checklist items.
+
 <a id="v1.8.1"></a>
 
 ## 1.8.1 — 2026-11-21
