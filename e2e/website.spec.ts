@@ -8,6 +8,14 @@ import { connect, watchErrors } from './app';
 import { fakeGitHub } from './fakeGitHub';
 import { COMMUNITY } from '../src/lib/website';
 
+// Statcounter (the website's visit counter) is answered here with an empty
+// response, so tests never reach it or count as visits.
+test.beforeEach(async ({ context }) => {
+  await context.route(/^https:\/\/(www|c)\.statcounter\.com\//, (route) =>
+    route.fulfill({ status: 200, contentType: 'application/javascript', body: '' }),
+  );
+});
+
 const PAGES = ['/', '/guide/', '/limitations/', '/privacy/', '/security/', '/roadmap/', '/self-hosting/', '/compare/', '/methods/', '/about/'];
 
 for (const path of PAGES) {
