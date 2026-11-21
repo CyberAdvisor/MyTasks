@@ -15,7 +15,7 @@
 const PICKERS = ['Start Date', 'Tags', 'Checklist', 'Deadline', 'Priority', 'Context'];
 
 /** Text fields first: title, notes (the box, or the styled note that becomes it), checklist items, in page order. */
-const FIELDS = 'input.title, textarea.notes, .notes-view, input[data-item]';
+const FIELDS = 'input.title, textarea.title, textarea.notes, .notes-view, input[data-item]';
 
 const shown = (el: HTMLElement | null): el is HTMLElement =>
   el !== null && !(el as HTMLButtonElement).disabled && el.getClientRects().length > 0;

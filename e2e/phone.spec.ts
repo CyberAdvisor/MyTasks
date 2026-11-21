@@ -446,3 +446,19 @@ test('a tap on a note’s link opens it; a tap elsewhere edits the note (FR-7.4)
   await note.locator('strong').tap();
   await expect(page.locator('textarea[aria-label="Notes"]')).toBeFocused();
 });
+
+test('a long title wraps in the open card, and Return still closes it', async ({ page, context }) => {
+  await fakeGitHub(context);
+  await connect(page);
+  await restoreSample(page);
+  await page.evaluate(() => (location.hash = '#/today'));
+  await page.getByText('Pick up dry cleaning', { exact: true }).tap();
+  const title = page.getByLabel('Title', { exact: true });
+  const oneLine = (await title.boundingBox())!.height;
+  await title.fill('Pick up dry cleaning and the alterations from the tailor on Main Street');
+  await expect.poll(async () => (await title.boundingBox())!.height).toBeGreaterThan(oneLine * 1.5);
+  await expect(title).toHaveValue('Pick up dry cleaning and the alterations from the tailor on Main Street');
+  await title.press('Enter');
+  await expect(page.getByText('Pick up dry cleaning and the alterations from the tailor on Main Street', { exact: true })).toBeVisible();
+  await expect(title).toHaveCount(0);
+});

@@ -60,7 +60,7 @@
     card.addEventListener('keydown', onTab);
     return () => card.removeEventListener('keydown', onTab);
   });
-  let titleInput: HTMLInputElement;
+  let titleInput: HTMLTextAreaElement;
 
   // Which popover is open.
   let whenOpen = $state(false);
@@ -143,6 +143,7 @@
     const typed = ui.takeTypeAhead();
     if (!typed) return;
     title = titleInput.value = typed;
+    fitTitle();
     scheduleSave();
   });
 
@@ -184,6 +185,21 @@
   onDestroy(flush);
   // Leaving the app saves the typed title and notes at once (review C7).
   $effect(() => onHide(flush));
+
+  /** Make the title box as tall as its wrapped lines. */
+  function fitTitle() {
+    if (!titleInput) return;
+    titleInput.style.height = 'auto';
+    titleInput.style.height = `${titleInput.scrollHeight}px`;
+  }
+
+  // Fit once the card is laid out, and whenever its width changes (rotation, a resized window).
+  $effect(() => {
+    fitTitle();
+    const watch = new ResizeObserver(fitTitle);
+    watch.observe(titleInput);
+    return () => watch.disconnect();
+  });
 
   function onTitleKey(e: KeyboardEvent) {
     if (e.key === 'Enter') {
@@ -264,16 +280,22 @@
       {/if}
     </button>
     <label class="visually-hidden" for="title-{todo.id}">Title</label>
-    <input
+    <!-- A text box so a long title wraps (on phones especially); Return still closes the card, and a pasted line break becomes a space. -->
+    <textarea
       id="title-{todo.id}"
       class="title"
+      rows="1"
       bind:this={titleInput}
       bind:value={title}
-      oninput={scheduleSave}
+      oninput={() => {
+        if (/[\r\n]/.test(title)) title = title.replace(/\s*[\r\n]+\s*/g, ' ');
+        fitTitle();
+        scheduleSave();
+      }}
       onkeydown={onTitleKey}
       placeholder="New Task"
       autocomplete="off"
-    />
+    ></textarea>
   </div>
 
   <div class="notes-wrap">
@@ -517,12 +539,19 @@
   }
   .title {
     flex: 1;
+    min-width: 0;
     border: 0;
     outline: none;
+    font: inherit;
     font-size: 15px;
     font-weight: 600;
+    line-height: 1.35;
     padding: 2px 0;
+    margin: 0;
     background: transparent;
+    resize: none;
+    overflow: hidden;
+    overflow-wrap: anywhere;
   }
   .notes-wrap {
     margin-left: 28px;
@@ -571,7 +600,7 @@
   .repeat > span:first-of-type {
     display: flex;
     flex-direction: column;
-    flex: 1;
+    flex: 1 1 180px;
     min-width: 0;
   }
   .repeat-rule {
@@ -582,6 +611,7 @@
   }
   .repeat.copy {
     align-items: center;
+    flex-wrap: wrap;
   }
   .show {
     color: var(--accent-text);
