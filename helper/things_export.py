@@ -19,6 +19,9 @@ Terminal Full Disk Access, or copy the database and use --db.
 Left out, and why:
 - Things' copies of repeating to-dos and projects: My Tasks makes its own
   copies from the repeating to-do or project, so they would be duplicates.
+  An open copy still sets where the repeat starts: the template's first date
+  is the earliest open copy's start date, so a copy in Today comes across
+  as today's copy (Things' next date is the one after it).
 
 How Things stores things (checked in Things 3.23, database version 29,
 conv. 2026-11-18-A and 2026-11-19):
@@ -210,9 +213,22 @@ class Exporter:
             return {'start': 'today'} if date <= self.today else {'start': 'date', 'start_date': date}
         return {'start': 'unscheduled' if start == 1 else 'deferred'}
 
+    def first_open_copy(self, uuid: str) -> str | None:
+        """The start date of the earliest open copy of a repeating to-do or project, or None.
+
+        A copy with no start date (moved to Anytime) counts as today's."""
+        dates = [packed_date(c['startDate']) or self.today
+                 for c in self.q('select startDate from TMTask where rt1_repeatingTemplate = ? and status = 0 and trashed = 0', uuid)]
+        return min(dates) if dates else None
+
     def repeat_of(self, r, kind: str) -> dict:
-        """The repeat columns of a repeating to-do or project (its template)."""
-        next_date = packed_date(r['rt1_nextInstanceStartDate']) or packed_date(r['rt1_instanceCreationStartDate']) or self.today
+        """The repeat columns of a repeating to-do or project (its template).
+
+        Its first date is that of its earliest open copy, so the copy Things has already made
+        (in Today, say) is made again by My Tasks rather than skipped; with no open copy, Things'
+        next date."""
+        next_date = (self.first_open_copy(r['uuid']) or packed_date(r['rt1_nextInstanceStartDate'])
+                     or packed_date(r['rt1_instanceCreationStartDate']) or self.today)
         try:
             return repeat_columns(r['rt1_recurrenceRule'], next_date, r['rt1_instanceCreationPaused'], bool(r['deadline']))
         except (ExportError, plistlib.InvalidFileException, IndexError) as e:
