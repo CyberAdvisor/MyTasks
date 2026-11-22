@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.8.4"></a>
+
+## 1.8.4 — 2026-11-22
+
+### Fixed
+
+- **An Apple Pencil no longer reorders things by accident.** On iPad, the Pencil started a drag after the slightest movement, as a mouse does, so tapping a project in the sidebar could move it. It now drags only after a long press, as a finger does. A checklist item's ≡ handle still drags at once.
+
 <a id="v1.8.3"></a>
 
 ## 1.8.3 — 2026-11-22

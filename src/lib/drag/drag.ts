@@ -268,8 +268,11 @@ function pointerDown(e: PointerEvent, node: HTMLElement, item: DragItem): void {
   const origin = closestZone(node.parentElement, item.type);
   if (!origin) return;
 
-  // A handle never scrolls, so a touch on it drags as a mouse does.
-  const touch = e.pointerType === 'touch' && !item.handle;
+  // A finger or an Apple Pencil (a pen) drags only after a long press, so a tap
+  // that moves a little never reorders anything. A handle never scrolls, so a
+  // touch on it drags as a mouse does.
+  const touchLike = e.pointerType === 'touch' || e.pointerType === 'pen';
+  const touch = touchLike && !item.handle;
   session = { node, item, nodes: [node], ids: [item.id], origin, touch, startX: e.clientX, startY: e.clientY, x: e.clientX, y: e.clientY, active: false, target: null };
   if (touch) session.timer = setTimeout(start, LONG_PRESS_MS);
   document.addEventListener('pointermove', onMove);
@@ -279,7 +282,7 @@ function pointerDown(e: PointerEvent, node: HTMLElement, item: DragItem): void {
   // On a handle, a finger never scrolls the page: Safari on iPhone doesn't
   // honour the handle's touch-action alone, and would scroll and cancel the
   // drag before it starts (seen in the 1.3.2 live test).
-  if (item.handle && e.pointerType === 'touch') document.addEventListener('touchmove', preventDefault, { passive: false });
+  if (item.handle && touchLike) document.addEventListener('touchmove', preventDefault, { passive: false });
 }
 
 function onMove(e: PointerEvent): void {
