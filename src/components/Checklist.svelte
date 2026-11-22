@@ -316,4 +316,11 @@
       padding: 8px 10px 8px 12px;
     }
   }
+  /* With a mouse, a size larger, close to Things on the Mac; touch screens keep 14 px. */
+  @media (pointer: fine) {
+    input,
+    .text {
+      font-size: 15px;
+    }
+  }
 </style>

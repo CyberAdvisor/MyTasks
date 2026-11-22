@@ -631,4 +631,10 @@
   .icon-btn:hover {
     background: var(--hover-bg);
   }
+  /* With a mouse, the title matches the rows' 16 px; touch screens keep 15 px. */
+  @media (pointer: fine) {
+    .title {
+      font-size: 16px;
+    }
+  }
 </style>
