@@ -4,6 +4,15 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.8.6"></a>
+
+## 1.8.6 — 2026-11-22
+
+### Fixed
+
+- A task or project that repeats after completion no longer gets stuck when its current copy is moved to the Trash or deleted. The next copy is dated from that day, as when a copy is done. Any already stuck are released the next time My Tasks opens.
+- Create Next Copy makes the copy even when that day's copy was deleted (it did nothing before).
+
 <a id="v1.8.5"></a>
 
 ## 1.8.5 — 2026-11-22

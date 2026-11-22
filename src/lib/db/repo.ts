@@ -327,10 +327,21 @@ export function setPriority(id: ID, priority: Priority | null): Promise<void> {
  * ordinary task with the template's title, notes, checklist, tags, context
  * and place. It keeps a priority the user set on the template (FR-14.7);
  * otherwise the automatic rules decide.
+ *
+ * Asked for by hand (`byHand`, Create Next Copy), a copy is made even when
+ * that date's copy was trashed or deleted, under new ids: the shared ones
+ * still belong to the deleted copy. Made on its own, it isn't, so a copy
+ * skipped on one device doesn't come back from another. Returns the copy's id.
  */
-async function makeCopy(template: Todo, rule: RepeatRule, date: LocalDate): Promise<void> {
-  const id = copyId(template.id, date);
-  if (await db.todos.get(id)) return;
+async function makeCopy(template: Todo, rule: RepeatRule, date: LocalDate, byHand = false): Promise<ID> {
+  let id = copyId(template.id, date);
+  const existing = await db.todos.get(id);
+  if (existing) {
+    const dead = existing.deletedAt !== null || existing.trashedAt !== null;
+    if (!byHand || !dead) return id;
+    id = uuidv7();
+  }
+  const shared = id === copyId(template.id, date);
   const keys = await siblingKeys<Todo>(
     'todos',
     (x) => x.projectId === template.projectId && x.areaId === template.areaId && x.sortKey < template.sortKey,
@@ -363,9 +374,10 @@ async function makeCopy(template: Todo, rule: RepeatRule, date: LocalDate): Prom
   };
   await db.todos.add(copy);
   for (const item of await liveChecklist(template.id)) {
-    const c: ChecklistItem = { ...item, ...base(item.sortKey), id: copyId(item.id, date), todoId: id, completed: false };
+    const c: ChecklistItem = { ...item, ...base(item.sortKey), id: shared ? copyId(item.id, date) : uuidv7(), todoId: id, completed: false };
     await db.checklistItems.add(c);
   }
+  return id;
 }
 
 /**
@@ -390,15 +402,15 @@ async function copyAndMoveOn(
   rule: RepeatRule,
   date: LocalDate,
   then: { next: LocalDate | null; finished: boolean },
+  byHand = false,
 ): Promise<ID> {
-  await makeCopy(template, rule, date);
+  const id = await makeCopy(template, rule, date, byHand);
   if (then.finished) {
     const at = nowIso();
     await patch<Todo>('todos', template.id, { repeat: null, startDate: null, status: 'completed', completedAt: at, loggedAt: at });
   } else {
     await patch<Todo>('todos', template.id, { startDate: then.next, repeat: { ...rule, made: rule.made + 1 } });
   }
-  const id = copyId(template.id, date);
   await applyAutoRules(id);
   return id;
 }
@@ -415,7 +427,7 @@ async function nextCopyNow(template: Todo): Promise<ID | undefined> {
   const ref = today();
   const date = template.startDate ?? (rule.mode === 'fixed' ? firstDate(rule, ref) : ref);
   if (!date) return undefined;
-  return copyAndMoveOn(template, rule, date, afterCopy(rule, date));
+  return copyAndMoveOn(template, rule, date, afterCopy(rule, date), true);
 }
 
 /** Create Next Copy (FR-4.4): one undo step. */
@@ -435,8 +447,36 @@ export async function previousCopy(templateId: ID): Promise<Todo | undefined> {
   return copies.sort((a, b) => ((a.startDate ?? '') < (b.startDate ?? '') ? 1 : -1))[0];
 }
 
+/**
+ * Release every after-completion template left waiting for a copy that is
+ * gone: its copy was trashed or deleted, so it would otherwise never get a
+ * date or make another copy. It is dated from today, as when its copy is
+ * done or cancelled (FR-4.1). Run when a task, project or area is trashed,
+ * and at launch, on return and at midnight, which repairs any left stuck.
+ */
+async function releaseWaitingTemplates(ref: LocalDate): Promise<void> {
+  const projects = (await db.projects.toArray()).filter((p) => p.deletedAt === null);
+  const gone = new Set(projects.filter((p) => p.trashedAt).map((p) => p.id));
+  // A copy counts while it is open and neither it nor its project is in the Trash.
+  const live = (c: { status: string; trashedAt: string | null; deletedAt: string | null }, projectId: ID | null) =>
+    c.status === 'open' && !c.trashedAt && c.deletedAt === null && !(projectId && gone.has(projectId));
+  const waiting = (t: { repeat: RepeatRule | null; status: string; trashedAt: string | null; deletedAt: string | null; startDate: LocalDate | null }) =>
+    t.repeat?.mode === 'afterCompletion' && !t.repeat.paused && t.status === 'open' && !t.trashedAt && t.deletedAt === null && t.startDate === null;
+
+  const todos = (await db.todos.toArray()).filter((t) => t.deletedAt === null);
+  const withCopy = new Set(todos.filter((c) => c.repeatOf && live(c, c.projectId)).map((c) => c.repeatOf));
+  for (const t of todos.filter((t) => waiting(t) && !withCopy.has(t.id))) {
+    await patch<Todo>('todos', t.id, { startDate: afterCompletionDate(t.repeat!, ref) });
+  }
+  const projectWithCopy = new Set(projects.filter((c) => c.repeatOf && live(c, null)).map((c) => c.repeatOf));
+  for (const p of projects.filter((p) => waiting(p) && !projectWithCopy.has(p.id))) {
+    await patch<Project>('projects', p.id, { startDate: afterCompletionDate(p.repeat!, ref) });
+  }
+}
+
 /** Make every repeating task's and project's due copy (at launch, on return and at midnight). */
 async function makeDueCopies(ref: LocalDate): Promise<void> {
+  await releaseWaitingTemplates(ref);
   const templates = await db.todos.filter((t) => t.repeat !== null && t.deletedAt === null).toArray();
   for (const t of templates) await makeDueCopy(t, ref);
   const projects = await db.projects.filter((p) => p.repeat !== null && p.deletedAt === null).toArray();
@@ -529,19 +569,28 @@ export function stopRepeat(id: ID): Promise<void> {
  * template among its siblings. A copy is the whole project, its
  * tasks open and its checklists unchecked. Every id comes from the template
  * record's id and the date (`copyId`), so two devices making the same copy
- * end up with one set of records. Copies are never refused by the task limit
+ * end up with one set of records. Made by hand (Create Next Copy) where that
+ * date's copy was trashed or deleted, they come from the date and a new id.
+ * Returns that key. Copies are never refused by the task limit
  * (NFR-7), as for repeating tasks.
  */
-async function makeProjectCopy(template: Project, rule: RepeatRule, date: LocalDate): Promise<void> {
-  const id = copyId(template.id, date);
-  if (await db.projects.get(id)) return;
+async function makeProjectCopy(template: Project, rule: RepeatRule, date: LocalDate, byHand = false): Promise<string> {
+  // The ids come from `key`: the date, or, for a copy made by hand where that date's copy was trashed or deleted, the date with a new id after it.
+  let key: string = date;
+  const existing = await db.projects.get(copyId(template.id, key));
+  if (existing) {
+    const dead = existing.deletedAt !== null || existing.trashedAt !== null;
+    if (!byHand || !dead) return key;
+    key = `${date}#${uuidv7()}`;
+  }
+  const id = copyId(template.id, key);
   const keys = await siblingKeys<Project>(
     'projects',
     (x) => (x.areaId ?? null) === (template.areaId ?? null) && x.sortKey < template.sortKey,
   );
   const before = keys.length ? keys.sort().at(-1)! : null;
   const at = nowIso();
-  const stamp = (recordId: ID, sortKey: string) => ({ id: copyId(recordId, date), createdAt: at, modifiedAt: at, deletedAt: null, sortKey });
+  const stamp = (recordId: ID, sortKey: string) => ({ id: copyId(recordId, key), createdAt: at, modifiedAt: at, deletedAt: null, sortKey });
   await db.projects.add({
     ...template,
     ...stamp(template.id, keyBetween(before, template.sortKey)),
@@ -567,13 +616,13 @@ async function makeProjectCopy(template: Project, rule: RepeatRule, date: LocalD
   );
   for (const t of todos) {
     const userPriority = t.prioritySource === 'user';
-    const taskId = copyId(t.id, date);
+    const taskId = copyId(t.id, key);
     await db.todos.add({
       ...t,
       ...stamp(t.id, t.sortKey),
       tagIds: [...t.tagIds],
       projectId: id,
-      headingId: t.headingId ? copyId(t.headingId, date) : null,
+      headingId: t.headingId ? copyId(t.headingId, key) : null,
       status: 'open',
       todaySortKey: null,
       priority: userPriority ? t.priority : null,
@@ -592,29 +641,31 @@ async function makeProjectCopy(template: Project, rule: RepeatRule, date: LocalD
     }
     await applyAutoRules(taskId);
   }
+  return key;
 }
 
 /**
  * Make `template`'s copy for `date`, then move the template on to `then.next`,
  * or, when the repeat has ended, stop it and send it to Completed (FR-4.2).
- * Returns the copy's id.
+ * Returns the copy's id and the key its records' ids come from.
  */
 async function projectCopyAndMoveOn(
   template: Project,
   rule: RepeatRule,
   date: LocalDate,
   then: { next: LocalDate | null; finished: boolean },
-): Promise<ID> {
-  await makeProjectCopy(template, rule, date);
+  byHand = false,
+): Promise<{ id: ID; key: string }> {
+  const key = await makeProjectCopy(template, rule, date, byHand);
   if (then.finished) {
     const at = nowIso();
     await patch<Project>('projects', template.id, { repeat: null, startDate: null, status: 'completed', completedAt: at, loggedAt: at });
   } else {
     await patch<Project>('projects', template.id, { startDate: then.next, repeat: { ...rule, made: rule.made + 1 } });
   }
-  const id = copyId(template.id, date);
+  const id = copyId(template.id, key);
   await release(id, null);
-  return id;
+  return { id, key };
 }
 
 /** Make the copy a repeating project is due to make now, if any (at launch, on return, at midnight). */
@@ -678,15 +729,16 @@ export function setProjectRepeat(id: ID, rule: RepeatRule, next: LocalDate | nul
  * Make a repeating project's next copy now, as for a task (FR-4.4): a fixed
  * schedule's copy keeps its date and the template moves on; after
  * completion, the copy is for its waiting date, or today. Returns the copy's
- * id and date, or nothing when the template has no copy to make.
+ * id and the key its records' ids come from (`makeProjectCopy`), or nothing
+ * when the template has no copy to make.
  */
-async function nextProjectCopyNow(template: Project): Promise<{ id: ID; date: LocalDate } | undefined> {
+async function nextProjectCopyNow(template: Project): Promise<{ id: ID; key: string } | undefined> {
   const rule = template.repeat;
   if (!rule || template.status !== 'open') return undefined;
   const ref = today();
   const date = template.startDate ?? (rule.mode === 'fixed' ? firstDate(rule, ref) : ref);
   if (!date) return undefined;
-  return { id: await projectCopyAndMoveOn(template, rule, date, afterCopy(rule, date)), date };
+  return projectCopyAndMoveOn(template, rule, date, afterCopy(rule, date), true);
 }
 
 /** Create Next Copy on a repeating project (FR-4.6): one undo step. Returns the copy's id. */
@@ -717,13 +769,13 @@ export async function templateTaskIds(ids: ID[]): Promise<ID[]> {
 export function copyNowForTasks(ids: ID[]): Promise<{ projectIds: ID[]; taskIds: ID[] }> {
   return tx(async () => {
     const todos = (await db.todos.bulkGet(ids)).filter((t): t is Todo => !!t?.projectId);
-    const dates = new Map<ID, LocalDate>();
+    const dates = new Map<ID, string>();
     const projectIds: ID[] = [];
     for (const projectId of new Set(todos.map((t) => t.projectId!))) {
       const template = await db.projects.get(projectId);
       const made = template?.repeat ? await nextProjectCopyNow(template) : undefined;
       if (!made) continue;
-      dates.set(projectId, made.date);
+      dates.set(projectId, made.key);
       projectIds.push(made.id);
     }
     const taskIds: ID[] = [];
@@ -993,7 +1045,11 @@ export function setTodoStatus(id: ID, status: Todo['status']): Promise<void> {
 
 /** Move a to-do to Trash, or restore it (FR-1.5, FR-12.3). */
 export function setTodoTrashed(id: ID, trashed: boolean): Promise<void> {
-  return tx(() => patch<Todo>('todos', id, { trashedAt: trashed ? nowIso() : null }));
+  return tx(async () => {
+    await patch<Todo>('todos', id, { trashedAt: trashed ? nowIso() : null });
+    // A repeat's copy in the Trash no longer holds its template back.
+    if (trashed) await releaseWaitingTemplates(today());
+  });
 }
 
 /** Duplicate a to-do just after the original (FR-1.5). */
@@ -1303,7 +1359,11 @@ export function reopenProject(id: ID): Promise<void> {
 
 /** Move a project (and its to-dos) to Trash, or restore it. */
 export function setProjectTrashed(id: ID, trashed: boolean): Promise<void> {
-  return tx(() => patch<Project>('projects', id, { trashedAt: trashed ? nowIso() : null }));
+  return tx(async () => {
+    await patch<Project>('projects', id, { trashedAt: trashed ? nowIso() : null });
+    // A repeat's copy in the Trash, or in a trashed project, no longer holds its template back.
+    if (trashed) await releaseWaitingTemplates(today());
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1430,6 +1490,7 @@ export function deleteArea(id: ID, contents: 'keep' | 'trash'): Promise<void> {
       await patch<Todo>('todos', t.id, contents === 'trash' ? { trashedAt: at, areaId: null } : { areaId: null, start });
     }
     await bury('areas', [id], at);
+    if (contents === 'trash') await releaseWaitingTemplates(today());
   });
 }
 
