@@ -203,6 +203,54 @@ describe('copies', () => {
     expect((await row(id)).startDate).toBeNull();
   });
 
+  it('after completion: trashing the copy releases the template, dated from today; undo puts both back', async () => {
+    const id = await repo.createTodo({ title: 'Change the filter' });
+    await repo.setRepeat(id, rule({ mode: 'afterCompletion', unit: 'day', interval: 3 }), today());
+    const [copy] = await copiesOf(id);
+    const other = await repo.createTodo({ title: 'Unrelated' });
+    await repo.setTodoTrashed(other, true);
+    expect((await row(id)).startDate).toBeNull(); // Its copy is still open.
+    await repo.setTodoTrashed(copy.id, true);
+    expect((await row(id)).startDate).toBe(addDays(today(), 3));
+    await sweepOn(addDays(today(), 3));
+    expect((await copiesOf(id)).filter((c) => !c.trashedAt)).toHaveLength(1);
+  });
+
+  it('after completion: undoing the trash brings the copy back and the template waits again', async () => {
+    const id = await repo.createTodo({ title: 'Change the filter' });
+    await repo.setRepeat(id, rule({ mode: 'afterCompletion', unit: 'day', interval: 3 }), today());
+    const [copy] = await copiesOf(id);
+    await repo.setTodoTrashed(copy.id, true);
+    await undo();
+    expect((await row(copy.id)).trashedAt).toBeNull();
+    expect((await row(id)).startDate).toBeNull();
+  });
+
+  it('Create Next Copy makes a copy even when that date’s copy was deleted, with its checklist', async () => {
+    const id = await repo.createTodo({ title: 'Change the filter' });
+    await repo.addChecklistItems(id, ['Buy a filter']);
+    await repo.setRepeat(id, rule({ mode: 'afterCompletion', unit: 'week' }), today());
+    const [gone] = await copiesOf(id);
+    await db.todos.update(gone.id, { deletedAt: new Date().toISOString() }); // Today's copy, deleted.
+    const made = await repo.createNextCopy(id);
+    expect(made).toBeDefined();
+    expect(made).not.toBe(gone.id);
+    const copy = await row(made!);
+    expect(copy).toMatchObject({ status: 'open', deletedAt: null, repeatOf: id, startDate: today() });
+    const items = (await db.checklistItems.toArray()).filter((c) => c.todoId === made && c.deletedAt === null);
+    expect(items.map((c) => c.title)).toEqual(['Buy a filter']);
+  });
+
+  it('after completion: a template stuck with its copy already gone is released at the next sweep', async () => {
+    const id = await repo.createTodo({ title: 'Change the filter' });
+    await repo.setRepeat(id, rule({ mode: 'afterCompletion', unit: 'week' }), today());
+    const [copy] = await copiesOf(id);
+    // As left by an earlier version, or synced from another device: the copy deleted, the template waiting.
+    await db.todos.update(copy.id, { deletedAt: new Date().toISOString() });
+    await repo.sweepRules();
+    expect((await row(id)).startDate).toBe(addDays(today(), 7));
+  });
+
   it('pauses and resumes, stops, and ends after a count', async () => {
     const id = await weeklyToday();
     await repo.setRepeatPaused(id, true);
@@ -497,6 +545,29 @@ describe('repeating projects (FR-4.6)', () => {
     const [copy] = await projectCopiesOf(id);
     expect((await project(id)).startDate).toBeNull();
     await repo.closeProject(copy.id, 'completed', 'completed');
+    expect((await project(id)).startDate).toBe(addDays(ref, 7));
+  });
+
+  it('Create Next Copy on a project makes a copy even when that date’s copy was deleted, with its tasks', async () => {
+    const { id } = await weeklyReview();
+    const ref = today();
+    await repo.setProjectRepeat(id, rule({ mode: 'afterCompletion', unit: 'week' }), ref);
+    const [gone] = await projectCopiesOf(id);
+    await db.projects.update(gone.id, { deletedAt: new Date().toISOString() });
+    const made = await repo.createNextProjectCopy(id);
+    expect(made).toBeDefined();
+    expect(made).not.toBe(gone.id);
+    expect(await project(made!)).toMatchObject({ status: 'open', deletedAt: null, repeatOf: id });
+    const tasks = (await db.todos.toArray()).filter((t) => t.projectId === made && t.deletedAt === null);
+    expect(tasks.length).toBeGreaterThan(0);
+  });
+
+  it('after completion: trashing the project copy releases the template', async () => {
+    const { id } = await weeklyReview();
+    const ref = today();
+    await repo.setProjectRepeat(id, rule({ mode: 'afterCompletion', unit: 'week' }), ref);
+    const [copy] = await projectCopiesOf(id);
+    await repo.setProjectTrashed(copy.id, true);
     expect((await project(id)).startDate).toBe(addDays(ref, 7));
   });
 
