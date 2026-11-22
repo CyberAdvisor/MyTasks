@@ -6,6 +6,7 @@
  */
 import { inToday, isLive, isOpen } from './lists';
 import { bySortKey } from './order';
+import { noneToNoChoice } from './priority';
 import type { SequentialTag } from './settings';
 import type { Heading, ID, LocalDate, Priority, Project, Todo } from './types';
 
@@ -62,6 +63,8 @@ export function nextToRelease(project: Project, ordered: Todo[], ref: LocalDate)
 export function releaseChanges(todo: Todo, ref: LocalDate, rule: SequentialRule, releasedBy: ID | null): Partial<Todo> {
   const givenContextId = todo.contextId === null ? rule.contextId : null;
   return {
+    // Released into Today afresh: a chosen None no longer holds (FR-14.15).
+    ...noneToNoChoice(todo),
     start: 'unscheduled',
     startDate: ref,
     releasedBy,

@@ -14,7 +14,7 @@ import { localDay, today } from '../model/dates';
 import { bySortKey, keyAtEnd, keyAtStart, keyBetween, placementKeys } from '../model/order';
 import { datedOutOfDeferred, deadlineWhen, inToday } from '../model/lists';
 import { nextToRelease, othersToReset, projectOrder, releaseChanges, returnChanges, sequentialRule } from '../model/sequential';
-import { priorityRules } from '../model/priority';
+import { noneToNoChoice, priorityRules } from '../model/priority';
 import { descendantIds } from '../model/tags';
 import { TaskLimitError, hasRoom } from '../model/limits';
 import { readSettings, type AppSettings, type SettingKey } from '../model/settings';
@@ -133,9 +133,11 @@ function loadSettings(): Promise<AppSettings> {
  */
 function autoChanges(t: Todo, ref: LocalDate, settings: AppSettings, project?: Project): Partial<Todo> | null {
   const when = deadlineWhen(t, ref);
+  // A None the user chose holds only while the task is in Today (FR-14.15).
+  const none = inToday(t, ref) ? {} : noneToNoChoice(t);
   const rule = project ? sequentialRule(project, settings.sequentialTags) : null;
-  const priority = priorityRules({ ...t, ...when }, ref, settings, rule?.priority ?? null);
-  return when || priority ? { ...when, ...priority } : null;
+  const priority = priorityRules({ ...t, ...none, ...when }, ref, settings, rule?.priority ?? null);
+  return when || priority || 'prioritySource' in none ? { ...none, ...when, ...priority } : null;
 }
 
 /** Apply the automatic rules to one to-do after a change. */
@@ -311,9 +313,12 @@ export function setContext(id: ID, contextId: ID | null): Promise<void> {
 
 /** Set or clear a to-do's priority as the user's own choice (FR-14.2). */
 export function setPriority(id: ID, priority: Priority | null): Promise<void> {
-  return tx(() =>
-    patch<Todo>('todos', id, { priority, prioritySource: 'user', priorityBeforeAuto: null }),
-  );
+  return tx(async () => {
+    const t = await db.todos.get(id);
+    // None chosen for a task outside Today is no choice: it holds only in Today (FR-14.15).
+    const source = priority === null && t && !inToday(t, today()) ? null : 'user';
+    await patch<Todo>('todos', id, { priority, prioritySource: source, priorityBeforeAuto: null });
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -348,7 +353,8 @@ async function makeCopy(template: Todo, rule: RepeatRule, date: LocalDate, byHan
   );
   const before = keys.length ? keys.sort().at(-1)! : null;
   const at = nowIso();
-  const userPriority = template.prioritySource === 'user';
+  // A chosen None isn't carried to a copy, which enters Today afresh (FR-14.15).
+  const userPriority = template.prioritySource === 'user' && template.priority !== null;
   const copy: Todo = {
     ...template,
     id,
@@ -615,7 +621,7 @@ async function makeProjectCopy(template: Project, rule: RepeatRule, date: LocalD
     (t) => t.deletedAt === null && t.trashedAt === null && !(t.headingId && archived.has(t.headingId)),
   );
   for (const t of todos) {
-    const userPriority = t.prioritySource === 'user';
+    const userPriority = t.prioritySource === 'user' && t.priority !== null;
     const taskId = copyId(t.id, key);
     await db.todos.add({
       ...t,
@@ -966,7 +972,8 @@ export function setWhen(id: ID, choice: WhenChoice): Promise<void> {
     start = normalizeStart({ start, startDate, areaId: t.areaId, projectId: t.projectId });
     // A start date chosen by hand replaces where a release would return it (FR-17.5).
     const released: Partial<Todo> = t.releasedBy || t.releasedFrom ? { releasedBy: null, releasedFrom: null } : {};
-    await patch<Todo>('todos', id, { start, startDate, ...released });
+    // A new start date means entering Today afresh: a chosen None no longer holds (FR-14.15).
+    await patch<Todo>('todos', id, { start, startDate, ...released, ...noneToNoChoice(t) });
     await applyAutoRules(id);
   });
 }

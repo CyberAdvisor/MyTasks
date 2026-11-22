@@ -19,6 +19,20 @@ import type { LocalDate, Priority, Todo } from './types';
 type PriorityFields = Pick<Todo, 'priority' | 'prioritySource' | 'priorityBeforeAuto'>;
 
 /**
+ * A priority of None the user chose (FR-14.2). It holds only while the task
+ * is in Today: once the task is elsewhere, or enters Today again, it counts
+ * as no choice and the automatic rules may give it one (FR-14.15).
+ */
+export function choseNone(todo: Pick<Todo, 'priority' | 'prioritySource'>): boolean {
+  return todo.prioritySource === 'user' && todo.priority === null;
+}
+
+/** The change that turns a chosen None into no choice, or nothing (FR-14.15). */
+export function noneToNoChoice(todo: Pick<Todo, 'priority' | 'prioritySource'>): Partial<Todo> {
+  return choseNone(todo) ? { prioritySource: null } : {};
+}
+
+/**
  * Has the to-do entered Today through its When date (FR-14.10)? A deadline
  * alone does not count: that case is handled by automatic P1.
  */
