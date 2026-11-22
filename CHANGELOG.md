@@ -18,7 +18,7 @@ Versions follow [Semantic Versioning](https://semver.org). The first change to t
 
 ### Changed
 
-- **Larger text on the Mac** (with a mouse or trackpad), closer to Things: task titles 16 px (were 15), the project or area line and the row's details 13 px (were 12), notes, checklist items and the open task's title a size larger, and rows 34 px high (were 32). iPhone and iPad touch sizes are unchanged.
+- **Larger text on the Mac:** task titles 16 px (were 15), the project or area line and the row's details 13 px (were 12), notes, checklist items and the open task's title a size larger, and rows 34 px high (were 32). iPhone and iPad touch sizes are unchanged.
 
 <a id="v1.8.2"></a>
 
