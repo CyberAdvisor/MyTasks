@@ -32,7 +32,8 @@ const problem = (csv: string) => {
 };
 const live = async <T extends { deletedAt: string | null }>(rows: Promise<T[]>) => (await rows).filter((r) => r.deletedAt === null);
 const todos = () => live(db.todos.toArray());
-const byTitle = async (title: string) => (await todos()).find((t) => t.title === title)!;
+/** The task with this title; for a repeating task, its template, not a copy the import made because it was due. */
+const byTitle = async (title: string) => (await todos()).find((t) => t.title === title && !t.repeatOf)!;
 const importCsv = (csv: string) => repo.importRows(read(csv));
 
 beforeEach(async () => {
