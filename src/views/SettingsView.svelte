@@ -35,6 +35,7 @@
   import {
     DEFAULT_PRIORITY_LABELS,
     PRIORITIES,
+    UNSCHEDULED_LIMITS,
     cleanLabels,
     type MoveToCompleted,
     type Theme,
@@ -437,6 +438,21 @@
   </label>
 </section>
 
+<section aria-labelledby="unscheduled-heading">
+  <h2 id="unscheduled-heading">Unscheduled</h2>
+  <div class="setting-row">
+    <label for="unscheduled-limit">Tasks shown per project</label>
+    <select
+      id="unscheduled-limit"
+      value={String($settings.unscheduledLimit ?? 'all')}
+      onchange={(e) => repo.setSetting('unscheduledLimit', e.currentTarget.value === 'all' ? null : Number(e.currentTarget.value))}
+    >
+      {#each UNSCHEDULED_LIMITS as n (n ?? 'all')}<option value={String(n ?? 'all')}>{n ?? 'All'}</option>{/each}
+    </select>
+  </div>
+  <p class="help">Projects and areas with more show a Show All button under their tasks.</p>
+</section>
+
 <section aria-labelledby="prio-heading">
   <h2 id="prio-heading">Priority Settings</h2>
 
@@ -711,6 +727,14 @@
   .small {
     padding: 4px 6px;
     font-size: 13px;
+  }
+  .setting-row select {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 4px 8px;
+    font: inherit;
+    background: var(--bg);
+    color: var(--text);
   }
   .setting-row {
     display: flex;

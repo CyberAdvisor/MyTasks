@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.9.0"></a>
+
+## 1.9.0 — 2026-11-22
+
+### Added
+
+- Unscheduled shows the first 3 tasks of each project or area, with a grey Show All under the rest. Show All opens that group, and Show 3 under it closes it again. Settings › Unscheduled sets how many: 1, 2, 3, 5, 10, 20 or All.
+
 <a id="v1.8.6"></a>
 
 ## 1.8.6 — 2026-11-22

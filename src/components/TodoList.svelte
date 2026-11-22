@@ -32,6 +32,7 @@
     zone = null,
     start = 0,
     before,
+    after,
     day = '',
     period = false,
   }: {
@@ -55,6 +56,8 @@
     start?: number;
     /** Shown under the heading, above the rows: a Scheduled group's calendar events (FR-21.6). */
     before?: Snippet;
+    /** Shown under the rows: Unscheduled's Show All (FR-23.1). */
+    after?: Snippet;
     /** Scheduled's day groups: the date's number, large before the title (FR-21.6). */
     day?: string;
     /** Scheduled's later groups (rest of the month, a month, a year): a plain heading with a rule above. */
@@ -88,6 +91,7 @@
         <TodoRow {todo} {ref} {mode} {showPriority} {showContext} containerLabel={label(todo)} {list} />
       {/each}
     </ul>
+    {@render after?.()}
   </section>
 {/if}
 

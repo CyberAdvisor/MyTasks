@@ -95,13 +95,38 @@
     tag ? allProjects.filter((p) => projectTagIds(p, s).has(tag!)) : allProjects,
   );
 
+  // Unscheduled shows a few tasks per group until Show All (FR-23.1); an open
+  // group's "Show N" closes it again. A group stays open until it's closed or the
+  // view changes; one holding a task asked to be shown opens too.
+  let limit = $derived(list === 'unscheduled' ? $settings.unscheduledLimit : null);
+  let opened = $state<string[]>([]);
+  $effect(() => {
+    void list;
+    opened = [];
+  });
+  $effect(() => {
+    const id = ui.scrollId;
+    if (!id || limit === null) return;
+    const g = groups.find((x) => x.todos.findIndex((t) => t.id === id) >= limit!);
+    if (g && !opened.includes(g.key)) opened = [...opened, g.key];
+  });
+  let shownGroups = $derived(
+    groups.map((g) => {
+      const open = opened.includes(g.key);
+      const { shown, more } = L.limitTodos(g.todos, open ? null : limit);
+      // The button: Show All while cut, Show N while open; none when the group fits.
+      const toggle = more ? 'Show All' : open && limit !== null && g.todos.length > limit ? `Show ${limit}` : '';
+      return { ...g, todos: shown, open, toggle };
+    }),
+  );
+
   // Today grouping (FR-16): applied after the filter bar.
   let grouping = $derived(list === 'today' ? $settings.todayGrouping : 'none');
   let todayGroups = $derived(grouping === 'none' ? [] : L.todayGroups(flat, grouping, s, $settings.priorityLabels));
 
   // The row limit (NFR-7): where each list starts among the view's rows, in screen order.
   let firstLists = $derived(grouping !== 'none' ? todayGroups.map((g) => g.todos.length) : flat.length ? [flat.length] : []);
-  let counts = $derived([...firstLists, ...groups.map((g) => g.todos.length)]);
+  let counts = $derived([...firstLists, ...shownGroups.map((g) => g.todos.length)]);
   let starts = $derived(startsOf(counts));
   let rowTotal = $derived(counts.reduce((a, b) => a + b, 0));
 
@@ -211,7 +236,7 @@
   <TodoList todos={flat} {ref} {mode} {list} label={list === 'inbox' ? () => '' : label} zone={flatZone} />
 {/if}
 
-{#each groups as g, i (g.key)}
+{#each shownGroups as g, i (g.key)}
   <TodoList
     todos={g.todos}
     start={starts[firstLists.length + i]}
@@ -242,6 +267,15 @@
             </li>
           {/each}
         </ul>
+      {/if}
+    {/snippet}
+    {#snippet after()}
+      {#if g.toggle}
+        <button
+          type="button"
+          class="show-all"
+          onclick={() => (opened = g.open ? opened.filter((k) => k !== g.key) : [...opened, g.key])}>{g.toggle}</button
+        >
       {/if}
     {/snippet}
   </TodoList>
@@ -319,6 +353,20 @@
   .projects.templates a {
     padding: 6px 8px;
     font-weight: 500;
+  }
+  /* Unscheduled's Show All (FR-23.1): quiet, under the group's last row. */
+  .show-all {
+    margin: 2px 0 0;
+    padding: 4px 8px 4px 38px;
+    border: 0;
+    background: none;
+    color: var(--text-3);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .show-all:hover {
+    color: var(--text-2);
   }
   .tag {
     font-size: 11px;

@@ -22,7 +22,7 @@
  * are refused in payload.ts.
  */
 import { generateKeyBetween } from 'fractional-indexing';
-import { PRIORITIES, MOVE_TO_COMPLETED } from '../model/settings';
+import { PRIORITIES, MOVE_TO_COMPLETED, UNSCHEDULED_LIMITS } from '../model/settings';
 import type { EntityName, SettingEntry } from '../model/types';
 
 /** A check for one field's value. */
@@ -192,6 +192,7 @@ const SETTING_VALUES: Record<string, Rule> = {
     Array.isArray(v) &&
     v.every((t) => isObject(t) && matches(t, { tagId: id, priority: orNull(priority), contextId: orNull(id) })),
   showCalendarEvents: bool,
+  unscheduledLimit: (v) => UNSCHEDULED_LIMITS.includes(v as number | null),
 };
 
 /** The settings the checks accept: exactly the ones that sync (SYNCED_SETTINGS in payload.ts). */

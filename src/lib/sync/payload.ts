@@ -41,6 +41,7 @@ export const SYNCED_SETTINGS: SettingKey[] = [
   'sinkChecked',
   'sequentialTags',
   'showCalendarEvents',
+  'unscheduledLimit',
 ];
 
 /** The decrypted contents of the gist; also the body of a backup file (backup.ts). */

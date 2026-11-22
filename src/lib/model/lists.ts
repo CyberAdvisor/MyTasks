@@ -452,6 +452,15 @@ export function unscheduledGroups(s: Snapshot, ref: LocalDate): TodoGroup[] {
   return groupByContainer(visibleTodos(s).filter((t) => inUnscheduled(t, p, ref)), s);
 }
 
+/**
+ * A group's tasks cut to `limit` (FR-23.1), with how many more Show All
+ * would add. No cut when there's no limit, or the group fits in it.
+ */
+export function limitTodos<T>(todos: T[], limit: number | null): { shown: T[]; more: number } {
+  if (limit === null || todos.length <= limit) return { shown: todos, more: 0 };
+  return { shown: todos.slice(0, limit), more: todos.length - limit };
+}
+
 export function deferredGroups(s: Snapshot): TodoGroup[] {
   return groupByContainer(visibleTodos(s).filter(inDeferred), s);
 }
