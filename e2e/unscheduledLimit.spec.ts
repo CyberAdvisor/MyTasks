@@ -58,6 +58,8 @@ test('three tasks per group until Show All; the setting changes it', async ({ pa
   await expect(garden.locator('.row')).toHaveCount(5);
   await page.reload();
   await expect(garden.locator('.row')).toHaveCount(5);
+  // With All, no group has a button.
+  await expect(page.locator('main .show-all')).toHaveCount(0);
 
   // 1 shows one per group.
   await page.evaluate(() => (location.hash = '#/settings'));
