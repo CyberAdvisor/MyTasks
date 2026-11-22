@@ -131,3 +131,52 @@ test("a task dragged into another of Today's groups takes on its priority or pro
   await expect(row('Buy compost')).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+/** Press a sidebar item with an Apple Pencil (pen pointer events), move it by `dy` over `ms`, and lift. */
+async function penDrag(page: Page, name: string, dy: number, holdMs: number): Promise<void> {
+  const item = page.getByRole('navigation', { name: 'Lists' }).getByRole('link', { name, exact: true });
+  const b = (await item.boundingBox())!;
+  const x = b.x + b.width / 2;
+  const y0 = b.y + b.height / 2;
+  const send = (type: string, y: number) =>
+    item.evaluate(
+      (el, { type, x, y }) => {
+        const target = type === 'pointerdown' ? el : document;
+        target.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerType: 'pen', isPrimary: true, pointerId: 3, clientX: x, clientY: y, buttons: type === 'pointerup' ? 0 : 1 }));
+      },
+      { type, x, y },
+    );
+  await send('pointerdown', y0);
+  if (holdMs) await page.waitForTimeout(holdMs);
+  for (let i = 1; i <= 6; i++) await send('pointermove', y0 + (dy * i) / 6);
+  await send('pointerup', y0 + dy);
+}
+
+test('an Apple Pencil moves a sidebar project only after a long press', async ({ page, context }) => {
+  await fakeGitHub(context);
+  await connect(page);
+  const projects = async () =>
+    page.getByRole('navigation', { name: 'Lists' }).locator('li').filter({ has: page.getByRole('link') }).allTextContents();
+  const nav = page.getByRole('navigation', { name: 'Lists' });
+  for (const name of ['Alpha', 'Beta']) {
+    await nav.getByRole('button', { name: 'New List' }).click();
+    await page.getByRole('menuitem', { name: 'New Project' }).click();
+    // The new project's page, not the last one's, before typing its name.
+    await expect(page.getByLabel('Project title')).toHaveValue('');
+    await page.getByLabel('Project title').fill(name);
+    await page.getByLabel('Project title').blur();
+    await expect(nav.getByRole('link', { name, exact: true })).toBeVisible();
+  }
+  await expect(nav.getByRole('link', { name: 'Beta', exact: true })).toBeVisible();
+  const order = (await projects()).filter((t) => /Alpha|Beta/.test(t)).map((t) => t.trim());
+  expect(order).toEqual(['Alpha', 'Beta']);
+
+  // A quick stroke down over Beta doesn't reorder anything.
+  await penDrag(page, 'Alpha', 40, 0);
+  await page.waitForTimeout(300);
+  expect((await projects()).filter((t) => /Alpha|Beta/.test(t)).map((t) => t.trim())).toEqual(['Alpha', 'Beta']);
+
+  // Held first, it drags.
+  await penDrag(page, 'Alpha', 40, 600);
+  await expect.poll(async () => (await projects()).filter((t) => /Alpha|Beta/.test(t)).map((t) => t.trim())).toEqual(['Beta', 'Alpha']);
+});
