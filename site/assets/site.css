@@ -72,7 +72,6 @@ section.block p.sub { text-align: center; color: var(--text-2); font-size: 19px;
 table.cmp { width: 100%; border-collapse: collapse; font-size: 15px; }
 table.cmp th, table.cmp td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: center; }
 table.cmp th:first-child, table.cmp td:first-child { text-align: left; }
-table.cmp td:nth-child(2) { white-space: nowrap; }
 .closing { text-align: center; padding: 90px 0 70px; }
 .closing h2 { font-size: 36px; margin: 0 0 18px; }
 
@@ -111,7 +110,9 @@ kbd { font-family: inherit; font-size: 14px; background: var(--bg-2); border: 1p
 .page table.stored th:nth-child(2) { width: 44%; }
 /* The Compare page: wider, for its five columns; cells centred as on the old Home table. */
 .page.wide { max-width: 1040px; }
-.page table.cmp { min-width: 760px; }
+.page table.cmp { min-width: 760px; table-layout: fixed; }
+/* The four apps' columns share the width equally; the feature names take the rest. */
+.page table.cmp th:first-child { width: 20%; }
 .page table.cmp th, .page table.cmp td { text-align: center; vertical-align: middle; }
 .page table.cmp th:first-child, .page table.cmp td:first-child { text-align: left; }
 .page ol, .page ul { padding-left: 22px; }
