@@ -62,14 +62,6 @@ test('Mac', async ({ browser }) => {
   // Chapter 9: the episode's template, Create Copy Now?, and this week's copy.
   await go(page, '#/project/episode', 'Pick the main review');
   await shot(page, 'ch09-episode-template');
-  // Chapter 9: a checklist item with a link, in a task's card.
-  await page.getByText('Schedule the episode for Friday 6 a.m.', { exact: true }).dblclick();
-  await expect(page.getByRole('link', { name: 'the podcast host' })).toBeVisible();
-  // The card opens near the bottom of the window: bring all of it into view.
-  await page.getByRole('group', { name: 'Edit task' }).evaluate((card) => card.scrollIntoView({ block: 'center' }));
-  await settle(page);
-  await shot(page, 'ch09-upload-checklist');
-  await page.keyboard.press('Escape');
   await page.locator('main li').filter({ hasText: 'Pick the main review' }).getByRole('checkbox').click();
   await expect(page.getByRole('dialog', { name: 'Create Copy Now?' })).toBeVisible();
   await settle(page);
@@ -80,6 +72,16 @@ test('Mac', async ({ browser }) => {
   await expect(page.getByText('This is a copy of a repeating project')).toBeVisible();
   await settle(page);
   await shot(page, 'ch09-episode-copy');
+  // Chapter 9: a checklist item with a link, in a task's card (taken last: the
+  // card leaves its row selected and the page scrolled).
+  await go(page, '#/project/episode', 'Pick the main review');
+  await page.getByText('Schedule the episode for Friday 6 a.m.', { exact: true }).dblclick();
+  await expect(page.getByRole('link', { name: 'the podcast host' })).toBeVisible();
+  // The card opens near the bottom of the window: bring all of it into view.
+  await page.getByRole('group', { name: 'Edit task' }).evaluate((card) => card.scrollIntoView({ block: 'center' }));
+  await settle(page);
+  await shot(page, 'ch09-upload-checklist');
+  await page.keyboard.press('Escape');
 
   // Chapter 10: the day with his calendar, and one event's details.
   await go(page, '#/today', 'Invoice Brightline');
