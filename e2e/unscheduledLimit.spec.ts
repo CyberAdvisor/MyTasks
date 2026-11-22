@@ -1,7 +1,7 @@
 /**
  * Unscheduled shows a few tasks per group (FR-23.1): three by default, set in
  * Settings, with a grey Show All under a group that has more. Show All opens
- * that group until the view changes.
+ * that group, and its Show 3 closes it again; it closes too when the view changes.
  */
 import { test, expect, type Page } from '@playwright/test';
 import { addTask, connect, watchErrors } from './app';
@@ -34,10 +34,17 @@ test('three tasks per group until Show All; the setting changes it', async ({ pa
   await expect(garage.locator('.row')).toHaveCount(2);
   await expect(garage.getByRole('button', { name: 'Show All' })).toHaveCount(0);
 
-  // Show All opens that group, and it stays open until the view changes.
+  // Show All opens that group; Show 3 closes it again.
   await garden.getByRole('button', { name: 'Show All' }).click();
   await expect(garden.locator('.row')).toHaveCount(5);
   await expect(garden.getByRole('button', { name: 'Show All' })).toHaveCount(0);
+  await garden.getByRole('button', { name: 'Show 3' }).click();
+  await expect(garden.locator('.row')).toHaveCount(3);
+  await expect(garden.getByRole('button', { name: 'Show All' })).toBeVisible();
+
+  // Open, it stays open until the view changes.
+  await garden.getByRole('button', { name: 'Show All' }).click();
+  await expect(garden.locator('.row')).toHaveCount(5);
   await page.evaluate(() => (location.hash = '#/today'));
   await page.evaluate(() => (location.hash = '#/unscheduled'));
   await expect(garden.locator('.row')).toHaveCount(3);

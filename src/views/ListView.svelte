@@ -95,8 +95,9 @@
     tag ? allProjects.filter((p) => projectTagIds(p, s).has(tag!)) : allProjects,
   );
 
-  // Unscheduled shows a few tasks per group until Show All (FR-23.1). A group
-  // stays open until the view changes; one holding a task asked to be shown opens too.
+  // Unscheduled shows a few tasks per group until Show All (FR-23.1); an open
+  // group's "Show N" closes it again. A group stays open until it's closed or the
+  // view changes; one holding a task asked to be shown opens too.
   let limit = $derived(list === 'unscheduled' ? $settings.unscheduledLimit : null);
   let opened = $state<string[]>([]);
   $effect(() => {
@@ -111,8 +112,11 @@
   });
   let shownGroups = $derived(
     groups.map((g) => {
-      const { shown, more } = L.limitTodos(g.todos, opened.includes(g.key) ? null : limit);
-      return { ...g, todos: shown, more };
+      const open = opened.includes(g.key);
+      const { shown, more } = L.limitTodos(g.todos, open ? null : limit);
+      // The button: Show All while cut, Show N while open; none when the group fits.
+      const toggle = more ? 'Show All' : open && limit !== null && g.todos.length > limit ? `Show ${limit}` : '';
+      return { ...g, todos: shown, open, toggle };
     }),
   );
 
@@ -266,8 +270,12 @@
       {/if}
     {/snippet}
     {#snippet after()}
-      {#if g.more}
-        <button type="button" class="show-all" onclick={() => (opened = [...opened, g.key])}>Show All</button>
+      {#if g.toggle}
+        <button
+          type="button"
+          class="show-all"
+          onclick={() => (opened = g.open ? opened.filter((k) => k !== g.key) : [...opened, g.key])}>{g.toggle}</button
+        >
       {/if}
     {/snippet}
   </TodoList>

@@ -10,7 +10,7 @@ Versions follow [Semantic Versioning](https://semver.org). The first change to t
 
 ### Added
 
-- Unscheduled shows the first 3 tasks of each project or area, with a grey Show All under the rest. Show All opens that group until you leave Unscheduled. Settings › Unscheduled sets how many: 1, 2, 3, 5, 10, 20 or All.
+- Unscheduled shows the first 3 tasks of each project or area, with a grey Show All under the rest. Show All opens that group, and Show 3 under it closes it again. Settings › Unscheduled sets how many: 1, 2, 3, 5, 10, 20 or All.
 
 <a id="v1.8.6"></a>
 
