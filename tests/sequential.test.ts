@@ -236,3 +236,16 @@ describe('transactions', () => {
     expect((await row(b)).notes).toBe('x');
   });
 });
+
+describe('a chosen None and a release (FR-14.15)', () => {
+  it('a task released into Today gets the tag’s priority even with a None chosen earlier', async () => {
+    const tag = await repo.createTag('Next Up');
+    const projectId = await repo.createProject({ title: 'Home Maintenance' });
+    const first = await repo.createTodo({ title: 'Clean household guns', projectId });
+    await db.todos.update(first, { priority: null, prioritySource: 'user' });
+    await repo.toggleTag('projects', projectId, tag, true);
+    await repo.setSetting('sequentialTags', [{ tagId: tag, priority: 3, contextId: null }]);
+    expect(inToday(await row(first), today())).toBe(true);
+    expect(await row(first)).toMatchObject({ priority: 3, prioritySource: 'auto' });
+  });
+});

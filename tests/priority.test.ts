@@ -115,6 +115,41 @@ describe('priority operations', () => {
     expect((await row(id)).priority).toBe(2);
   });
 
+  it('a None chosen in Today holds there; elsewhere, or entering Today again, it is no choice (FR-14.15)', async () => {
+    // Chosen in Today: kept through the sweep, no P2.
+    const inToday = await repo.createTodo({ title: 'In Today', startDate: today() });
+    await repo.setPriority(inToday, null);
+    await repo.sweepRules();
+    expect(await row(inToday)).toMatchObject({ priority: null, prioritySource: 'user' });
+    // A new start date enters Today afresh: P2.
+    await repo.setWhen(inToday, { kind: 'today' });
+    expect((await row(inToday)).priority).toBe(2);
+
+    // Chosen outside Today: no choice, so it gets P2 on entering Today.
+    const later = await repo.createTodo({ title: 'Later', startDate: addDays(today(), 1) });
+    await repo.setPriority(later, null);
+    expect((await row(later)).prioritySource).toBeNull();
+    await db.todos.update(later, { startDate: today() }); // as if a day had passed
+    await repo.sweepRules();
+    expect((await row(later)).priority).toBe(2);
+
+    // Left from an older version outside Today: freed by the sweep, then a deadline brings P1.
+    const old = await repo.createTodo({ title: 'Old' });
+    await db.todos.update(old, { priority: null, prioritySource: 'user' });
+    await repo.sweepRules();
+    expect((await row(old)).prioritySource).toBeNull();
+    await repo.setDeadline(old, today());
+    expect((await row(old)).priority).toBe(1);
+  });
+
+  it('a repeating task’s chosen None isn’t carried to its copies (FR-14.15)', async () => {
+    const id = await repo.createTodo({ title: 'Daily' });
+    await db.todos.update(id, { priority: null, prioritySource: 'user' });
+    await repo.setRepeat(id, { mode: 'fixed', unit: 'day', interval: 1, weekdays: [], days: [], month: null, endCount: null, endDate: null, made: 0, deadlineDays: null, paused: false }, today());
+    const copy = (await db.todos.toArray()).find((t) => t.repeatOf === id)!;
+    expect(copy).toMatchObject({ priority: 2, prioritySource: 'auto' });
+  });
+
   it('keeps the priority of completed tasks', async () => {
     const id = await repo.createTodo({ title: 'x', startDate: today() });
     await repo.setTodoStatus(id, 'completed');
