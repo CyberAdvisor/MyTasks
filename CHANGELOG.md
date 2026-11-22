@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.9.2"></a>
+
+## 1.9.2 — 2026-11-22
+
+### Fixed
+
+- A device still on 1.8 or earlier now says "Update needed — reload the app", rather than "Sync error", once the Unscheduled setting from 1.9.0 is in your gist. (Database schema 12; no data changes.)
+
 <a id="v1.9.1"></a>
 
 ## 1.9.1 — 2026-11-22

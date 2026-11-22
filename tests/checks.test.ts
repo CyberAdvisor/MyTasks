@@ -123,6 +123,17 @@ describe('records and settings, field by field', () => {
     expect(isValidRecord('todos', { id: 'x', modifiedAt: at })).toBe(false);
   });
 
+  it('a new synced setting comes with a new schema version', () => {
+    // The synced settings at each schema version since they were first listed. An older app fails a
+    // setting it doesn't know as not valid ("Sync error"); a newer schema makes it ask to be updated
+    // instead. Adding a setting means raising SCHEMA_VERSION and adding its list here.
+    const SINCE: Record<number, string[]> = {
+      11: ['priorityLabels', 'autoP1', 'defaultP2', 'todayGrouping', 'moveToCompleted', 'sinkCompleted', 'sinkChecked', 'sequentialTags', 'showCalendarEvents'],
+      12: ['priorityLabels', 'autoP1', 'defaultP2', 'todayGrouping', 'moveToCompleted', 'sinkCompleted', 'sinkChecked', 'sequentialTags', 'showCalendarEvents', 'unscheduledLimit'],
+    };
+    expect([...SYNCED_SETTINGS].sort(), `schema ${SCHEMA_VERSION}`).toEqual([...(SINCE[SCHEMA_VERSION] ?? [])].sort());
+  });
+
   it('accepts every synced setting with its default value, and nothing else', () => {
     for (const key of SYNCED_SETTINGS) expect(isValidSetting({ key, value: DEFAULT_SETTINGS[key] }), key).toBe(true);
     expect(isValidSetting({ key: 'theme', value: 'dark' })).toBe(false);

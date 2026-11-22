@@ -684,7 +684,7 @@ describe('schema 11', () => {
   });
 
   it('upgrades a version-10 database with data in it', async () => {
-    expect(SCHEMA_VERSION).toBe(11);
+    expect(SCHEMA_VERSION).toBeGreaterThanOrEqual(11);
     const name = 'upgrade-to-11';
     const v10 = new Dexie(name);
     v10.version(10).stores({

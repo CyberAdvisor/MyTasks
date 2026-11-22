@@ -12,8 +12,11 @@ async function projectWith(page: Page, title: string, count: number): Promise<vo
   await page.getByRole('navigation', { name: 'Lists' }).getByRole('button', { name: 'New List' }).click();
   await page.getByRole('menuitem', { name: 'New Project' }).click();
   const field = page.getByPlaceholder('New Project');
+  await expect(field).toBeFocused();
   await field.fill(title);
   await field.press('Enter');
+  // The project has its name before its tasks are added.
+  await expect(page.getByRole('navigation', { name: 'Lists' }).getByRole('link', { name: title })).toBeVisible();
   for (let n = 1; n <= count; n++) await addTask(page, `${title} ${n}`);
 }
 
