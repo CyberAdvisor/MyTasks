@@ -15,6 +15,8 @@ const SHOTS = 'book/shots';
 const shot = (page: Page, name: string) => page.screenshot({ path: `${SHOTS}/${name}.png` });
 
 test('Mac', async ({ browser }) => {
+  // Seventeen pictures take longer than one test's usual 30 seconds.
+  test.setTimeout(120_000);
   const page = await marcus(browser);
 
   // Chapter 2: the Inbox on a Monday morning.
@@ -24,6 +26,12 @@ test('Mac', async ({ browser }) => {
   // Chapter 3: his areas in the sidebar, and a project with headings and a checklist.
   await go(page, '#/project/ces', 'Book flights to Las Vegas');
   await shot(page, 'ch03-ces-trip');
+  // Chapter 3: a formatted note, with a link, in a task's card.
+  await page.getByText('Book hotel near the convention center', { exact: true }).dblclick();
+  await expect(page.getByRole('link', { name: 'CES hotel list' })).toBeVisible();
+  await settle(page);
+  await shot(page, 'ch03-hotel-note');
+  await page.keyboard.press('Escape');
 
   // Chapter 4: what's coming.
   await go(page, '#/scheduled', 'Scheduled');
@@ -54,6 +62,14 @@ test('Mac', async ({ browser }) => {
   // Chapter 9: the episode's template, Create Copy Now?, and this week's copy.
   await go(page, '#/project/episode', 'Pick the main review');
   await shot(page, 'ch09-episode-template');
+  // Chapter 9: a checklist item with a link, in a task's card.
+  await page.getByText('Schedule the episode for Friday 6 a.m.', { exact: true }).dblclick();
+  await expect(page.getByRole('link', { name: 'the podcast host' })).toBeVisible();
+  // The card opens near the bottom of the window: bring all of it into view.
+  await page.getByRole('group', { name: 'Edit task' }).evaluate((card) => card.scrollIntoView({ block: 'center' }));
+  await settle(page);
+  await shot(page, 'ch09-upload-checklist');
+  await page.keyboard.press('Escape');
   await page.locator('main li').filter({ hasText: 'Pick the main review' }).getByRole('checkbox').click();
   await expect(page.getByRole('dialog', { name: 'Create Copy Now?' })).toBeVisible();
   await settle(page);

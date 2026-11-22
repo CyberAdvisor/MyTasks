@@ -201,7 +201,14 @@ export function marcusBackup(today = new Date()): string {
 
     // CES.
     todo('ces-1', 'Book flights to Las Vegas', { ...ce('before'), contextId: 'desk', startDate: day(3), priority: 2 }),
-    todo('ces-2', 'Book hotel near the convention center', { ...ce('before'), contextId: 'desk', startDate: day(3) }),
+    todo('ces-2', 'Book hotel near the convention center', {
+      ...ce('before'),
+      contextId: 'desk',
+      startDate: day(3),
+      // Formatted, for the book's picture of a note (chapter 3).
+      notes:
+        '**Under $250 a night**, close to a monorail stop:\n\n- Westgate\n- Renaissance\n- Hilton Grand Vacations\n\nShortlist from Dana: [CES hotel list](https://example.com/ces-hotels)',
+    }),
     todo('ces-3', 'Set up meetings with five brands', { ...ce('before'), tagIds: ['dana'], startDate: day(10) }),
     todo('ces-4', 'Packing list', { ...ce('pack') }),
     todo('ces-5', 'Shoot a daily recap video', { ...ce('show'), contextId: 'out' }),
@@ -348,6 +355,10 @@ export function marcusBackup(today = new Date()): string {
     item('au-3', 'Camera: daylight, low light, portrait'),
     item('au-3', 'Battery: video loop until 5%'),
     item('au-3', 'Charging: 0 to 100 with the stock charger'),
+    // A link in a checklist item, for the book's picture (chapter 9).
+    item('ep-9', 'Upload the final mix to [the podcast host](https://example.com/upload)'),
+    item('ep-9', 'Add the title, artwork and show notes'),
+    item('ep-9', 'Set it to publish Friday at 6 a.m.'),
   ];
 
   const tags = [
