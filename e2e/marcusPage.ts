@@ -2,16 +2,21 @@
  * Marcus Reyes's sample, opened in a page for screenshots: the book's
  * (e2e/book.shoot.ts) and the README's and Home page's (e2e/screenshots.shoot.ts).
  * His tasks are restored as a backup and his calendar sealed into the faked
- * gist (e2e/marcusData.ts), never real tasks. The clock is fixed at 8:45 a.m.,
- * so the day's events read the same whenever it runs.
+ * gist (e2e/marcusData.ts), never real tasks. The clock is fixed at 8:45 a.m.
+ * on this week's Monday (`NOW`).
  */
 import { expect, type Browser, type Page } from '@playwright/test';
 import { addCalendar, connect, restoreSample, synced } from './app';
 import { fakeGitHub } from './fakeGitHub';
 import { marcusBackup, marcusCalendar } from './marcusData';
 
-/** 8:45 this morning, local time: the run's fixed "now". */
+/**
+ * The run's fixed "now": 8:45 a.m. on this week's Monday (today, on a Monday),
+ * local time. The book's story is a Monday morning, and Marcus's calendar has
+ * events on weekdays, so the pictures read the same whichever day it runs.
+ */
 export const NOW = new Date();
+NOW.setDate(NOW.getDate() - ((NOW.getDay() + 6) % 7));
 NOW.setHours(8, 45, 0, 0);
 
 /** A connected page holding Marcus's tasks and calendar, its copies made and its first sync done. */
