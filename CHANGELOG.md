@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.8.5"></a>
+
+## 1.8.5 — 2026-11-22
+
+### Changed
+
+- **Limitations page:** item 7, now "What a web app can't do on its own", says reminders are coming through the helper on a Mac (Mac only for now), instead of ruling them out. Its "Last updated" date, which Setup records when you accept the limitations, is now November 22, 2026.
+
 <a id="v1.8.4"></a>
 
 ## 1.8.4 — 2026-11-22
