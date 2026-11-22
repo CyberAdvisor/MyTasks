@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.9.1"></a>
+
+## 1.9.1 — 2026-11-22
+
+### Changed
+
+- Scheduled lists each day's tasks by priority, P1 first and tasks with no priority last. Tasks with the same priority keep their order.
+
 <a id="v1.9.0"></a>
 
 ## 1.9.0 — 2026-11-22

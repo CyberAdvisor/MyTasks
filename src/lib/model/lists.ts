@@ -334,17 +334,22 @@ export const SCHEDULED_MONTHS = 4;
  * - `month`: each of the next SCHEDULED_MONTHS months, "December"
  * - `year`: everything later, a year at a time, "2027"
  * A group shows when it has tasks, or when `hasEvents` says it has calendar
- * events (never for a year).
+ * events (never for a year). Tasks on the same date go by priority, those
+ * with none last, then in their own order (FR-21.7).
  */
 export function scheduledGroups(
   s: Snapshot,
   ref: LocalDate,
   hasEvents: (from: LocalDate, to: LocalDate) => boolean = () => false,
 ): TodoGroup[] {
+  // By date; on a date, by priority (P1 first, then no priority), then in their own order (FR-21.7).
+  const rank = (t: Todo) => t.priority ?? 6;
   const items = visibleTodos(s)
     .filter((t) => inScheduled(t, ref))
     .sort((a, b) =>
-      a.startDate! === b.startDate! ? compareKeys(a.sortKey, b.sortKey) : a.startDate! < b.startDate! ? -1 : 1,
+      a.startDate! !== b.startDate!
+        ? a.startDate! < b.startDate! ? -1 : 1
+        : rank(a) - rank(b) || compareKeys(a.sortKey, b.sortKey),
     );
   const groups: TodoGroup[] = [];
   const add = (g: Omit<TodoGroup, 'todos'>) => groups.push({ ...g, todos: [] });
