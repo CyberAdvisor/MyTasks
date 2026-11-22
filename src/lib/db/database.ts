@@ -22,7 +22,7 @@ import type {
 } from '../model/types';
 
 /** The current schema version; synced lists record it (FR-19.4). */
-export const SCHEMA_VERSION = 11;
+export const SCHEMA_VERSION = 12;
 
 export class MyTasksDB extends Dexie {
   areas!: Table<Area, string>;
@@ -103,6 +103,8 @@ export class MyTasksDB extends Dexie {
     this.version(11).stores({}).upgrade(async (tx) => {
       await tx.table('projects').toCollection().modify(addRepeat);
     });
+    // Version 12: the synced setting unscheduledLimit (FR-23.1); no record changes.
+    this.version(12).stores({});
   }
 }
 

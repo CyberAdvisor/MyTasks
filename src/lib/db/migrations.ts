@@ -121,6 +121,9 @@ const STEPS: Record<number, (tables: Record<string, Row[]>) => void> = {
   11: (t) => {
     t.projects.forEach(addRepeat);
   },
+  // Version 12 adds the synced setting unscheduledLimit (FR-23.1) and no
+  // field, for the same reason as version 10.
+  12: () => {},
 };
 
 /**
