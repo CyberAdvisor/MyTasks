@@ -29,6 +29,8 @@ export interface AppSettings {
   sequentialTags: SequentialTag[];
   /** FR-21.3: show the Mac calendar helper's events in Today and Scheduled. */
   showCalendarEvents: boolean;
+  /** FR-23.1: how many tasks each group in Unscheduled shows before Show All; null for all. */
+  unscheduledLimit: number | null;
 }
 
 /** When completed items move to Completed (FR-12.2). */
@@ -62,11 +64,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
   sinkChecked: false,
   sequentialTags: [],
   showCalendarEvents: true,
+  unscheduledLimit: 3,
 };
 
 const GROUPINGS: TodayGrouping[] = ['none', 'project', 'priority', 'context'];
 const THEMES: Theme[] = ['system', 'light', 'dark'];
 export const MOVE_TO_COMPLETED: MoveToCompleted[] = ['immediately', 'daily', 'manually'];
+/** The choices for Tasks shown per group in Unscheduled (FR-23.1); null is All. */
+export const UNSCHEDULED_LIMITS: (number | null)[] = [1, 2, 3, 5, 10, 20, null];
 
 /** All priorities, highest first. */
 export const PRIORITIES: Priority[] = [1, 2, 3, 4, 5];
@@ -91,6 +96,9 @@ export function readSettings(rows: SettingEntry[]): AppSettings {
     sinkChecked: bool('sinkChecked', DEFAULT_SETTINGS.sinkChecked),
     sequentialTags: cleanSequentialTags(stored.get('sequentialTags')),
     showCalendarEvents: bool('showCalendarEvents', DEFAULT_SETTINGS.showCalendarEvents),
+    unscheduledLimit: stored.has('unscheduledLimit') && UNSCHEDULED_LIMITS.includes(stored.get('unscheduledLimit') as number | null)
+      ? (stored.get('unscheduledLimit') as number | null)
+      : DEFAULT_SETTINGS.unscheduledLimit,
   };
 }
 

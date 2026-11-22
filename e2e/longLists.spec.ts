@@ -80,6 +80,9 @@ test('draws a long list in steps, and all of it for commands that need it', asyn
   const page = await context.newPage();
   const errors = watchErrors(page);
   await connect(page);
+  // Every task in the list, not the first few per group (FR-23.1).
+  await page.evaluate(() => (location.hash = '#/settings'));
+  await page.getByLabel('Tasks shown per project').selectOption('All');
   await page.evaluate(() => (location.hash = '#/unscheduled'));
   await addTask(page, 'First');
   await fillTo(page, 400);
