@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.8.3"></a>
+
+## 1.8.3 — 2026-11-22
+
+### Changed
+
+- **Larger text on the Mac** (with a mouse or trackpad), closer to Things: task titles 16 px (were 15), the project or area line and the row's details 13 px (were 12), notes, checklist items and the open task's title a size larger, and rows 34 px high (were 32). iPhone and iPad touch sizes are unchanged.
+
 <a id="v1.8.2"></a>
 
 ## 1.8.2 — 2026-11-21

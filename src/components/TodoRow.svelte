@@ -359,8 +359,9 @@
     gap: 6px;
     min-width: 0;
   }
+  /* Sizes with a mouse, close to Things on the Mac; touch screens set their own below. */
   .title {
-    font-size: 15px;
+    font-size: 16px;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -380,7 +381,7 @@
     text-decoration: line-through;
   }
   .meta {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-3);
     display: flex;
     gap: 6px;
@@ -388,7 +389,7 @@
   /* The grey date label before a scheduled task's title. */
   .when {
     flex: none;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     padding: 1px 6px;
     border-radius: 4px;
@@ -403,28 +404,28 @@
     flex: none;
   }
   .tag-pill {
-    font-size: 11px;
+    font-size: 12px;
     padding: 2px 7px;
   }
   .progress {
     display: inline-flex;
     align-items: center;
     gap: 2px;
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-3);
   }
   .deadline {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-3);
   }
   .context {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-2);
   }
   .deadline.due {

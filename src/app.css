@@ -22,8 +22,8 @@
   --z-sheet: 1001;
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --radius: 6px;
-  /* Task rows with a mouse (Section 6, Row); 48 px on touch (TodoRow). */
-  --row-h: 32px;
+  /* Task rows with a mouse (Section 6, Row); 44–48 px on touch (TodoRow). */
+  --row-h: 34px;
   font-family: var(--font);
   color: var(--text);
   background: var(--bg);

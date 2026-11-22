@@ -30,9 +30,9 @@ test('rows show a star, a date label or a dashed checkbox for their When', async
   await title.fill('Garden');
   await title.blur();
   for (const t of ['Buy compost', 'Plant bulbs', 'Build a greenhouse', 'Fix the fence']) await addTask(page, t);
-  // With a mouse, rows are 32 px high (Section 6, Row; since 1.1.17).
+  // With a mouse, rows are 34 px high (Section 6, Row; since 1.8.3).
   const fence = page.locator('li.row').filter({ hasText: 'Fix the fence' });
-  expect(Math.round((await fence.boundingBox())!.height)).toBe(32);
+  expect(Math.round((await fence.boundingBox())!.height)).toBe(34);
   // The column starts near the sidebar, not centred: the checkbox 76 px from its edge (since 1.1.17).
   const sidebarEdge = (await nav.boundingBox())!.width;
   const box = (await fence.getByRole('checkbox').boundingBox())!;
