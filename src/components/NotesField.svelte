@@ -128,7 +128,7 @@
   .notes-view:focus {
     outline: none;
   }
-  /* With a mouse, a size larger, close to Things on the Mac; touch screens keep 14 px. */
+  /* With a mouse or trackpad, a size larger; touch screens keep 14 px. */
   @media (pointer: fine) {
     .notes,
     .notes-view {

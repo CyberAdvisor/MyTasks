@@ -359,7 +359,7 @@
     gap: 6px;
     min-width: 0;
   }
-  /* Sizes with a mouse, close to Things on the Mac; touch screens set their own below. */
+  /* Sizes with a mouse or trackpad; touch screens set their own below. */
   .title {
     font-size: 16px;
     min-width: 0;

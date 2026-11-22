@@ -316,7 +316,7 @@
       padding: 8px 10px 8px 12px;
     }
   }
-  /* With a mouse, a size larger, close to Things on the Mac; touch screens keep 14 px. */
+  /* With a mouse or trackpad, a size larger; touch screens keep 14 px. */
   @media (pointer: fine) {
     input,
     .text {
