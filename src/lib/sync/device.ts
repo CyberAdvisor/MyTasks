@@ -42,6 +42,12 @@ export interface SyncMark {
   stamp: string;
   /** The gist file's length in characters, for Settings › Sync's file size (v1.4.3). Missing on older marks. */
   chars?: number;
+  /**
+   * When this sync read this device's records: every change made before it
+   * is in the gist. The next sync's lost-change notice (FR-19.12) counts
+   * only changes made after it. Missing on older marks.
+   */
+  readAt?: string;
 }
 
 /** Setup's "I have read and understand the risks and limitations" checkbox, as ticked. */

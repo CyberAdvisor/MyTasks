@@ -13,6 +13,7 @@ import type { DeviceConfig, SyncMark } from './device';
 import { readGistFiles, writeGist } from './github';
 import { applyRemote, dropOldTombstones, readLocal } from './local';
 import { hasFuture, isAway, isOldTombstone, isPayload, mergePayloads, stampOf, type Payload } from './payload';
+import { lostChanges, type LostChange } from './lost';
 
 /**
  * Sync problems that are not GitHub errors:
@@ -169,6 +170,7 @@ async function localWithoutOldTombstones(): Promise<Payload> {
 export async function syncOnce(
   config: DeviceConfig,
   onCalendar: (file: string | null) => Promise<void> = async () => {},
+  onLost: (lost: LostChange[]) => void = () => {},
 ): Promise<SyncMark> {
   // Away too long: records deleted elsewhere may have lost their tombstones,
   // so merging could bring them back. Wait for Replace With Gist.
@@ -178,15 +180,22 @@ export async function syncOnce(
   if (text !== null) await onCalendar(calendar);
   const env = ownEnvelope(config, text);
   const chars = text?.length ?? 0;
+  const readAt = nowIso();
   const local = await localWithoutOldTombstones();
   if (mark && env.cipher.iv === mark.iv) {
     if (!hasFuture(local, nowIso())) {
       const stamp = await stampOf(local);
-      return stamp === mark.stamp ? { ...mark, chars } : push(config, local, stamp);
+      return stamp === mark.stamp ? { ...mark, chars, readAt } : { ...(await push(config, local, stamp)), readAt };
     }
   }
   const { toApply, merged, pushNeeded } = mergePayloads(local, await openPayload(config.key, env, 'malformed'));
   await applyRemote(toApply);
+  // Changes made here since the last sync read this device, replaced by later ones (FR-19.12).
+  const since = mark?.readAt ?? config.lastSyncedAt;
+  if (since) {
+    const lost = lostChanges(local, merged, since);
+    if (lost.length) onLost(lost);
+  }
   const stamp = await stampOf(merged);
-  return pushNeeded ? push(config, merged, stamp) : { iv: env.cipher.iv, stamp, chars };
+  return { ...(pushNeeded ? await push(config, merged, stamp) : { iv: env.cipher.iv, stamp, chars }), readAt };
 }

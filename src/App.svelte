@@ -16,6 +16,7 @@
   import RepeatSheet from './components/RepeatSheet.svelte';
   import Icon from './components/Icon.svelte';
   import ChoiceDialog from './components/ChoiceDialog.svelte';
+  import LostChanges from './components/LostChanges.svelte';
   import { failureMessages } from './lib/db/failures';
   import Toolbar from './components/Toolbar.svelte';
   import SelectBar from './components/SelectBar.svelte';
@@ -209,6 +210,11 @@
         <RepeatDialog target={ui.repeating} />
       {/if}
     {/key}
+  {/if}
+
+  {#if sync.lost.length}
+    <!-- This device's changes replaced by later ones from another device (FR-19.12). -->
+    <LostChanges />
   {/if}
 
   {#if ui.copyNow}

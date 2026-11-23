@@ -222,3 +222,57 @@ test('a completion made offline and a note added on another device are both kept
   await first.close();
   await second.close();
 });
+
+test('a device whose change was replaced by a later one says so, and opens the task (FR-19.12)', async ({ browser }) => {
+  const gh = new FakeGitHub();
+  const monday = new Date('2026-11-23T08:00:00');
+  const { todo, backup } = sampleRecords(monday);
+  const tasks = backup({
+    areas: [], projects: [], headings: [], checklistItems: [], tags: [], contexts: [], savedSearches: [],
+    todos: [todo('milk', 'Buy milk', { start: 'unscheduled', startDate: localDate(monday) })],
+  });
+  const first = await browser.newContext();
+  await fakeGitHub(first, gh);
+  const john = await first.newPage();
+  await john.clock.setFixedTime(monday);
+  await connect(john);
+  await restoreSample(john, tasks);
+  await synced(john);
+  const second = await browser.newContext();
+  await fakeGitHub(second, gh);
+  const jane = await second.newPage();
+  await jane.clock.setFixedTime(monday);
+  await connect(jane);
+  await synced(jane);
+  // 9:00, John renames it offline; 10:00, Jane renames it online.
+  await first.setOffline(true);
+  await john.clock.setFixedTime(new Date('2026-11-23T09:00:00'));
+  await openList(john, 'Today');
+  await john.getByText('Buy milk', { exact: true }).dblclick();
+  await john.getByLabel('Title', { exact: true }).fill('Milk');
+  await john.keyboard.press('Escape');
+  await john.waitForTimeout(500);
+  await jane.clock.setFixedTime(new Date('2026-11-23T10:00:00'));
+  await openList(jane, 'Today');
+  await jane.getByText('Buy milk', { exact: true }).dblclick();
+  await jane.getByLabel('Title', { exact: true }).fill('Oat milk');
+  await jane.keyboard.press('Escape');
+  await jane.getByRole('button', { name: /Sync now/ }).click();
+  await expect(jane.getByText('Syncing…')).toBeHidden({ timeout: 15_000 });
+  // John comes back online: Jane's title is kept, and his device says his was replaced.
+  await john.clock.setFixedTime(new Date('2026-11-23T11:00:00'));
+  await first.setOffline(false);
+  await john.reload();
+  const notice = john.getByRole('dialog', { name: '1 of your changes was replaced by a later change from another device' });
+  await expect(notice).toBeVisible({ timeout: 20_000 });
+  await expect(notice.getByText('— title')).toBeVisible();
+  await notice.getByRole('button', { name: 'Oat milk' }).click();
+  await expect(notice).toBeHidden();
+  await expect(john.getByLabel('Title', { exact: true })).toHaveValue('Oat milk');
+  // Jane's device lost nothing, so it says nothing.
+  await jane.reload();
+  await synced(jane);
+  await expect(jane.getByRole('dialog')).toHaveCount(0);
+  await first.close();
+  await second.close();
+});
