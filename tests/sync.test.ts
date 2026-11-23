@@ -18,7 +18,119 @@ import { createList, joinList, lookUp } from '../src/lib/sync/setup';
 import { clock, syncMessage, syncedLine } from '../src/lib/sync/messages';
 import { OFFLINE_RETRY_MS, SyncEngine, sync } from '../src/lib/sync/sync.svelte';
 import { FakeGitHub } from './fakeGitHub';
-import { todo } from './helpers';
+import { project, todo } from './helpers';
+import { PROJECT_PARTS, RECORD_FIELDS, TODO_PARTS, stampParts, toSeconds } from '../src/lib/model/parts';
+import { replacement } from '../src/lib/sync/payload';
+
+
+describe('merging part by part (FR-19.10)', () => {
+  const at = (hhmm: string) => `2026-11-23T${hhmm}:00.000Z`;
+  const secs = (hhmm: string) => toSeconds(at(hhmm));
+  const base = todo({ id: 'm', title: 'Buy milk', modifiedAt: at('08:00'), ft: {} });
+
+  it('keeps one device’s completion and the other’s note', () => {
+    const john = { ...base, status: 'completed' as const, completedAt: at('09:00'), modifiedAt: at('09:00'), ft: { s: secs('09:00') } };
+    const jane = { ...base, notes: '2 litres', modifiedAt: at('10:00'), ft: { n: secs('10:00') } };
+    // John's phone syncs after Jane's: the gist holds her later copy.
+    const r = mergePayloads(payload({ todos: [john] }), payload({ todos: [jane] }), at('11:00'));
+    const merged = r.merged.tables.todos[0] as typeof base;
+    expect(merged).toMatchObject({ status: 'completed', completedAt: at('09:00'), notes: '2 litres', modifiedAt: at('10:00') });
+    expect(merged.ft).toEqual({ s: secs('09:00'), n: secs('10:00') });
+    expect(r.toApply.tables.todos).toEqual([merged]);
+    expect(r.pushNeeded).toBe(true);
+    // Jane's device then takes the combined copy and has nothing to push back.
+    const back = mergePayloads(payload({ todos: [jane] }), r.merged, at('11:01'));
+    expect(back.toApply.tables.todos).toEqual([merged]);
+    expect(back.pushNeeded).toBe(false);
+  });
+
+  it('keeps the later change when both changed the same part', () => {
+    const john = { ...base, title: 'Milk', modifiedAt: at('09:00'), ft: { t: secs('09:00') } };
+    const jane = { ...base, title: 'Oat milk', modifiedAt: at('10:00'), ft: { t: secs('10:00') } };
+    const r = mergePayloads(payload({ todos: [john] }), payload({ todos: [jane] }), at('11:00'));
+    expect(r.merged.tables.todos[0]).toBe(jane);
+    expect(r.pushNeeded).toBe(false);
+  });
+
+  it('keeps a note when another device set a priority by itself later', () => {
+    const mine = { ...base, notes: 'Call first', modifiedAt: at('08:59'), ft: { n: secs('08:59') } };
+    const auto = { ...base, priority: 2 as const, prioritySource: 'auto' as const, modifiedAt: at('09:00'), ft: { p: secs('09:00') } };
+    const merged = mergePayloads(payload({ todos: [mine] }), payload({ todos: [auto] }), at('10:00')).merged.tables.todos[0];
+    expect(merged).toMatchObject({ notes: 'Call first', priority: 2, prioritySource: 'auto' });
+  });
+
+  it('merges a project part by part too, and a deletion as a whole', () => {
+    const p = project({ id: 'p', modifiedAt: at('08:00'), ft: {} });
+    const renamed = { ...p, title: 'Move house', modifiedAt: at('09:00'), ft: { t: secs('09:00') } };
+    const tagged = { ...p, tagIds: ['x'], modifiedAt: at('10:00'), ft: { g: secs('10:00') } };
+    expect(mergePayloads(payload({ projects: [renamed] }), payload({ projects: [tagged] }), at('11:00')).merged.tables.projects[0]).toMatchObject({
+      title: 'Move house',
+      tagIds: ['x'],
+    });
+    const edited = { ...base, notes: 'later note', modifiedAt: at('09:00'), ft: { n: secs('09:00') } };
+    const gone = { id: 'm', deletedAt: at('10:00'), modifiedAt: at('10:00') };
+    expect(mergePayloads(payload({ todos: [edited] }), payload({ todos: [gone as never] }), at('11:00')).merged.tables.todos[0]).toEqual(gone);
+  });
+
+  it('goes by the whole record for copies with no part times, as from before part times', () => {
+    const older = { ...base, title: 'A', notes: 'a', modifiedAt: at('09:00') };
+    const newer = { ...base, title: 'B', modifiedAt: at('10:00') };
+    expect(mergePayloads(payload({ todos: [older] }), payload({ todos: [newer] }), at('11:00')).merged.tables.todos[0]).toBe(newer);
+  });
+
+  it('puts every field of a task and a project in exactly one part', () => {
+    const covered = (parts: Record<string, readonly string[]>, record: object) => {
+      const listed = [...Object.values(parts).flat(), ...RECORD_FIELDS];
+      expect(new Set(listed).size).toBe(listed.length);
+      expect([...listed].sort()).toEqual([...new Set([...Object.keys(record), 'ft'])].sort());
+    };
+    covered(TODO_PARTS, todo());
+    covered(PROJECT_PARTS, project());
+  });
+
+  it('drops part times older than 180 days when the record next changes', () => {
+    const now = at('12:00');
+    const old = toSeconds(now) - 181 * 86_400;
+    const recent = toSeconds(now) - 10 * 86_400;
+    expect(stampParts({ t: old, n: recent }, ['s'], now)).toEqual({ n: recent, s: toSeconds(now) });
+  });
+
+  it('stamps only the parts a change touched, undo included, and never a change from the gist', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date(at('09:00')));
+      const id = await repo.createTodo({ title: 'Plan' });
+      expect((await db.todos.get(id))?.ft).toEqual({});
+      vi.setSystemTime(new Date(at('09:10')));
+      await repo.updateTodoText(id, { notes: 'with Sam' });
+      expect((await db.todos.get(id))?.ft).toEqual({ n: secs('09:10') });
+      vi.setSystemTime(new Date(at('09:20')));
+      await repo.setTodoStatus(id, 'completed');
+      expect((await db.todos.get(id))?.ft).toMatchObject({ n: secs('09:10'), s: secs('09:20') });
+      // Undo puts the old record back, its old times included; the parts it changes are stamped now.
+      vi.setSystemTime(new Date(at('09:30')));
+      await undo();
+      const undone = (await db.todos.get(id))!;
+      expect(undone.status).toBe('open');
+      expect(undone.ft).toMatchObject({ n: secs('09:10'), s: secs('09:30') });
+      // A change from the gist keeps the gist's own times.
+      const theirs = { ...undone, title: 'Plan trip', modifiedAt: at('09:40'), ft: { ...undone.ft, t: secs('09:35') } };
+      vi.setSystemTime(new Date(at('09:45')));
+      await applyRemote({ tables: { todos: [theirs] }, settings: [] });
+      expect((await db.todos.get(id))?.ft).toEqual(theirs.ft);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stamps every part of a restored task and project, so no older copy wins a part back (FR-12.8)', () => {
+    const now = at('12:00');
+    const list = payload({ todos: [{ ...base, ft: { n: secs('08:00') } }], projects: [project({ id: 'p', ft: {} })] });
+    const next = replacement(list, {}, now);
+    expect(next.tables.todos[0].ft).toEqual(Object.fromEntries(Object.keys(TODO_PARTS).map((k) => [k, toSeconds(now)])));
+    expect(Object.keys(next.tables.projects[0].ft!).sort()).toEqual(Object.keys(PROJECT_PARTS).sort());
+  });
+});
 
 let gh: FakeGitHub;
 

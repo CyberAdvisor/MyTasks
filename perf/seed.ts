@@ -46,7 +46,7 @@ export function seed(open = 4000, completed = 1000): Seed {
   const at = new Date(Date.now() - 86_400_000).toISOString();
   const keys = generateNKeysBetween(null, null, open + completed + 3000);
   let k = 0;
-  const base = (id: string) => ({ id, createdAt: at, modifiedAt: at, deletedAt: null, sortKey: keys[k++] });
+  const base = (id: string) => ({ id, createdAt: at, modifiedAt: at, deletedAt: null, sortKey: keys[k++], ft: {} });
 
   const areas: Area[] = Array.from({ length: 10 }, (_, i) => ({ ...base(`area${i}`), title: `Area ${i} ${pick(WORDS)}`, tagIds: [], collapsed: false }));
   const projects: Project[] = Array.from({ length: 50 }, (_, i) => ({
@@ -63,6 +63,8 @@ export function seed(open = 4000, completed = 1000): Seed {
     loggedAt: null,
     trashedAt: null,
     sortByDate: false,
+    repeat: null,
+    repeatOf: null,
   }) as Project);
   const tags: Tag[] = Array.from({ length: 10 }, (_, i) => ({ ...base(`tag${i}`), title: `Tag ${pick(WORDS)} ${i}`, shortcut: null, parentTagId: null }));
   const contexts: Context[] = ['Computer', 'Phone', 'Errands', 'Home'].map((t, i) => ({ ...base(`ctx${i}`), title: t }));

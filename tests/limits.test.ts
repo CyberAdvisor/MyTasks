@@ -11,6 +11,10 @@ import { clearUndo } from '../src/lib/db/history';
 import { today, weekday } from '../src/lib/model/dates';
 import { MAX_TASKS, TaskLimitError, WARN_TASKS, hasRoom, limitRefusal, limitWarning, nearLimit } from '../src/lib/model/limits';
 import { todo } from './helpers';
+import { seed } from '../perf/seed';
+import { SCHEMA_VERSION } from '../src/lib/db/database';
+import { toSeconds } from '../src/lib/model/parts';
+import { MAX_FILE_CHARS } from '../src/lib/sync/crypto';
 
 beforeEach(async () => {
   await db.delete();
@@ -103,5 +107,25 @@ describe('adding at the limit', () => {
     );
     expect((await db.todos.toArray()).filter((t) => t.repeatOf === id)).toHaveLength(1);
     expect(await repo.taskCount()).toBe(MAX_TASKS + 1);
+  });
+});
+
+describe('room in the gist file with part times (FR-19.10)', () => {
+  it('still fits 5,000 typical tasks, each with four parts changed, under 5 MB', () => {
+    const s = seed(4000, 1000);
+    const now = toSeconds(new Date().toISOString());
+    // The worst ordinary case: every task with four parts changed at different times.
+    const todos = s.todos.map((t, i) => ({ ...t, ft: { s: now - i, t: now - 2 * i, d: now - 3 * i, p: now - 4 * i } }));
+    const rest = (rows: object[]) => rows.map((r) => ({ ...r, ft: {} }));
+    const list = {
+      app: 'mytasks',
+      schema: SCHEMA_VERSION,
+      tables: { areas: rest(s.areas), projects: rest(s.projects), headings: [], todos, checklistItems: rest(s.checklistItems), tags: rest(s.tags), contexts: rest(s.contexts), savedSearches: [] },
+      settings: [],
+    };
+    // Encrypted, the list is base64: four characters for every three bytes, plus a small envelope.
+    const fileChars = Math.ceil((new TextEncoder().encode(JSON.stringify(list)).length * 4) / 3) + 400;
+    expect(todos.length).toBe(MAX_TASKS);
+    expect(fileChars).toBeLessThan(MAX_FILE_CHARS);
   });
 });

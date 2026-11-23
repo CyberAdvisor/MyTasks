@@ -167,3 +167,58 @@ test('a device that comes back with an older copy keeps what another device comp
   await first.close();
   await second.close();
 });
+
+test('a completion made offline and a note added on another device are both kept (FR-19.10)', async ({ browser }) => {
+  const gh = new FakeGitHub();
+  const monday = new Date('2026-11-23T08:00:00');
+  const { todo, backup } = sampleRecords(monday);
+  const tasks = backup({
+    areas: [], projects: [], headings: [], checklistItems: [], tags: [], contexts: [], savedSearches: [],
+    todos: [todo('milk', 'Buy milk', { start: 'unscheduled', startDate: localDate(monday) })],
+  });
+  // Both devices start with the task.
+  const first = await browser.newContext();
+  await fakeGitHub(first, gh);
+  const john = await first.newPage();
+  await john.clock.setFixedTime(monday);
+  await connect(john);
+  await restoreSample(john, tasks);
+  await synced(john);
+  const second = await browser.newContext();
+  await fakeGitHub(second, gh);
+  const jane = await second.newPage();
+  await jane.clock.setFixedTime(monday);
+  await connect(jane);
+  await synced(jane);
+  // 9:00, John's phone is offline and he completes it.
+  await first.setOffline(true);
+  await john.clock.setFixedTime(new Date('2026-11-23T09:00:00'));
+  await openList(john, 'Today');
+  await john.getByRole('checkbox', { name: 'Complete: Buy milk' }).click();
+  await john.waitForTimeout(2500);
+  // 10:00, Jane adds a note, online.
+  await jane.clock.setFixedTime(new Date('2026-11-23T10:00:00'));
+  await openList(jane, 'Today');
+  await jane.getByText('Buy milk', { exact: true }).dblclick();
+  await jane.getByLabel('Notes', { exact: true }).fill('Two litres');
+  await jane.keyboard.press('Escape');
+  await jane.getByRole('button', { name: /Sync now/ }).click();
+  await expect(jane.getByText('Syncing…')).toBeHidden({ timeout: 15_000 });
+  // John comes back online and syncs: his completion and her note are both kept.
+  await john.clock.setFixedTime(new Date('2026-11-23T11:00:00'));
+  await first.setOffline(false);
+  await john.reload();
+  await synced(john);
+  await openList(john, 'Today');
+  await expect(john.getByRole('checkbox', { name: 'Mark not done: Buy milk' })).toBeVisible({ timeout: 15_000 });
+  await john.getByText('Buy milk', { exact: true }).dblclick();
+  await expect(john.getByText('Two litres')).toBeVisible();
+  // Jane's device takes the combined task at its next sync.
+  await jane.clock.setFixedTime(new Date('2026-11-23T11:05:00'));
+  await jane.reload();
+  await synced(jane);
+  await openList(jane, 'Today');
+  await expect(jane.getByRole('checkbox', { name: 'Mark not done: Buy milk' })).toBeVisible({ timeout: 15_000 });
+  await first.close();
+  await second.close();
+});

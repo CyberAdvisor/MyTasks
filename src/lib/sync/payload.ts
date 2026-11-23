@@ -3,7 +3,9 @@
  *
  * Pure functions, no storage access, so the rules are easy to unit-test.
  *
- * Merge rule: record by record, the copy with the later `modifiedAt` wins.
+ * Merge rule: record by record, the copy with the later `modifiedAt` wins;
+ * for tasks and projects, part by part (model/parts.ts, FR-19.10), so
+ * changes to different parts on two devices are all kept.
  * Records are never removed; a deletion is a tombstone (`deletedAt`), which
  * merges like any other change and keeps only `id`, `deletedAt` and
  * `modifiedAt` (model/tombstone.ts). Settings that sync merge the same way, key
@@ -15,7 +17,9 @@
  * this device, so those edits don't win every merge until real time catches
  * up.
  */
+import { canonical } from '../model/canonical';
 import { nowIso } from '../model/ids';
+import { allParts, mergeParts, partsOf, toSeconds } from '../model/parts';
 import { toBase64 } from './crypto';
 import { DEFAULT_SETTINGS } from '../model/settings';
 import { keepsContent, tombstone } from '../model/tombstone';
@@ -110,20 +114,6 @@ function later(a: string | undefined, b: string | undefined): boolean {
   return (a ?? '') > (b ?? '');
 }
 
-/** JSON with object keys sorted, so equal content gives equal text. */
-function canonical(x: unknown): string {
-  if (Array.isArray(x)) return `[${x.map(canonical).join(',')}]`;
-  if (x && typeof x === 'object') {
-    const o = x as Record<string, unknown>;
-    return `{${Object.keys(o)
-      .filter((k) => o[k] !== undefined)
-      .sort()
-      .map((k) => `${JSON.stringify(k)}:${canonical(o[k])}`)
-      .join(',')}}`;
-  }
-  return JSON.stringify(x) ?? 'null';
-}
-
 /** The same content, ignoring key order. */
 function same(a: unknown, b: unknown): boolean {
   return canonical(a) === canonical(b);
@@ -132,27 +122,36 @@ function same(a: unknown, b: unknown): boolean {
 /**
  * Merge records keyed by `keyOf`, the later `modifiedAt` winning. On a tie
  * with different content the remote copy wins, so every device settles on
- * the same version.
+ * the same version. With `combine` (tasks and projects, FR-19.10), the
+ * winner then takes each part the other copy changed later; a record so
+ * combined is written on this device and pushed.
  */
 function mergeRows<T extends { modifiedAt?: string }>(
   local: T[],
   remote: T[],
   keyOf: (r: T) => string,
+  combine?: (winner: T, other: T) => T,
 ): { merged: T[]; fromRemote: T[]; localNewer: boolean } {
   const byKey = new Map(local.map((r) => [keyOf(r), r]));
   const fromRemote: T[] = [];
+  let combined = false;
   for (const r of remote) {
     const l = byKey.get(keyOf(r));
-    if (!l || later(r.modifiedAt, l.modifiedAt) || (r.modifiedAt === l.modifiedAt && !same(r, l))) {
-      byKey.set(keyOf(r), r);
-      fromRemote.push(r);
-    }
+    const remoteWins = !l || later(r.modifiedAt, l.modifiedAt) || (r.modifiedAt === l.modifiedAt && !same(r, l));
+    const winner = remoteWins ? r : l;
+    const m = l && combine ? combine(winner, remoteWins ? l : r) : winner;
+    if (m === l) continue;
+    byKey.set(keyOf(r), m);
+    fromRemote.push(m);
+    if (m !== r) combined = true;
   }
   const remoteByKey = new Map(remote.map((r) => [keyOf(r), r]));
-  const localNewer = local.some((l) => {
-    const r = remoteByKey.get(keyOf(l));
-    return !r || later(l.modifiedAt, r.modifiedAt);
-  });
+  const localNewer =
+    combined ||
+    local.some((l) => {
+      const r = remoteByKey.get(keyOf(l));
+      return !r || (later(l.modifiedAt, r.modifiedAt) && byKey.get(keyOf(l)) === l);
+    });
   return { merged: [...byKey.values()], fromRemote, localNewer };
 }
 
@@ -189,10 +188,11 @@ function mergeSide<T extends { modifiedAt?: string }>(
   keyOf: (r: T) => string,
   now: string,
   seen: Map<object, string | undefined>,
+  combine?: (winner: T, other: T) => T,
 ): SideResult<T> {
   const local = notAfter(localRows, now);
   const remote = notAfter(remoteRows, now);
-  const m = mergeRows(local.rows, remote.rows, keyOf);
+  const m = mergeRows(local.rows, remote.rows, keyOf, combine);
   const before = new Map(localRows.map((r) => [keyOf(r), r.modifiedAt]));
   for (const r of m.fromRemote) seen.set(r, before.get(keyOf(r)));
   // This device's corrected copies that won: save the correction here too.
@@ -242,7 +242,9 @@ export function mergePayloads(local: Payload, remote: Payload, now = nowIso()): 
     // Old tombstones go from both sides; when the gist had any, it is cleaned by a push.
     const mine = local.tables[t].filter((r) => !isOldTombstone(r, now));
     const theirs = remote.tables[t].filter((r) => !isOldTombstone(r, now));
-    const m = mergeSide(mine.map(tombstone), theirs.map(tombstone), (r) => r.id, now, seen);
+    const parts = partsOf(t);
+    const combine = parts ? (w: BaseRecord, o: BaseRecord) => mergeParts(parts, w, o, toSeconds(now)) : undefined;
+    const m = mergeSide(mine.map(tombstone), theirs.map(tombstone), (r) => r.id, now, seen, combine);
     tables[t] = m.merged;
     if (m.toApply.length) toApply.tables[t] = m.toApply;
     pushNeeded ||= m.pushNeeded || remote.tables[t].some(keepsContent) || theirs.length < remote.tables[t].length;
@@ -268,7 +270,12 @@ export function mergePayloads(local: Payload, remote: Payload, now = nowIso()): 
 export function replacement(backup: Payload, known: Partial<Record<EntityName, string[]>>, now: string): Payload {
   const tables = {} as Record<EntityName, BaseRecord[]>;
   for (const t of SYNCED_TABLES) {
-    const rows = backup.tables[t].map((r) => ({ ...tombstone(r), modifiedAt: now }));
+    // Every part of a restored task or project is stamped now too, so no part of an older copy wins (FR-19.10).
+    const parts = partsOf(t);
+    const rows = backup.tables[t].map((r) => {
+      const row = { ...tombstone(r), modifiedAt: now };
+      return parts && !row.deletedAt ? { ...row, ft: allParts(parts, now) } : row;
+    });
     const inBackup = new Set(rows.map((r) => r.id));
     const gone = [...new Set(known[t] ?? [])].filter((id) => !inBackup.has(id));
     tables[t] = [...rows, ...gone.map((id) => ({ id, deletedAt: now, modifiedAt: now }) as BaseRecord)];

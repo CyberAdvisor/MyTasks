@@ -71,7 +71,7 @@ describe('schema 12, for the Unscheduled setting', () => {
     const upgraded = new MyTasksDB(name);
     await upgraded.open();
     expect(upgraded.verno).toBe(SCHEMA_VERSION);
-    expect(await upgraded.todos.get('t')).toEqual({ id: 't', title: 'Kept' });
+    expect(await upgraded.todos.get('t')).toEqual({ id: 't', title: 'Kept', ft: {} });
     expect(readSettings(await upgraded.settings.toArray())).toMatchObject({ todayGrouping: 'project', unscheduledLimit: 3 });
     upgraded.close();
     await Dexie.delete(name);

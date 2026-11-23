@@ -81,6 +81,15 @@ export function addRepeat(row: Row): void {
   row.repeatOf ??= null;
 }
 
+/**
+ * Version 13: records carry part times (FR-19.10), empty to begin with: no
+ * part has a known change time, so the first merge still goes by the whole
+ * record's `modifiedAt`. Deleted records stay tombstones.
+ */
+export function addFieldTimes(row: Row): void {
+  if (!row.deletedAt) row.ft ??= {};
+}
+
 /** Synced tables, as named in a list. */
 const ALL_TABLES = ['areas', 'projects', 'headings', 'todos', 'checklistItems', 'tags', 'contexts', 'savedSearches'];
 
@@ -124,6 +133,9 @@ const STEPS: Record<number, (tables: Record<string, Row[]>) => void> = {
   // Version 12 adds the synced setting unscheduledLimit (FR-23.1) and no
   // field, for the same reason as version 10.
   12: () => {},
+  13: (t) => {
+    for (const name of ALL_TABLES) t[name]?.forEach(addFieldTimes);
+  },
 };
 
 /**

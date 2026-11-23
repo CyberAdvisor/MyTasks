@@ -23,6 +23,7 @@
  */
 import { generateKeyBetween } from 'fractional-indexing';
 import { PRIORITIES, MOVE_TO_COMPLETED, UNSCHEDULED_LIMITS } from '../model/settings';
+import { PROJECT_PARTS, TODO_PARTS } from '../model/parts';
 import type { EntityName, SettingEntry } from '../model/types';
 
 /** A check for one field's value. */
@@ -97,6 +98,12 @@ const repeatRule: Rule = (v) =>
     paused: bool,
   });
 
+/** Part times (FR-19.10): each key one of the table's parts, each time a whole number of seconds. */
+const fieldTimes =
+  (parts: readonly string[]): Rule =>
+  (v) =>
+    isObject(v) && Object.keys(v).every((k) => parts.includes(k) && int(0, 99_999_999_999)(v[k]));
+
 /** Fields every record carries (BaseRecord), for a record that isn't deleted. */
 const BASE: Record<string, Rule> = {
   id,
@@ -104,6 +111,7 @@ const BASE: Record<string, Rule> = {
   modifiedAt: timestamp,
   deletedAt: oneOf(null),
   sortKey: orderKey,
+  ft: fieldTimes([]),
 };
 
 /** The three fields checked on a deleted record. */
@@ -127,6 +135,7 @@ const FIELDS: Record<EntityName, Record<string, Rule>> = {
     sortByDate: bool,
     repeat: orNull(repeatRule),
     repeatOf: orNull(id),
+    ft: fieldTimes(Object.keys(PROJECT_PARTS)),
   },
   headings: { title: str, projectId: id, archived: bool, collapsed: bool, sortByDate: bool },
   todos: {
@@ -152,6 +161,7 @@ const FIELDS: Record<EntityName, Record<string, Rule>> = {
     releasedFrom: orNull((v) => isObject(v) && matches(v, { start: todoStart, startDate: orNull(date), givenContextId: orNull(id) })),
     repeat: orNull(repeatRule),
     repeatOf: orNull(id),
+    ft: fieldTimes(Object.keys(TODO_PARTS)),
   },
   checklistItems: { todoId: id, title: str, completed: bool },
   tags: { title: str, shortcut: orNull(str), parentTagId: orNull(id) },

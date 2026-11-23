@@ -311,7 +311,7 @@ describe('Show Calendar Events, a synced setting (schema 10)', () => {
     const upgraded = new MyTasksDB(name);
     await upgraded.open();
     expect(upgraded.verno).toBe(SCHEMA_VERSION);
-    expect(await upgraded.todos.get('t')).toEqual({ id: 't', title: 'Kept' });
+    expect(await upgraded.todos.get('t')).toEqual({ id: 't', title: 'Kept', ft: {} });
     const settings = readSettings(await upgraded.settings.toArray());
     expect(settings).toMatchObject({ todayGrouping: 'project', showCalendarEvents: true });
     upgraded.close();

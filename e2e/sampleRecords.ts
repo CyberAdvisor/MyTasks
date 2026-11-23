@@ -65,7 +65,7 @@ export function sampleRecords(today: Date) {
   /** Fields every record shares. */
   const base = (id: string): BaseRecord => {
     sortKey = generateKeyBetween(sortKey, null);
-    return { id, createdAt: at, modifiedAt: at, deletedAt: null, sortKey };
+    return { id, createdAt: at, modifiedAt: at, deletedAt: null, sortKey, ft: {} };
   };
 
   const area = (id: string, title: string): Area => ({ ...base(id), title, tagIds: [], collapsed: false });
