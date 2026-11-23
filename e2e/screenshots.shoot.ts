@@ -14,18 +14,10 @@
  *
  * Run on a Mac, so the text is in the Mac's own font.
  */
-import { expect, test, type Page } from '@playwright/test';
-import { go, groupToday, marcus, settle } from './marcusPage';
+import { test } from '@playwright/test';
+import { checkOffOne, go, groupToday, marcus, settle } from './marcusPage';
 
 const SHOTS = 'site/assets/shots';
-
-/** Check off one of Today's tasks, so it shows struck through and Today shows Hide. */
-async function checkOffOne(page: Page): Promise<void> {
-  await page.getByRole('checkbox', { name: 'Complete: Call the bank about the business card limit' }).click();
-  // The task stays in Today, struck through; Hide appears after its 2 seconds.
-  await expect(page.getByRole('button', { name: 'Hide' })).toBeVisible({ timeout: 5000 });
-  await settle(page);
-}
 
 test('Mac screenshots, light and dark', async ({ browser }) => {
   const page = await marcus(browser);

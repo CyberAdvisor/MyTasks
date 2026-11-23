@@ -34,6 +34,7 @@ import { MAX_TASKS } from '../src/lib/model/limits';
 import { FakeGitHub } from './fakeGitHub';
 import { sampleBackup } from '../e2e/sampleData';
 import { marcusBackup, marcusCalendar } from '../e2e/marcusData';
+import { localDate } from '../e2e/sampleRecords';
 import { readCalendar } from '../src/lib/calendar/events';
 
 let gh: FakeGitHub;
@@ -208,8 +209,8 @@ describe('checking a file before restoring (FR-12.8)', () => {
     for (let i = 0; i < 7; i++) {
       const day = new Date(2026, 10, 16 + i);
       const counts = countsOf(readBackup(marcusBackup(day)).list);
-      expect(counts.areas).toBe(6);
-      expect(counts.projects).toBe(22);
+      expect(counts.areas).toBe(7);
+      expect(counts.projects).toBe(24);
       expect(counts.tasks).toBeGreaterThan(90);
       const calendar = marcusCalendar(day);
       expect(readCalendar(calendar)!.events).toHaveLength(calendar.events.length);
@@ -234,6 +235,9 @@ describe('checking a file before restoring (FR-12.8)', () => {
       expect(gap).toBeLessThan(7);
       // The furnace filter comes back three months after he changes it.
       expect(tasks.find((t) => t.id === 'ho-3')!.repeat).toMatchObject({ mode: 'afterCompletion', unit: 'month', interval: 3 });
+      // None of Elena's tasks is in Today, so Marcus's Today (eleven tasks, four in focus) is unchanged.
+      const today = localDate(day);
+      expect(tasks.filter((t) => t.id.startsWith('el-') && t.startDate !== null && t.startDate <= today)).toEqual([]);
     }
   });
 
