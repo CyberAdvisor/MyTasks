@@ -2,7 +2,8 @@
   The sidebar's sync status (FR-19.8). The bottom line always shows the
   last sync (or Syncing…) on one line, with any content passed in, the
   build's version, on its right. A message goes on its own line above it
-  when there is one: Offline, or the problem, which links to Settings ›
+  when there is one: Offline (with how many changes wait to sync), or the
+  problem, which links to Settings ›
   Sync, where it is explained and fixed. From 4,500 tasks a line above
   says how near the 5,000-task limit the list is (NFR-7), with a link to
   the Guide's section on making room.
@@ -15,15 +16,23 @@
   import { hrefFor } from '../lib/state/route';
   import { syncMessage, syncedLine } from '../lib/sync/messages';
   import { sync } from '../lib/sync/sync.svelte';
-  import { taskCount } from '../lib/state/live';
+  import { changesSince, taskCount } from '../lib/state/live';
   import { limitWarning, nearLimit } from '../lib/model/limits';
   import { siteUrl } from '../lib/website';
 
   /** Shown at the right of the bottom line. */
   let { children }: { children?: Snippet } = $props();
 
+  /** While offline: how many changes wait to sync, counted from when the last sync read this device (FR-19.13). */
+  let waiting = $state(0);
+  $effect(() => {
+    const since = sync.config?.lastSync?.readAt ?? sync.config?.lastSyncedAt;
+    if (sync.status !== 'offline' || !since) return void (waiting = 0);
+    return changesSince(since).subscribe((n) => (waiting = n));
+  });
+
   let line = $derived(syncedLine(sync.status, sync.config?.lastSyncedAt ?? null));
-  let message = $derived(syncMessage(sync.status, sync.problem, sync.config?.lastSyncedAt ?? null));
+  let message = $derived(syncMessage(sync.status, sync.problem, sync.config?.lastSyncedAt ?? null, waiting));
 
   /** Sync now; how it went shows in this line, as for any sync. */
   function syncNow() {

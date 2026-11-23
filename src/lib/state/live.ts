@@ -38,7 +38,7 @@ import { held } from './held';
 import { holdPlacement } from '../model/hold';
 import type { Snapshot } from '../model/lists';
 import { DEFAULT_SETTINGS, readSettings, type AppSettings } from '../model/settings';
-import type { ID, LocalDate, Todo } from '../model/types';
+import { ENTITY_NAMES, type ID, type LocalDate, type Todo } from '../model/types';
 
 const EMPTY: Snapshot = {
   areas: [],
@@ -139,3 +139,18 @@ export const todayDate: Readable<LocalDate> = readable<LocalDate>(today(), (set)
     stopListening();
   };
 });
+
+/**
+ * How many records this device changed after `since`, deletions included:
+ * the changes not yet in the gist while offline (FR-19.13). A live count,
+ * only read while someone is subscribed.
+ */
+export function changesSince(since: string): Readable<number> {
+  return readable(0, (set) => {
+    const sub = liveQuery(async () => {
+      const counts = await Promise.all(ENTITY_NAMES.map((name) => db.table(name).filter((r: { modifiedAt?: string }) => (r.modifiedAt ?? '') > since).count()));
+      return counts.reduce((a, b) => a + b, 0);
+    }).subscribe({ next: set, error: (e) => console.error('Changes count failed', e) });
+    return () => sub.unsubscribe();
+  });
+}

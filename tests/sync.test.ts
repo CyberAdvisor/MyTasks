@@ -11,7 +11,7 @@ import { SyncError, syncOnce } from '../src/lib/sync/cycle';
 import { clearConfig, loadConfig, type DeviceConfig } from '../src/lib/sync/device';
 import { GistError, checkToken, readGist } from '../src/lib/sync/github';
 import { adoptRemote, applyRemote, readLocal } from '../src/lib/sync/local';
-import { returnCheck } from '../src/lib/state/live';
+import { changesSince, returnCheck } from '../src/lib/state/live';
 import { SYNCED_SETTINGS, SYNCED_TABLES, mergePayloads, type Payload } from '../src/lib/sync/payload';
 import { VALIDATED_SETTINGS } from '../src/lib/sync/validate';
 import { createList, joinList, lookUp } from '../src/lib/sync/setup';
@@ -590,6 +590,25 @@ describe('the lost-change notice in a sync (FR-19.12)', () => {
   });
 });
 
+describe('changes waiting to sync (FR-19.13)', () => {
+  it('counts records changed after the last sync read this device, deletions included', async () => {
+    const count = (since: string) =>
+      new Promise<number>((resolve) => {
+        const stop = changesSince(since).subscribe((n) => n && (stop(), resolve(n)));
+        setTimeout(() => (stop(), resolve(0)), 200);
+      });
+    const keep = await repo.createTodo({ title: 'keep' });
+    const gone = await repo.createTodo({ title: 'gone' });
+    await new Promise((r) => setTimeout(r, 5));
+    const since = new Date().toISOString();
+    expect(await count(since)).toBe(0);
+    await new Promise((r) => setTimeout(r, 5));
+    await repo.updateTodoText(keep, { title: 'kept, edited' });
+    await repo.deleteTodoForever(gone);
+    expect(await count(since)).toBe(2);
+  });
+});
+
 describe('Settings › Sync (FR-19.6 to FR-19.8)', () => {
   let config: DeviceConfig;
   beforeEach(async () => {
@@ -760,6 +779,9 @@ describe('sidebar sync status (FR-19.8)', () => {
     expect(syncMessage('synced', null)).toBeNull();
     expect(syncMessage('syncing', null)).toBeNull();
     expect(syncMessage('offline', null)).toBe('Offline — changes saved on this device');
+    // With changes waiting to sync (FR-19.13).
+    expect(syncMessage('offline', null, null, 1)).toBe('Offline · 1 change not synced');
+    expect(syncMessage('offline', null, null, 3)).toBe('Offline · 3 changes not synced');
     expect(syncMessage('error', 'token')).toBe('Sync error — token rejected');
     expect(syncMessage('error', 'passphrase')).toBe('Passphrase changed');
   });

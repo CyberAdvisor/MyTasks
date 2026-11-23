@@ -3,7 +3,7 @@
  * writes, Web Crypto and the requests to GitHub (faked) that the unit tests
  * only simulate.
  */
-import { expect, test } from '@playwright/test';
+import { expect, test, type BrowserContext, type Page, type Route } from '@playwright/test';
 import { addTask, connect, openList, restoreSample, synced } from './app';
 import { fakeGitHub, FakeGitHub } from './fakeGitHub';
 import { localDate, sampleRecords } from './sampleRecords';
@@ -168,6 +168,35 @@ test('a device that comes back with an older copy keeps what another device comp
   await second.close();
 });
 
+/**
+ * Take one device off GitHub, or back on. `setOffline` alone doesn't stop
+ * requests the faked GitHub answers, so they're refused here too.
+ */
+const GITHUB = /^https:\/\/(api\.github\.com|gist\.githubusercontent\.com)\//;
+const refuse = (route: Route) => route.abort('internetdisconnected');
+async function offline(context: BrowserContext, off: boolean): Promise<void> {
+  await context.setOffline(off);
+  // Only this handler: the faked GitHub's own route stays.
+  if (off) await context.route(GITHUB, refuse);
+  else await context.unroute(GITHUB, refuse);
+}
+
+/**
+ * Wait until everything on `page` is in the gist: a Sync Now that uploads
+ * nothing means the gist already holds this device's changes.
+ */
+async function pushed(page: Page, gh: FakeGitHub): Promise<void> {
+  for (let i = 0; i < 6; i++) {
+    await page.waitForTimeout(1500);
+    const writes = gh.writes;
+    await page.getByRole('button', { name: /Sync now/ }).click();
+    await page.waitForTimeout(1500);
+    await expect(page.getByText('Syncing…')).toBeHidden({ timeout: 15_000 });
+    if (gh.writes === writes) return;
+  }
+  throw new Error('the device kept uploading');
+}
+
 test('a completion made offline and a note added on another device are both kept (FR-19.10)', async ({ browser }) => {
   const gh = new FakeGitHub();
   const monday = new Date('2026-11-23T08:00:00');
@@ -191,7 +220,7 @@ test('a completion made offline and a note added on another device are both kept
   await connect(jane);
   await synced(jane);
   // 9:00, John's phone is offline and he completes it.
-  await first.setOffline(true);
+  await offline(first, true);
   await john.clock.setFixedTime(new Date('2026-11-23T09:00:00'));
   await openList(john, 'Today');
   await john.getByRole('checkbox', { name: 'Complete: Buy milk' }).click();
@@ -202,11 +231,10 @@ test('a completion made offline and a note added on another device are both kept
   await jane.getByText('Buy milk', { exact: true }).dblclick();
   await jane.getByLabel('Notes', { exact: true }).fill('Two litres');
   await jane.keyboard.press('Escape');
-  await jane.getByRole('button', { name: /Sync now/ }).click();
-  await expect(jane.getByText('Syncing…')).toBeHidden({ timeout: 15_000 });
+  await pushed(jane, gh);
   // John comes back online and syncs: his completion and her note are both kept.
   await john.clock.setFixedTime(new Date('2026-11-23T11:00:00'));
-  await first.setOffline(false);
+  await offline(first, false);
   await john.reload();
   await synced(john);
   await openList(john, 'Today');
@@ -245,7 +273,7 @@ test('a device whose change was replaced by a later one says so, and opens the t
   await connect(jane);
   await synced(jane);
   // 9:00, John renames it offline; 10:00, Jane renames it online.
-  await first.setOffline(true);
+  await offline(first, true);
   await john.clock.setFixedTime(new Date('2026-11-23T09:00:00'));
   await openList(john, 'Today');
   await john.getByText('Buy milk', { exact: true }).dblclick();
@@ -257,14 +285,13 @@ test('a device whose change was replaced by a later one says so, and opens the t
   await jane.getByText('Buy milk', { exact: true }).dblclick();
   await jane.getByLabel('Title', { exact: true }).fill('Oat milk');
   await jane.keyboard.press('Escape');
-  await jane.getByRole('button', { name: /Sync now/ }).click();
-  await expect(jane.getByText('Syncing…')).toBeHidden({ timeout: 15_000 });
+  await pushed(jane, gh);
   // John comes back online: Jane's title is kept, and his device says his was replaced.
   await john.clock.setFixedTime(new Date('2026-11-23T11:00:00'));
-  await first.setOffline(false);
-  await john.reload();
+  // The network's return starts a sync by itself (FR-19.5).
+  await offline(first, false);
   const notice = john.getByRole('dialog', { name: '1 of your changes was replaced by a later change from another device' });
-  await expect(notice).toBeVisible({ timeout: 20_000 });
+  await expect(notice).toBeVisible({ timeout: 30_000 });
   await expect(notice.getByText('— title')).toBeVisible();
   await notice.getByRole('button', { name: 'Oat milk' }).click();
   await expect(notice).toBeHidden();

@@ -72,10 +72,14 @@ export function syncedLine(status: SyncStatus, lastSyncedAt: string | null): str
   return lastSyncedAt ? `Synced ${clock(new Date(lastSyncedAt))}` : 'Not synced yet';
 }
 
-/** The message above the sync line: being offline, or the problem; null when there is none. */
-export function syncMessage(status: SyncStatus, problem: SyncCode | null, lastSyncedAt: string | null = null): string | null {
+/**
+ * The message above the sync line: being offline, or the problem; null when
+ * there is none. Offline, it counts the changes waiting to sync (FR-19.13).
+ */
+export function syncMessage(status: SyncStatus, problem: SyncCode | null, lastSyncedAt: string | null = null, waiting = 0): string | null {
   switch (status) {
     case 'offline':
+      if (waiting) return `Offline · ${waiting} ${waiting === 1 ? 'change' : 'changes'} not synced`;
       return 'Offline — changes saved on this device';
     case 'error':
       if (problem === 'passphrase') return 'Passphrase changed';
