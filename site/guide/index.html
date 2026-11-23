@@ -30,6 +30,7 @@
       <li><a href="#passphrase">Choose a passphrase</a></li>
       <li><a href="#another-device">Add another device</a></li>
       <li><a href="#two-devices">Changing the same task on two devices</a></li>
+      <li><a href="#sharing">Sharing with someone you trust</a></li>
       <li><a href="#everyday">Everyday use</a></li>
       <li><a href="#repeating">Repeating tasks and projects</a></li>
       <li><a href="#calendar">Calendar events</a></li>
@@ -88,6 +89,30 @@
   <ul>
     <li>Let a device sync (the sidebar shows <strong>Synced</strong>) before switching to another. While a device is offline, the sidebar shows how many of its changes are waiting, such as <strong>Offline · 3 changes not synced</strong>.</li>
     <li>Keep your devices’ clocks set automatically.</li>
+  </ul>
+
+  <h2 id="sharing">Sharing with someone you trust</h2>
+  <p>People who trust each other, such as a couple or a household, can share one set of tasks. You all use the same gist, token and passphrase, so everyone can see and change everything. The more people who share it, the more likely it is that changes collide and replace each other, and that one person’s action, such as Empty Trash or a settings change, surprises the others. It isn’t made for teams: there are no separate sign-ins, no permissions and no record of who changed what. Read <a href="/limitations/#sharing">Sharing with someone else</a> before you start.</p>
+  <h3 id="sharing-setup">Setting it up</h3>
+  <ul>
+    <li>Give each person an area of their own, such as “Michael” and “Jane”, and a shared one for household tasks if you like.</li>
+    <li>On each of their devices, install My Tasks, paste the same token you use, and enter your passphrase (<a href="#another-device">Add another device</a>).</li>
+    <li>Each of you chooses <strong>Focus on this Area</strong> for your own area. It only changes what you see: the others’ tasks are still there, a click away.</li>
+  </ul>
+  <h3 id="sharing-together">Working together</h3>
+  <ul>
+    <li>Changes to different tasks, and to different parts of the same task, are all kept (<a href="#two-devices">Changing the same task on two devices</a>). When two of you change the same part before your devices sync, the later change wins, and only the person whose change was replaced sees the notice.</li>
+    <li>Synced settings are shared: Today’s grouping, the priority labels and the two automatic-priority switches, Completed Items, Sequential Projects, tasks shown per project in Unscheduled, and Show Calendar Events. So are tags and contexts: renaming or deleting one changes everyone’s tasks.</li>
+    <li>Some actions affect everything, for all of you: <strong>Empty Trash</strong>, <strong>Delete Immediately</strong>, <strong>Archive</strong>, <strong>Restore from Backup…</strong>, <strong>Move Completed Items</strong> and <strong>Change Passphrase</strong>. Agree that only one of you runs them.</li>
+    <li>Undo can refuse a step with “Can’t undo: changed on another device” when someone else’s device has touched that task since.</li>
+    <li>The 5,000-task limit counts everyone’s tasks.</li>
+    <li>If one of you runs the calendar helper on a Mac, its events show for all of you.</li>
+  </ul>
+  <h3 id="sharing-stop">Stopping sharing</h3>
+  <ul>
+    <li>On GitHub, make a new token, and use <strong>Change Token</strong> in Settings › Sync on each of your own devices. Then revoke the old token on GitHub (Settings › Developer settings › Personal access tokens). The other person’s devices stop syncing; they keep the tasks they already have until <strong>Disconnect This Device</strong> is used on them.</li>
+    <li>Change your passphrase in Settings › Sync.</li>
+    <li>Earlier versions in the gist’s history stay encrypted with the old passphrase: anyone who has the gist’s address and that passphrase can still open them.</li>
   </ul>
 
   <h2 id="everyday">Everyday use</h2>
