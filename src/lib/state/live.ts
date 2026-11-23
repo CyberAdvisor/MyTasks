@@ -18,9 +18,10 @@
  * - `settings`: app settings merged over the defaults.
  * - `todayDate`: the local date, refreshed at midnight and whenever the app
  *   becomes visible again (FR-3.5 day rollover). Each refresh also runs the
+ *   return check (`returnCheck`): once that return's sync has settled, the
  *   automatic rules (a reached deadline sets When, FR-3.7; priorities,
- *   FR-14.9, FR-14.10) and moves completed items
- *   that are due to Completed (FR-12.2).
+ *   FR-14.9, FR-14.10) and the move of completed items that are due to
+ *   Completed (FR-12.2).
  */
 import { liveQuery } from 'dexie';
 import { derived, readable, type Readable } from 'svelte/store';
@@ -30,6 +31,7 @@ import { clearChangeLog } from '../db/history';
 import { dropOldTombstones } from '../sync/local';
 import { msUntilMidnight, today } from '../model/dates';
 import { onReturn } from '../pwa/onReturn';
+import { sync } from '../sync/sync.svelte';
 import { activeFocus, focusSnapshot } from '../model/focus';
 import { focusArea } from './focus';
 import { held } from './held';
@@ -105,13 +107,26 @@ export const settings: Readable<AppSettings> = readable<AppSettings>(DEFAULT_SET
   return () => sub.unsubscribe();
 });
 
+/**
+ * The return check's rules (FR-3.5) and the move of completed items
+ * (FR-12.2), run at launch, on coming back and at midnight. They wait for
+ * that moment's sync to settle (or fail, offline), so they act on what the
+ * other devices changed meanwhile. Run on this device's older copy first,
+ * they would give a task completed elsewhere a newer change (moved into
+ * Today), and the merge, where the later change wins, would reopen it.
+ */
+export async function returnCheck(): Promise<void> {
+  await sync.settled();
+  await sweepRules().catch((e) => console.error('Rules sweep failed', e));
+  await sweepCompleted().catch((e) => console.error('Completed sweep failed', e));
+}
+
 /** Today's local date, updated at midnight and on coming back to the app (FR-3.5). */
 export const todayDate: Readable<LocalDate> = readable<LocalDate>(today(), (set) => {
   let timer: ReturnType<typeof setTimeout>;
   const refresh = () => {
     set(today());
-    sweepRules().catch((e) => console.error('Rules sweep failed', e));
-    sweepCompleted().catch((e) => console.error('Completed sweep failed', e));
+    void returnCheck();
     clearChangeLog().catch((e) => console.error('Clearing the change log failed', e));
     dropOldTombstones().catch((e) => console.error('Dropping old tombstones failed', e));
     clearTimeout(timer);

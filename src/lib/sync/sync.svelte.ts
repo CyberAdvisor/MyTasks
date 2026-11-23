@@ -85,15 +85,19 @@ export class SyncEngine {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private running: Promise<void> | null = null;
   private again = false;
-  private started = false;
+  /** The start-up (`start`): settings read, listeners set, the launch sync begun. */
+  private starting: Promise<void> | null = null;
   /** Set by Disconnect, here or in another window: nothing more may sync. */
   private stopped = false;
   private channel: BroadcastChannel | null = null;
 
-  /** Read this device's settings, listen for sync triggers, and sync once. */
-  async start(): Promise<void> {
-    if (this.started) return;
-    this.started = true;
+  /** Read this device's settings, listen for sync triggers, and sync once. Runs once. */
+  start(): Promise<void> {
+    this.starting ??= this.begin();
+    return this.starting;
+  }
+
+  private async begin(): Promise<void> {
     this.config = await loadConfig();
     this.ready = true;
     if (this.config) {
@@ -151,11 +155,31 @@ export class SyncEngine {
    * lasts. A waiting retry is kept until it can run.
    */
   private auto(): void {
-    if (this.status === 'error' && this.problem && NEEDS_USER.includes(this.problem)) return;
-    if (this.retryAt && Date.now() < this.retryAt.getTime()) return;
+    if (this.held()) return;
     clearTimeout(this.timer);
     this.timer = undefined;
     void this.syncNow(this.status === 'offline');
+  }
+
+  /** True while a problem needs the user or a rate limit lasts: automatic syncs wait. */
+  private held(): boolean {
+    if (this.status === 'error' && this.problem && NEEDS_USER.includes(this.problem)) return true;
+    return this.retryAt !== null && Date.now() < this.retryAt.getTime();
+  }
+
+  /**
+   * Resolves once this device has synced, or tried to: it joins the sync
+   * already running, or starts an automatic one. Resolves at once when the
+   * device isn't connected or automatic syncs are held, and never rejects.
+   * The return check (FR-3.5) waits for it, so its rules act on the other
+   * devices' changes rather than on this device's older copy: a change it
+   * made to an old copy would be newer, and would win the merge.
+   */
+  async settled(): Promise<void> {
+    // At launch, wait for the settings to be read and the launch sync to begin.
+    await this.starting?.catch(() => undefined);
+    if (!this.running) this.auto();
+    await this.running?.catch(() => undefined);
   }
 
   /**

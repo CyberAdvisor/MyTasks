@@ -10,12 +10,13 @@ import { DecryptError, base64Bytes, deriveKey, newSalt, parseEnvelope, seal, toB
 import { SyncError, syncOnce } from '../src/lib/sync/cycle';
 import { clearConfig, loadConfig, type DeviceConfig } from '../src/lib/sync/device';
 import { GistError, checkToken, readGist } from '../src/lib/sync/github';
-import { applyRemote, readLocal } from '../src/lib/sync/local';
+import { adoptRemote, applyRemote, readLocal } from '../src/lib/sync/local';
+import { returnCheck } from '../src/lib/state/live';
 import { SYNCED_SETTINGS, SYNCED_TABLES, mergePayloads, type Payload } from '../src/lib/sync/payload';
 import { VALIDATED_SETTINGS } from '../src/lib/sync/validate';
 import { createList, joinList, lookUp } from '../src/lib/sync/setup';
 import { clock, syncMessage, syncedLine } from '../src/lib/sync/messages';
-import { OFFLINE_RETRY_MS, sync } from '../src/lib/sync/sync.svelte';
+import { OFFLINE_RETRY_MS, SyncEngine, sync } from '../src/lib/sync/sync.svelte';
 import { FakeGitHub } from './fakeGitHub';
 import { todo } from './helpers';
 
@@ -476,6 +477,58 @@ describe('coming back online (FR-19.5)', () => {
     expect(seen).not.toContain('syncing');
     // Once synced, nothing more is scheduled.
     expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
+describe('a device coming back with an older copy (FR-3.5, FR-19.4)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('runs the return check after the sync, so what another device completed stays completed', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-20T09:00:00'));
+    const config = await createList('good', 'correct horse', ACK);
+    const dated = await repo.createTodo({ title: 'starts tomorrow', start: 'unscheduled', startDate: '2026-11-21' });
+    const daily = await repo.createTodo({ title: 'daily' });
+    await repo.setRepeat(daily, {
+      mode: 'fixed', unit: 'day', interval: 1, weekdays: [], days: [], month: null,
+      endCount: null, endDate: null, made: 0, deadlineDays: null, paused: false,
+    }, '2026-11-21');
+    await syncOnce(config);
+    // This device then sits unopened, keeping that copy.
+    const older = await readLocal();
+    // Next morning another device completes the dated task and the day's repeat copy.
+    vi.setSystemTime(new Date('2026-11-21T09:00:00'));
+    await repo.sweepRules();
+    const copy = (await db.todos.toArray()).find((t) => t.repeatOf === daily)!;
+    await repo.setTodoStatus(dated, 'completed');
+    await repo.setTodoStatus(copy.id, 'completed');
+    await syncOnce(config);
+    // That evening this device comes back with its older copy.
+    await adoptRemote(older);
+    vi.setSystemTime(new Date('2026-11-21T18:00:00'));
+    sync.connected(config);
+    await returnCheck();
+    expect((await db.todos.get(dated))!.status).toBe('completed');
+    expect((await db.todos.get(copy.id))!.status).toBe('completed');
+    // The gist keeps the completions too.
+    await newDevice();
+    await syncOnce(await joinList('good', config.gistId, 'correct horse', ACK));
+    expect((await db.todos.get(dated))!.status).toBe('completed');
+    expect((await db.todos.get(copy.id))!.status).toBe('completed');
+  });
+
+  it('at launch, waits for the settings to be read and joins the launch sync', async () => {
+    await createList('good', 'correct horse', ACK);
+    const reads = gh.reads;
+    const engine = new SyncEngine();
+    void engine.start();
+    await engine.settled();
+    expect(engine.status).toBe('synced');
+    expect(gh.reads).toBe(reads + 1);
+    // Not connected: nothing to wait for.
+    await expect(new SyncEngine().settled()).resolves.toBeUndefined();
   });
 });
 
