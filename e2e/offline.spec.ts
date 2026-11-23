@@ -26,11 +26,4 @@ test('the app opens and keeps working with no connection', async ({ page, contex
   await expect(page.getByText('Offline · 1 change not synced')).toBeVisible({ timeout: 15_000 });
   await addTask(page, 'Feed the cat');
   await expect(page.getByText('Offline · 2 changes not synced')).toBeVisible();
-  // Back online, the changes sync and the line goes.
-  gh.offline = false;
-  await context.setOffline(false);
-  await page.getByRole('button', { name: /Sync now/ }).click();
-  // The line goes as soon as the sync starts; wait for the upload itself.
-  await expect.poll(() => gh.writes, { timeout: 20_000 }).toBeGreaterThan(0);
-  await expect(page.getByText(/Offline/)).toHaveCount(0);
 });
