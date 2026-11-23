@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.10.2"></a>
+
+## 1.10.2 — 2026-11-23
+
+### Added
+
+- While a device is offline, the sidebar counts the changes waiting to sync: "Offline · 3 changes not synced". Until it syncs, those changes are only on that device.
+
 <a id="v1.10.1"></a>
 
 ## 1.10.1 — 2026-11-23

@@ -22,5 +22,8 @@ test('the app opens and keeps working with no connection', async ({ page, contex
   await openList(page, 'Inbox');
   await addTask(page, 'Water the plants');
   await expect(page.getByText('Water the plants')).toBeVisible();
-  await expect(page.getByText('Offline — changes saved on this device')).toBeVisible({ timeout: 15_000 });
+  // The sidebar counts the changes waiting to sync (FR-19.13).
+  await expect(page.getByText('Offline · 1 change not synced')).toBeVisible({ timeout: 15_000 });
+  await addTask(page, 'Feed the cat');
+  await expect(page.getByText('Offline · 2 changes not synced')).toBeVisible();
 });
