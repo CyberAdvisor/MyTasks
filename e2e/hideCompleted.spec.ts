@@ -33,4 +33,12 @@ test('Today hides and shows its completed tasks, and shows them again after a re
   await openList(page, 'Today');
   await expect(page.getByText('Feed the cat')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Hide' })).toBeVisible();
+
+  // On a phone, the title, the ⋯ and the button stay on one line.
+  await page.setViewportSize({ width: 390, height: 760 });
+  const top = async (name: string, role: 'heading' | 'button') => (await page.getByRole(role, { name, exact: true }).boundingBox())!;
+  const title = await top('Today', 'heading');
+  const hide = await top('Hide', 'button');
+  expect(hide.y).toBeLessThan(title.y + title.height);
+  expect(hide.x).toBeGreaterThan(title.x + title.width);
 });

@@ -188,7 +188,7 @@
       title={ui.hideCompleted ? 'Show completed tasks' : 'Hide completed tasks'}
       onclick={() => (ui.hideCompleted = !ui.hideCompleted)}
     >
-      <span class="box" aria-hidden="true"><Icon name="check" size={9} color="#fff" weight={3.5} /></span>
+      <span class="done-mark" aria-hidden="true"><Icon name="check" size={9} color="#fff" weight={3.5} /></span>
       {ui.hideCompleted ? 'Show' : 'Hide'}
     </button>
   {/if}
@@ -391,7 +391,8 @@
     font-weight: 400;
     color: var(--text-3);
   }
-  /* Today's Hide / Show (completed tasks): small, after the ⋯ with the title's own gap. */
+  /* Today's Hide / Show (completed tasks): small, after the ⋯ with the title's own gap.
+     Its mark isn't named `box`: ViewHeader treats a `.box` in the title as a project title's edit box and wraps the row on phones. */
   .hide-done {
     display: inline-flex;
     align-items: center;
@@ -405,7 +406,7 @@
     font-size: 12px;
     line-height: 18px;
   }
-  .hide-done .box {
+  .hide-done .done-mark {
     display: inline-flex;
     align-items: center;
     justify-content: center;
