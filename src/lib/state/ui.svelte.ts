@@ -178,6 +178,8 @@ class UiState {
   helpOpen = $state(false);
   /** The sidebar is hidden on wider screens (Cmd/Ctrl+/); remembered. */
   sidebarHidden = $state(readFlag(SIDEBAR_KEY));
+  /** Today's completed tasks hidden (Hide / Show by Today's ⋯). This device only, and shown again whenever the app opens. */
+  hideCompleted = $state(false);
   /**
    * The toast: on touch devices, Undo after a destructive action (FR-1.6);
    * on every device, where a task went when it left the Inbox, with Show

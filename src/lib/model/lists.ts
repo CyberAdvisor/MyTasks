@@ -75,6 +75,11 @@ function isWaiting(item: Todo | Project): boolean {
   return isClosed(item) && item.loggedAt === null;
 }
 
+/** Only the open tasks: Today with its completed tasks hidden (Hide by Today's ⋯). */
+export function withoutClosed(todos: Todo[]): Todo[] {
+  return todos.filter((t) => !isClosed(t));
+}
+
 /** Closed and moved to Completed: shown in the Completed list. */
 export function isLogged(item: Todo | Project): boolean {
   return isClosed(item) && item.loggedAt !== null;
