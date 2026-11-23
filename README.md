@@ -49,7 +49,7 @@ A better task manager that is **free**, **private** and **secure**. My Tasks giv
 | Calendar events with your tasks | ✅ The Mac’s calendars, through a helper on the Mac | ✅ | ✅ Google or Outlook | ✅ |
 | Reminders and notifications | Coming: reminders in Apple Reminders, through the helper on a Mac (Mac only for now) | ✅ | ✅ | ✅ |
 | Board (Kanban) view | — | — | ✅ | — |
-| Sharing with others | — | — | ✅ | — |
+| Sharing with others | Limited: people who trust each other can share one gist, with the cautions on the [Limitations](https://mytasks.fyi/limitations/#sharing) page | — | ✅ | — |
 | Markdown in notes | ✅ | ✅ | ✅ | — |
 | Widgets, Siri and Apple Watch | — ² | ✅ | ✅ | ✅ |
 
