@@ -5,6 +5,9 @@
  * The Gadget Ledger with three contractors (Priya, producer and editor;
  * Jordan, social media; Dana, sponsorships), and a family man (Elena, a nurse
  * on rotating shifts; Sofia, 12, soccer; Leo, 8, piano; Biscuit the dog).
+ * Elena shares his tasks and keeps her own area, Elena (the book's Chapter 12,
+ * "Sharing with Elena"); none of her tasks is in Today, so Marcus's Today is
+ * the same with or without her.
  *
  * Everything is built for `today`, so Today, Scheduled and the calendar always
  * read as a current week. Every feature the book shows has its example here:
@@ -63,6 +66,7 @@ const ONGOING: Record<string, string> = {
   'ho-1': 'household', 'ho-2': 'household', 'ho-3': 'household', 'ho-5': 'household',
   'ho-4': 'car',
   'he-1': 'habits', 'he-2': 'habits', 'he-3': 'habits',
+  'el-4': 'elena-plans', 'el-5': 'elena-plans', 'el-6': 'elena-plans',
 };
 
 /** Marcus's backup file's text, built for `today`. */
@@ -83,6 +87,7 @@ export function marcusBackup(today = new Date()): string {
   const family = { areaId: 'family' };
   const home = { areaId: 'home' };
   const health = { areaId: 'health' };
+  const elena = { areaId: 'elena' };
   const inToday = { startDate: now };
 
   const projects = [
@@ -138,6 +143,9 @@ export function marcusBackup(today = new Date()): string {
     project('household', 'Household', { ...home }),
     project('car', 'The Car', { ...home }),
     project('habits', 'Health Habits', { ...health }),
+    // Elena's own area: one project that finishes, one that collects.
+    project('license', 'Renew Nursing License', { ...elena, deadline: day(daysToNextMonth(today, 15)) }),
+    project('elena-plans', 'Errands and Plans', { ...elena }),
   ];
 
   const headings = [
@@ -324,6 +332,14 @@ export function marcusBackup(today = new Date()): string {
     todo('he-2', 'Book the dentist cleaning', { ...health, contextId: 'phone', startDate: day(6) }),
     todo('he-3', 'Stretch for 10 minutes', { ...health, ...inToday, contextId: 'low', priority: 4 }),
 
+    // Elena's area: nothing in Today; one task on Wednesday, in Scheduled.
+    todo('el-1', 'Log the last six CE hours', { projectId: 'license' }),
+    todo('el-2', 'Submit the renewal online', { projectId: 'license' }),
+    todo('el-3', 'Pay the renewal fee', { projectId: 'license' }),
+    todo('el-4', 'Call Mom', { ...elena, startDate: day(daysUntil(today, 3) || 7) }),
+    todo('el-5', 'Sign up for the spring 10K', { ...elena }),
+    todo('el-6', 'Return the library books', { ...elena }),
+
     // Friday Review (template).
     todo('fr-1', 'Empty the Inbox'),
     todo('fr-2', 'Look through each area'),
@@ -394,6 +410,7 @@ export function marcusBackup(today = new Date()): string {
         area('family', 'Family'),
         area('home', 'Home'),
         area('health', 'Health and Fitness'),
+        area('elena', 'Elena'),
       ],
       projects,
       headings,

@@ -6,16 +6,17 @@
  * writes to book/shots/ (kept out of git), one PNG per picture, named for
  * its chapter. Light appearance; the Mac at 1440 × 900 at 2×, the iPhone at
  * 390 × 844 at 3×, set up by e2e/marcusPage.ts. Run on a Mac, so the text is
- * in the Mac's font.
+ * in the Mac's font. Today's pictures show one task checked off, so Today's
+ * Hide button shows, as in the website's.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { go, groupToday, marcus, settle } from './marcusPage';
+import { checkOffOne, go, groupToday, marcus, settle } from './marcusPage';
 
 const SHOTS = 'book/shots';
 const shot = (page: Page, name: string) => page.screenshot({ path: `${SHOTS}/${name}.png` });
 
 test('Mac', async ({ browser }) => {
-  // Seventeen pictures take longer than one test's usual 30 seconds.
+  // Sixteen pictures take longer than one test's usual 30 seconds.
   test.setTimeout(120_000);
   const page = await marcus(browser);
 
@@ -37,9 +38,11 @@ test('Mac', async ({ browser }) => {
   await go(page, '#/scheduled', 'Scheduled');
   await shot(page, 'ch04-scheduled');
 
-  // Chapter 5 and 6: Today by his priorities, then by his contexts.
+  // Chapter 5 and 6: Today by his priorities, then by his contexts, with one
+  // task checked off (it stays in Today, struck through, for the rest of the day).
   await go(page, '#/today', 'Invoice Brightline');
   await groupToday(page, 'Priorities');
+  await checkOffOne(page);
   await shot(page, 'ch05-today-priorities');
   await groupToday(page, 'Contexts');
   await shot(page, 'ch06-today-contexts');
@@ -102,5 +105,14 @@ test('iPhone', async ({ browser }) => {
   // Chapter 12: Today on his phone, grouped by his priorities.
   await go(page, '#/today', 'Invoice Brightline');
   await groupToday(page, 'Priorities');
+  await checkOffOne(page);
   await shot(page, 'ch12-iphone-today');
+
+  // Chapter 12: Elena's iPhone, the same tasks focused on her own area: her
+  // Unscheduled shows only her projects' tasks.
+  await go(page, '#/area/elena', 'Renew Nursing License');
+  await page.getByRole('button', { name: 'More area actions' }).click();
+  await page.getByRole('menuitem', { name: 'Focus on this Area' }).click();
+  await go(page, '#/unscheduled', 'Log the last six CE hours');
+  await shot(page, 'ch12-elena-iphone');
 });

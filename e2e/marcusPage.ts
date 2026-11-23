@@ -56,7 +56,6 @@ export async function settle(page: Page): Promise<void> {
   await page.waitForTimeout(300);
 }
 
-
 /** Group Today by `label` (Projects, Priorities, Contexts or All) from its ⋯ menu. */
 export async function groupToday(page: Page, label: string): Promise<void> {
   await page.getByRole('button', { name: 'More Today actions' }).click();
@@ -64,3 +63,12 @@ export async function groupToday(page: Page, label: string): Promise<void> {
   await settle(page);
 }
 
+/**
+ * Check off one of Today's tasks, so Today's Hide button shows: the task stays
+ * in Today, struck through, and Hide appears after its 2 seconds.
+ */
+export async function checkOffOne(page: Page): Promise<void> {
+  await page.getByRole('checkbox', { name: 'Complete: Call the bank about the business card limit' }).click();
+  await expect(page.getByRole('button', { name: 'Hide' })).toBeVisible({ timeout: 5000 });
+  await settle(page);
+}
