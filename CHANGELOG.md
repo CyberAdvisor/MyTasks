@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.10.3"></a>
+
+## 1.10.3 — 2026-11-23
+
+### Added
+
+- Today has a small **Hide** button after its ⋯ when it holds completed tasks: it hides them for now and becomes **Show**, which brings them back. A task you check off still shows for a moment first. The choice is for that device only, and completed tasks show again whenever the app opens.
+
 <a id="v1.10.2"></a>
 
 ## 1.10.2 — 2026-11-23

@@ -19,6 +19,7 @@ import {
   sinkClosed,
   todayTodos,
   waitingInView,
+  withoutClosed,
 } from '../src/lib/model/lists';
 import { readSettings } from '../src/lib/model/settings';
 import { quickFind } from '../src/lib/model/search';
@@ -275,5 +276,15 @@ describe('Move Completed Items in Quick Find', () => {
       waiting: { todos: [id], projects: [] },
     });
     expect(quickFind(s, 'garden', LIST_TITLES, waiting).some((r) => r.kind === 'move-completed')).toBe(false);
+  });
+});
+
+describe('withoutClosed (Today’s Hide)', () => {
+  it('leaves out completed and canceled tasks, keeping open ones in order', () => {
+    const open1 = todo({ id: 'a' });
+    const done = todo({ id: 'b', status: 'completed', completedAt: '2026-11-23T09:00:00.000Z' });
+    const canceled = todo({ id: 'c', status: 'canceled', completedAt: '2026-11-23T09:00:00.000Z' });
+    const open2 = todo({ id: 'd' });
+    expect(withoutClosed([open1, done, canceled, open2]).map((t) => t.id)).toEqual(['a', 'd']);
   });
 });

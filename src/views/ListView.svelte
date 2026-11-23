@@ -83,7 +83,11 @@
   let allTodos = $derived([...allFlat, ...allGroups.flatMap((g) => g.todos)]);
   let offered = $derived(tagsInUse(allTodos, s));
   let tag = $derived(activeTag(ui.tagFilter, offered, s.tags));
-  const narrow = (todos: Todo[]) => filterByTag(todos, tag, s);
+  // Today's completed tasks, while hidden: one checked off now still shows for its 2 seconds, as it isn't saved as completed until then.
+  let hiding = $derived(list === 'today' && ui.hideCompleted);
+  const narrow = (todos: Todo[]) => (hiding ? L.withoutClosed(filterByTag(todos, tag, s)) : filterByTag(todos, tag, s));
+  /** Hide shows only when Today has completed tasks to hide; Show whenever they're hidden. */
+  let showHide = $derived(list === 'today' && (ui.hideCompleted || allFlat.some(L.isClosed)));
   let flat = $derived(narrow(allFlat));
   // A Scheduled group with calendar events, or a repeating project's template, stays even when the tag bar leaves it no tasks.
   let groups = $derived(
@@ -174,7 +178,21 @@
   }
 </script>
 
-{#snippet listMenu()}<ListMenu {list} />{/snippet}
+{#snippet listMenu()}
+  <ListMenu {list} />
+  {#if showHide}
+    <button
+      type="button"
+      class="hide-done"
+      aria-pressed={ui.hideCompleted}
+      title={ui.hideCompleted ? 'Show completed tasks' : 'Hide completed tasks'}
+      onclick={() => (ui.hideCompleted = !ui.hideCompleted)}
+    >
+      <span class="box" aria-hidden="true"><Icon name="check" size={9} color="#fff" weight={3.5} /></span>
+      {ui.hideCompleted ? 'Show' : 'Hide'}
+    </button>
+  {/if}
+{/snippet}
 
 <ViewHeader title={meta.title} menu={list === 'logbook' || list === 'trash' ? undefined : listMenu}>
   {#snippet icon()}<Icon name={meta.icon} size={28} color={meta.color} />{/snippet}
@@ -372,5 +390,33 @@
     font-size: 11px;
     font-weight: 400;
     color: var(--text-3);
+  }
+  /* Today's Hide / Show (completed tasks): small, after the ⋯ with the title's own gap. */
+  .hide-done {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    align-self: center;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: none;
+    padding: 2px 9px 2px 7px;
+    color: var(--text-2);
+    font-size: 12px;
+    line-height: 18px;
+  }
+  .hide-done .box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    background: var(--accent);
+  }
+  @media print {
+    .hide-done {
+      display: none;
+    }
   }
 </style>
