@@ -4,8 +4,9 @@
  * only simulate.
  */
 import { expect, test } from '@playwright/test';
-import { addTask, connect, openList, synced } from './app';
+import { addTask, connect, openList, restoreSample, synced } from './app';
 import { fakeGitHub, FakeGitHub } from './fakeGitHub';
+import { localDate, sampleRecords } from './sampleRecords';
 
 test('Setup creates one encrypted gist; a new task stays after a reload and reaches it', async ({ page, context }) => {
   const gh = await fakeGitHub(context);
@@ -113,4 +114,56 @@ test('a device that hasn’t synced for over 170 days waits for Replace With Gis
   // The task added before (in Today, where the app opens) is there, from the gist.
   await openList(page, 'Today');
   await expect(page.getByText('Kept in the gist')).toBeVisible();
+});
+
+test('a device that comes back with an older copy keeps what another device completed', async ({ browser }) => {
+  const gh = new FakeGitHub();
+  const thursday = new Date('2026-11-19T09:00:00');
+  const { todo, backup } = sampleRecords(thursday);
+  const tasks = backup({
+    areas: [], projects: [], headings: [], checklistItems: [], tags: [], contexts: [], savedSearches: [],
+    todos: [todo('plants', 'Water the plants', { start: 'unscheduled', startDate: localDate(thursday, 1) })],
+  });
+  // The first device restores the task, starting Friday; the second receives it, then sits unopened.
+  const first = await browser.newContext();
+  await fakeGitHub(first, gh);
+  const a = await first.newPage();
+  await a.clock.setFixedTime(thursday);
+  await connect(a);
+  await restoreSample(a, tasks);
+  await synced(a);
+  const second = await browser.newContext();
+  await fakeGitHub(second, gh);
+  const b = await second.newPage();
+  await b.clock.setFixedTime(thursday);
+  await connect(b);
+  await synced(b);
+  await b.close();
+  // Friday morning the first device completes it.
+  await a.clock.setFixedTime(new Date('2026-11-20T09:00:00'));
+  await a.reload();
+  await openList(a, 'Today');
+  await synced(a);
+  // A frozen clock gives every change the same time: move it on for the check-off.
+  await a.clock.setFixedTime(new Date('2026-11-20T09:05:00'));
+  await a.getByRole('checkbox', { name: 'Complete: Water the plants' }).click();
+  // A check-off is saved after its 2-second window; then make sure it's uploaded.
+  await a.waitForTimeout(2500);
+  await a.getByRole('button', { name: /Sync now/ }).click();
+  await expect(a.getByText('Syncing…')).toBeHidden({ timeout: 15_000 });
+  // Friday evening the second device comes back with its Thursday copy: its
+  // return check would have moved the task into Today, a newer change.
+  const back = await second.newPage();
+  await back.clock.setFixedTime(new Date('2026-11-20T18:00:00'));
+  await back.goto('/app/');
+  await synced(back);
+  await openList(back, 'Today');
+  await expect(back.getByRole('checkbox', { name: 'Mark not done: Water the plants' })).toBeVisible({ timeout: 15_000 });
+  // And the first device still has it completed after its next sync.
+  await a.reload();
+  await synced(a);
+  await openList(a, 'Today');
+  await expect(a.getByRole('checkbox', { name: 'Mark not done: Water the plants' })).toBeVisible({ timeout: 15_000 });
+  await first.close();
+  await second.close();
 });

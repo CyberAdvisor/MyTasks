@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.9.4"></a>
+
+## 1.9.4 — 2026-11-22
+
+### Fixed
+
+- A device opened after a while no longer reopens tasks you completed on another device meanwhile. When the app opened or came back, it moved tasks into Today and made repeat copies from the device's older copy before syncing, and those changes, being newer, replaced the completions on every device. It now syncs first, then moves tasks into Today. Offline, it moves them once the sync gives up.
+
 <a id="v1.9.3"></a>
 
 ## 1.9.3 — 2026-11-22
