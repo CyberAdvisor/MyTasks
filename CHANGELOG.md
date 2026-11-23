@@ -4,6 +4,15 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.10.0"></a>
+
+## 1.10.0 — 2026-11-23
+
+### Changed
+
+- Changes to different parts of the same task on two devices are now all kept. If one device completes a task while offline and another adds a note to it, the task ends up completed with the note, on both. A task's parts are whether it's done, its title, its notes, its dates, its priority, its context, its tags and where it is; projects work the same way. When the same part is changed on two devices before they sync, the later change still wins.
+- **Every device needs this version before it can sync again.** A device still on 1.9 says "Update needed — reload the app" until it's updated. (Database schema 13: each task and project records when each of its parts last changed. Your gist grows by a few percent; the 5,000-task limit stays.)
+
 <a id="v1.9.4"></a>
 
 ## 1.9.4 — 2026-11-22

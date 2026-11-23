@@ -7,7 +7,7 @@
  * migrations.ts, which also upgrades lists from a gist or a backup file.
  */
 import Dexie, { type Table } from 'dexie';
-import { addCollapsed, addContext, addGivenContext, addReleased, addRepeat, addSortByDate, markMoved, stripDeleted } from './migrations';
+import { addCollapsed, addContext, addFieldTimes, addGivenContext, addReleased, addRepeat, addSortByDate, markMoved, stripDeleted } from './migrations';
 import type {
   Area,
   ChangeLogEntry,
@@ -22,7 +22,7 @@ import type {
 } from '../model/types';
 
 /** The current schema version; synced lists record it (FR-19.4). */
-export const SCHEMA_VERSION = 12;
+export const SCHEMA_VERSION = 13;
 
 export class MyTasksDB extends Dexie {
   areas!: Table<Area, string>;
@@ -105,6 +105,12 @@ export class MyTasksDB extends Dexie {
     });
     // Version 12: the synced setting unscheduledLimit (FR-23.1); no record changes.
     this.version(12).stores({});
+    // Version 13: part times on every record (FR-19.10), empty to begin with.
+    this.version(13).stores({}).upgrade(async (tx) => {
+      for (const name of ['areas', 'projects', 'headings', 'todos', 'checklistItems', 'tags', 'contexts', 'savedSearches']) {
+        await tx.table(name).toCollection().modify(addFieldTimes);
+      }
+    });
   }
 }
 

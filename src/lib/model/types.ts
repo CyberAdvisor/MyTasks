@@ -46,7 +46,16 @@ export interface BaseRecord {
   deletedAt: Timestamp | null;
   /** Fractional index giving manual order within the parent. */
   sortKey: string;
+  /**
+   * When each part of a task or project last changed (FR-19.10,
+   * model/parts.ts), in seconds since 1970; empty for other records. Not
+   * on a tombstone.
+   */
+  ft?: FieldTimes;
 }
+
+/** Part key → the time it last changed, in whole seconds since 1970 (FR-19.10). */
+export type FieldTimes = Record<string, number>;
 
 export interface Area extends BaseRecord {
   title: string;

@@ -136,9 +136,9 @@ describe('schema 8', () => {
     const list = upgradeList(old, SCHEMA_VERSION);
     expect(isValidRecord('projects', project)).toBe(false);
     expect(isValidRecord('headings', heading)).toBe(false);
-    expect(list.tables.projects[0]).toEqual({ ...project, sortByDate: false, repeat: null, repeatOf: null });
+    expect(list.tables.projects[0]).toEqual({ ...project, sortByDate: false, repeat: null, repeatOf: null, ft: {} });
     expect(list.tables.projects[1]).toEqual(gone);
-    expect(list.tables.headings[0]).toEqual({ ...heading, sortByDate: false });
+    expect(list.tables.headings[0]).toEqual({ ...heading, sortByDate: false, ft: {} });
     expect(isValidRecord('projects', list.tables.projects[0])).toBe(true);
     expect(isValidRecord('headings', list.tables.headings[0])).toBe(true);
   });
@@ -166,8 +166,8 @@ describe('schema 8', () => {
 
     const upgraded = new MyTasksDB(name);
     await upgraded.open();
-    expect(await upgraded.projects.get('p')).toEqual({ ...project, sortByDate: false, repeat: null, repeatOf: null });
-    expect(await upgraded.headings.get('h')).toEqual({ ...heading, sortByDate: false });
+    expect(await upgraded.projects.get('p')).toEqual({ ...project, sortByDate: false, repeat: null, repeatOf: null, ft: {} });
+    expect(await upgraded.headings.get('h')).toEqual({ ...heading, sortByDate: false, ft: {} });
     upgraded.close();
     await Dexie.delete(name);
   });

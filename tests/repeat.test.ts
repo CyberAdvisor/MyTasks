@@ -341,9 +341,10 @@ describe('schema 9', () => {
       schema: 8,
       tables: { areas: [], projects: [], headings: [], todos: [task, gone], checklistItems: [], tags: [], contexts: [], savedSearches: [] },
     };
-    const list = upgradeList(old, 9);
+    // Through every later step too: schema 13 adds part times (FR-19.10).
+    const list = upgradeList(old, SCHEMA_VERSION);
     expect(isValidRecord('todos', task)).toBe(false);
-    expect(list.tables.todos[0]).toEqual({ ...task, repeat: null, repeatOf: null });
+    expect(list.tables.todos[0]).toEqual({ ...task, repeat: null, repeatOf: null, ft: {} });
     expect(list.tables.todos[1]).toEqual(gone);
     expect(isValidRecord('todos', list.tables.todos[0])).toBe(true);
   });
@@ -371,13 +372,13 @@ describe('schema 9', () => {
 
     const upgraded = new MyTasksDB(name);
     await upgraded.open();
-    expect(await upgraded.todos.get('t')).toEqual({ ...task, repeat: null, repeatOf: null });
+    expect(await upgraded.todos.get('t')).toEqual({ ...task, repeat: null, repeatOf: null, ft: {} });
     upgraded.close();
     await Dexie.delete(name);
   });
 
   it('refuses a rule with a bad field', () => {
-    const good = { ...task, repeat: rule(), repeatOf: null };
+    const good = { ...task, repeat: rule(), repeatOf: null, ft: {} };
     expect(isValidRecord('todos', good)).toBe(true);
     expect(isValidRecord('todos', { ...good, repeat: { ...rule(), interval: 0 } })).toBe(false);
     expect(isValidRecord('todos', { ...good, repeat: { ...rule(), weekdays: [7] } })).toBe(false);
@@ -673,14 +674,14 @@ describe('schema 11', () => {
     const gone = { id: 'g', deletedAt: at, modifiedAt: at };
     const list = upgradeList(
       { schema: 10, tables: { areas: [], projects: [old, gone], headings: [], todos: [], checklistItems: [], tags: [], contexts: [], savedSearches: [] } },
-      11,
+      SCHEMA_VERSION,
     );
     expect(isValidRecord('projects', old)).toBe(false);
-    expect(list.tables.projects[0]).toEqual({ ...old, repeat: null, repeatOf: null });
+    expect(list.tables.projects[0]).toEqual({ ...old, repeat: null, repeatOf: null, ft: {} });
     expect(list.tables.projects[1]).toEqual(gone);
     expect(isValidRecord('projects', list.tables.projects[0])).toBe(true);
-    expect(isValidRecord('projects', { ...old, repeat: rule(), repeatOf: null })).toBe(true);
-    expect(isValidRecord('projects', { ...old, repeat: { ...rule(), unit: 'hour' }, repeatOf: null })).toBe(false);
+    expect(isValidRecord('projects', { ...old, repeat: rule(), repeatOf: null, ft: {} })).toBe(true);
+    expect(isValidRecord('projects', { ...old, repeat: { ...rule(), unit: 'hour' }, repeatOf: null, ft: {} })).toBe(false);
   });
 
   it('upgrades a version-10 database with data in it', async () => {
@@ -704,7 +705,7 @@ describe('schema 11', () => {
     v10.close();
     const upgraded = new MyTasksDB(name);
     await upgraded.open();
-    expect(await upgraded.projects.get('p')).toEqual({ ...old, repeat: null, repeatOf: null });
+    expect(await upgraded.projects.get('p')).toEqual({ ...old, repeat: null, repeatOf: null, ft: {} });
     upgraded.close();
     await Dexie.delete(name);
   });

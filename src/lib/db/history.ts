@@ -29,6 +29,7 @@ import { db, type MyTasksDB } from './database';
 import { nowIso } from '../model/ids';
 import { bury } from './bury';
 import { ENTITY_NAMES, type BaseRecord, type EntityName, type ID, type Todo } from '../model/types';
+import { installFieldTimes } from './fieldTimes';
 
 /** Tables that hold entities (everything except the log and settings). */
 const ENTITY_TABLES = ENTITY_NAMES;
@@ -94,6 +95,7 @@ function installHooks(database: MyTasksDB): void {
   }
 }
 installHooks(db);
+installFieldTimes(db);
 
 /**
  * Empty the old change log (FR-DM.3). Until 1.3.7 every change added a row

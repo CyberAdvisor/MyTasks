@@ -36,4 +36,4 @@ export function siteUrl(page: SitePage, hash = ''): string {
  * user's acknowledgment, so it shows which version of the page they read.
  * Change it whenever that page changes (tests/website.test.ts checks they match).
  */
-export const LIMITATIONS_UPDATED = '2026-11-22';
+export const LIMITATIONS_UPDATED = '2026-11-23';
