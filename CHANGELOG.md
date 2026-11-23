@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.10.5"></a>
+
+## 1.10.5 — 2026-11-23
+
+### Fixed
+
+- Giving a sequential project's next task a later start date (or Deferred) now sticks: the project waits for it, and nothing moves into Today until that date. Before, the next sync put the task straight back in Today. This also applies to a task dated later before its turn: when its turn comes, the project waits for its date instead of bringing it in early.
+
 <a id="v1.10.4"></a>
 
 ## 1.10.4 — 2026-11-23

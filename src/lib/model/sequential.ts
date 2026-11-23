@@ -44,7 +44,10 @@ export function projectOrder(projectId: ID, todos: Todo[], headings: Heading[]):
 /**
  * The task a sequential project releases now (FR-17.2): its first open task,
  * when none of its open tasks is in Today. A project that is closed, deferred
- * or starts later releases nothing. `ordered` comes from `projectOrder`.
+ * or starts later releases nothing. Nor does one whose first open task is
+ * deferred or starts later: the project waits for it, and it enters Today
+ * on its own date (so giving the next task a later date sticks). `ordered`
+ * comes from `projectOrder`.
  */
 export function nextToRelease(project: Project, ordered: Todo[], ref: LocalDate): Todo | null {
   if (!isOpen(project) || project.start === 'deferred' || (project.startDate !== null && project.startDate > ref)) {
@@ -52,7 +55,9 @@ export function nextToRelease(project: Project, ordered: Todo[], ref: LocalDate)
   }
   const open = ordered.filter(isOpen);
   if (open.some((t) => inToday(t, ref))) return null;
-  return open[0] ?? null;
+  const next = open[0];
+  if (!next || next.start === 'deferred' || (next.startDate !== null && next.startDate > ref)) return null;
+  return next;
 }
 
 /**
