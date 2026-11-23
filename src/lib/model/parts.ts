@@ -66,7 +66,7 @@ export function toSeconds(iso: string): number {
 }
 
 /** Whether two records hold the same values in `fields`. */
-function sameFields(a: Record<string, unknown>, b: Record<string, unknown>, fields: readonly string[]): boolean {
+export function sameFields(a: Record<string, unknown>, b: Record<string, unknown>, fields: readonly string[]): boolean {
   return fields.every((f) => canonical(a[f]) === canonical(b[f]));
 }
 

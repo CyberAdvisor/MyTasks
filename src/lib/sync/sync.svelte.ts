@@ -32,6 +32,7 @@ import { clearUndo } from '../db/history';
 import { exclusive } from './lock';
 import { onReturn } from '../pwa/onReturn';
 import { receiveCalendar, showSavedCalendar } from '../calendar/calendar';
+import type { LostChange } from './lost';
 
 /** Delay between a local change and the sync that pushes it. */
 const PUSH_DELAY_MS = 2000;
@@ -81,6 +82,8 @@ export class SyncEngine {
   problem = $state<SyncCode | null>(null);
   /** For a rate limit: when GitHub accepts requests again. */
   retryAt = $state<Date | null>(null);
+  /** This device's changes replaced by later ones from another device, until the notice is closed (FR-19.12). */
+  lost = $state.raw<LostChange[]>([]);
 
   private timer: ReturnType<typeof setTimeout> | undefined;
   private running: Promise<void> | null = null;
@@ -215,10 +218,23 @@ export class SyncEngine {
         this.again = false;
         // The settings are read when the sync starts, so a sync queued behind
         // Change Passphrase, in this window or another, uses the new key.
-        await this.exclusive((config) => this.attempt(() => syncOnce(config, (file) => receiveCalendar(config, file)), quiet));
+        await this.exclusive((config) =>
+          this.attempt(() => syncOnce(config, (file) => receiveCalendar(config, file), (lost) => this.noteLost(lost)), quiet),
+        );
       } while (this.again && this.config && !this.stopped);
     })().finally(() => (this.running = null));
     return this.running;
+  }
+
+  /** Add lost changes to those the notice shows, each task or project listed once. */
+  private noteLost(lost: LostChange[]): void {
+    const kept = this.lost.filter((l) => !lost.some((n) => n.kind === l.kind && n.id === l.id));
+    this.lost = [...kept, ...lost];
+  }
+
+  /** Close the lost-change notice. */
+  dismissLost(): void {
+    this.lost = [];
   }
 
   /** Run one sync, recording success or failure in the status, and the mark it leaves. */

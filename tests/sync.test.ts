@@ -21,6 +21,7 @@ import { FakeGitHub } from './fakeGitHub';
 import { project, todo } from './helpers';
 import { PROJECT_PARTS, RECORD_FIELDS, TODO_PARTS, stampParts, toSeconds } from '../src/lib/model/parts';
 import { replacement } from '../src/lib/sync/payload';
+import { LOST_SHOWN, lostChanges, lostTitle, lostWhat } from '../src/lib/sync/lost';
 
 
 describe('merging part by part (FR-19.10)', () => {
@@ -129,6 +130,70 @@ describe('merging part by part (FR-19.10)', () => {
     const next = replacement(list, {}, now);
     expect(next.tables.todos[0].ft).toEqual(Object.fromEntries(Object.keys(TODO_PARTS).map((k) => [k, toSeconds(now)])));
     expect(Object.keys(next.tables.projects[0].ft!).sort()).toEqual(Object.keys(PROJECT_PARTS).sort());
+  });
+});
+
+describe('the lost-change notice (FR-19.12)', () => {
+  const at = (hhmm: string) => `2026-11-23T${hhmm}:00.000Z`;
+  const secs = (hhmm: string) => toSeconds(at(hhmm));
+  // This device last synced at 8:30; the gist's copies are from another device.
+  const since = at('08:30');
+  const base = todo({ id: 'm', title: 'Buy milk', modifiedAt: at('08:00'), ft: {} });
+  const lost = (mine: object[], theirs: object[], table = 'todos', extra: object = {}) => {
+    const local = payload({ [table]: mine, ...extra });
+    return lostChanges(local, mergePayloads(local, payload({ [table]: theirs, ...extra }), at('11:00')).merged, since);
+  };
+
+  it('names the part this device changed that a later change replaced', () => {
+    const mine = { ...base, title: 'Milk', modifiedAt: at('09:00'), ft: { t: secs('09:00') } };
+    const theirs = { ...base, title: 'Oat milk', modifiedAt: at('10:00'), ft: { t: secs('10:00') } };
+    expect(lost([mine], [theirs])).toEqual([{ kind: 'todo', id: 'm', title: 'Oat milk', what: ['title'], deleted: false }]);
+  });
+
+  it('says nothing when different parts were changed, both kept', () => {
+    const mine = { ...base, status: 'completed', completedAt: at('09:00'), modifiedAt: at('09:00'), ft: { s: secs('09:00') } };
+    const theirs = { ...base, notes: 'note', modifiedAt: at('10:00'), ft: { n: secs('10:00') } };
+    expect(lost([mine], [theirs])).toEqual([]);
+  });
+
+  it('says nothing when both completed it, or only an automatic priority was replaced', () => {
+    const done = (hhmm: string) => ({ ...base, status: 'completed', completedAt: at(hhmm), modifiedAt: at(hhmm), ft: { s: secs(hhmm) } });
+    expect(lost([done('09:00')], [done('10:00')])).toEqual([]);
+    const auto = { ...base, priority: 2, prioritySource: 'auto', modifiedAt: at('09:00'), ft: { p: secs('09:00') } };
+    const chosen = { ...base, priority: 1, prioritySource: 'user', modifiedAt: at('10:00'), ft: { p: secs('10:00') } };
+    expect(lost([auto], [chosen])).toEqual([]);
+  });
+
+  it('says a completion was lost, and a change from before the last sync isn’t counted', () => {
+    const mine = { ...base, status: 'completed', completedAt: at('09:00'), modifiedAt: at('09:00'), ft: { s: secs('09:00') } };
+    const theirs = { ...base, status: 'canceled', modifiedAt: at('10:00'), ft: { s: secs('10:00') } };
+    expect(lost([mine], [theirs])[0].what).toEqual(['completed']);
+    const synced = { ...mine, modifiedAt: at('08:10'), ft: { s: secs('08:10') } };
+    expect(lost([synced], [theirs])).toEqual([]);
+  });
+
+  it('reports a task changed here and deleted on another device', () => {
+    const mine = { ...base, notes: 'x', modifiedAt: at('09:00'), ft: { n: secs('09:00') } };
+    const gone = { id: 'm', deletedAt: at('10:00'), modifiedAt: at('10:00') };
+    expect(lost([mine], [gone])).toEqual([{ kind: 'todo', id: 'm', title: 'Buy milk', what: [], deleted: true }]);
+  });
+
+  it('reports a replaced checklist item under its task, but not one with the same content', () => {
+    const item = { id: 'c', todoId: 'm', title: 'Oat', completed: false, sortKey: 'a0', createdAt: at('08:00'), deletedAt: null, ft: {} };
+    const tasks = { todos: [base] };
+    const mine = { ...item, completed: true, modifiedAt: at('09:00') };
+    const theirs = { ...item, title: 'Soy', modifiedAt: at('10:00') };
+    expect(lost([mine], [theirs], 'checklistItems', tasks)).toEqual([{ kind: 'todo', id: 'm', title: 'Buy milk', what: ['checklist'], deleted: false }]);
+    // A repeat's copy made on both devices: the same content, made at different moments.
+    expect(lost([{ ...item, modifiedAt: at('09:00') }], [{ ...item, modifiedAt: at('10:00') }], 'checklistItems', tasks)).toEqual([]);
+  });
+
+  it('words the notice, and lists at most LOST_SHOWN', () => {
+    expect(lostTitle(1)).toBe('1 of your changes was replaced by a later change from another device');
+    expect(lostTitle(3)).toBe('3 of your changes were replaced by later changes from another device');
+    expect(lostWhat({ kind: 'todo', id: 'm', title: 'x', what: ['completed', 'notes'], deleted: false })).toBe('completed, notes');
+    expect(lostWhat({ kind: 'todo', id: 'm', title: 'x', what: [], deleted: true })).toBe('deleted on another device');
+    expect(LOST_SHOWN).toBe(10);
   });
 });
 
@@ -446,7 +511,7 @@ describe('syncing only what changed (NFR-7)', () => {
     [gh.reads, gh.writes] = [0, 0];
     // A key that can't open the gist: a sync that decrypted it would fail.
     const wrongKey = await deriveKey('wrong', config.salt, config.iterations);
-    expect(await syncOnce({ ...config, key: wrongKey, lastSync: mark })).toEqual(mark);
+    expect(await syncOnce({ ...config, key: wrongKey, lastSync: mark })).toEqual({ ...mark, readAt: expect.any(String) });
     expect([gh.reads, gh.writes]).toEqual([1, 0]);
   });
 
@@ -464,7 +529,7 @@ describe('syncing only what changed (NFR-7)', () => {
     expect([gh.reads, gh.writes]).toEqual([1, 1]);
     expect(await gistList(config)).toEqual(sorted(mergePayloads(await readLocal(), before).merged));
     // And the next sync finds nothing to do.
-    expect(await syncOnce({ ...config, lastSync: next })).toEqual(next);
+    expect(await syncOnce({ ...config, lastSync: next })).toEqual({ ...next, readAt: expect.any(String) });
     expect([gh.reads, gh.writes]).toEqual([2, 1]);
   });
 
@@ -487,6 +552,41 @@ describe('syncing only what changed (NFR-7)', () => {
     await db.todos.update(ahead, { modifiedAt: '2099-01-01T00:00:00.000Z' });
     await syncOnce({ ...config, lastSync: next });
     expect((await db.todos.get(ahead))!.modifiedAt < '2099').toBe(true);
+  });
+});
+
+describe('the lost-change notice in a sync (FR-19.12)', () => {
+  it('reports a title replaced by another device once, and nothing at the next sync', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date('2026-11-23T08:00:00Z'));
+      const config = await createList('good', 'correct horse', ACK);
+      const id = await repo.createTodo({ title: 'Buy milk' });
+      const mark = await syncOnce(config);
+      vi.setSystemTime(new Date('2026-11-23T09:00:00Z'));
+      await repo.updateTodoText(id, { title: 'Milk' });
+      const mine = await readLocal();
+      // Another device changes the title later.
+      await newDevice();
+      const other = await joinList('good', config.gistId, 'correct horse', ACK);
+      vi.setSystemTime(new Date('2026-11-23T10:00:00Z'));
+      await repo.updateTodoText(id, { title: 'Oat milk' });
+      await syncOnce(other);
+      // Back on the first device, which syncs.
+      await newDevice();
+      await applyRemote({ tables: mine.tables, settings: mine.settings });
+      vi.setSystemTime(new Date('2026-11-23T11:00:00Z'));
+      const reported: unknown[] = [];
+      const next = await syncOnce({ ...config, lastSync: mark }, undefined, (lost) => reported.push(...lost));
+      expect(reported).toEqual([{ kind: 'todo', id, title: 'Oat milk', what: ['title'], deleted: false }]);
+      expect(next.readAt).toBe('2026-11-23T11:00:00.000Z');
+      // The next sync reports nothing more.
+      reported.length = 0;
+      await syncOnce({ ...config, lastSync: next }, undefined, (lost) => reported.push(...lost));
+      expect(reported).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
