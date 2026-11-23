@@ -30,6 +30,7 @@ test('the app opens and keeps working with no connection', async ({ page, contex
   gh.offline = false;
   await context.setOffline(false);
   await page.getByRole('button', { name: /Sync now/ }).click();
-  await expect(page.getByText(/Offline/)).toHaveCount(0, { timeout: 20_000 });
-  expect(gh.writes).toBeGreaterThan(0);
+  // The line goes as soon as the sync starts; wait for the upload itself.
+  await expect.poll(() => gh.writes, { timeout: 20_000 }).toBeGreaterThan(0);
+  await expect(page.getByText(/Offline/)).toHaveCount(0);
 });
