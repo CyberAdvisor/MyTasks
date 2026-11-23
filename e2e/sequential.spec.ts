@@ -69,6 +69,17 @@ test('completing a sequential project’s task moves the next one into Today', a
   await expect(row('Renew passport')).toBeVisible();
   await expect(row('Renew passport').locator('.prio')).toHaveCount(0);
 
+  // Giving the next-up task a later date sticks: the project waits for it, even after a reload's check.
+  await openList(page, 'Today');
+  await row('Pack bags').getByText('Pack bags', { exact: true }).click({ button: 'right' });
+  await page.getByRole('menuitem', { name: 'Start Date…' }).click();
+  await page.getByRole('button', { name: 'Tomorrow' }).click();
+  await expect(row('Pack bags')).toHaveCount(0);
+  await page.reload();
+  await openList(page, 'Today');
+  await expect(row('Pack bags')).toHaveCount(0);
+  await expect(row('Renew passport')).toHaveCount(0);
+
   // A task under a heading names it after the project (FR-1.9).
   await nav.getByRole('link', { name: 'Vacation' }).click();
   await page.getByRole('toolbar', { name: 'Actions' }).getByRole('button', { name: 'New Heading' }).click();

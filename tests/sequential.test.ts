@@ -68,7 +68,6 @@ describe('release (FR-17.2 to FR-17.4)', () => {
 
   it('releases the next task on completion, and unchecking takes it back', async () => {
     const { ids } = await setup(['a', 'b', 'c']);
-    await repo.setWhen(ids[2], { kind: 'date', date: addDays(today(), 9) }); // c is scheduled
     await repo.setTodoStatus(ids[0], 'completed');
     const b = await row(ids[1]);
     expect(inToday(b, today())).toBe(true);
@@ -76,10 +75,10 @@ describe('release (FR-17.2 to FR-17.4)', () => {
     await repo.setTodoStatus(ids[1], 'completed');
     expect((await row(ids[2])).startDate).toBe(today());
     expect((await row(ids[2])).priority).toBe(3);
-    // Unchecking b takes c back to its own date, without the priority and context it was given.
+    // Unchecking b takes c back to where it was (no start date), without the priority and context it was given.
     await repo.setTodoStatus(ids[1], 'open');
     const c = await row(ids[2]);
-    expect(c.startDate).toBe(addDays(today(), 9));
+    expect(c.startDate).toBeNull();
     expect(c.releasedBy).toBeNull();
     expect(c.priority).toBeNull();
     expect(c.contextId).toBeNull();
@@ -126,6 +125,40 @@ describe('release (FR-17.2 to FR-17.4)', () => {
     await repo.setProjectWhen(projectId, { kind: 'deferred' });
     await db.todos.update(ids[0], { status: 'completed' });
     await repo.sweepRules();
+    expect(inToday(await row(ids[1]), today())).toBe(false);
+  });
+});
+
+describe('the next task given a later date or Deferred (FR-17.2)', () => {
+  it('stays where it was put: the project waits for it, then it enters Today on its date', async () => {
+    // However it got its date: given while next up (here), or before its turn (the project then waits when its turn comes).
+    const { ids } = await setup(['Book flights', 'Pack bags']);
+    const tomorrow = addDays(today(), 1);
+    await repo.setWhen(ids[0], { kind: 'date', date: tomorrow });
+    await repo.sweepRules();
+    expect((await row(ids[0])).startDate).toBe(tomorrow);
+    // The project waits: nothing else goes into Today meanwhile.
+    expect(inToday(await row(ids[1]), today())).toBe(false);
+    // On its date it is in Today, and it is still the only one.
+    expect(inToday(await row(ids[0]), tomorrow)).toBe(true);
+    expect(inToday(await row(ids[1]), tomorrow)).toBe(false);
+  });
+
+  it('holds the project when its turn comes, if it was dated later before its turn', async () => {
+    const { ids } = await setup(['a', 'b']);
+    const later = addDays(today(), 9);
+    await repo.setWhen(ids[1], { kind: 'date', date: later });
+    await repo.setTodoStatus(ids[0], 'completed');
+    expect((await row(ids[1])).startDate).toBe(later);
+    expect(inToday(await row(ids[1]), today())).toBe(false);
+  });
+
+  it('stays deferred, and the project waits', async () => {
+    const { ids } = await setup(['Book flights', 'Pack bags']);
+    await repo.setWhen(ids[0], { kind: 'deferred' });
+    await repo.sweepRules();
+    expect((await row(ids[0])).start).toBe('deferred');
+    expect(inToday(await row(ids[0]), today())).toBe(false);
     expect(inToday(await row(ids[1]), today())).toBe(false);
   });
 });
