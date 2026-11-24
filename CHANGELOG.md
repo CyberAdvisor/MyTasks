@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.11.6"></a>
+
+## 1.11.6 — 2026-11-24
+
+### Changed
+
+- The sidebar now also warns when a gist's file nears its 5 MB limit: from 4.5 MB it says "Your gist is 4.6 MB of 5 MB. Make room", as it does from 4,500 tasks, so tasks with long notes or checklists don't reach the limit unannounced. With both near, it shows both. The size is the gist's as of the last sync. The Guide's "How many tasks" section explains both limits.
+
 <a id="v1.11.5"></a>
 
 ## 1.11.5 — 2026-11-24

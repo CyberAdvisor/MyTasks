@@ -258,11 +258,12 @@ python3 -m pip install --user cryptography</code></pre>
   <p>Settings › <strong>Archive</strong> keeps your gist small. It saves completed and canceled tasks and projects finished more than a number of days ago (90 unless you change it) to a new CSV file, then removes them from My Tasks on every device. A completed project goes with its headings and tasks, and checklists go with their tasks; repeating tasks stay. It asks first, and if the file isn’t saved nothing is removed. Removing is final, like Empty Trash, so keep the file: Import… can bring items back from it.</p>
 
   <h2 id="task-limit">How many tasks</h2>
-  <p>My Tasks holds up to <strong>5,000 tasks</strong>, counting completed tasks and the Trash: that's as many as your gist can sync. From 4,500, the bottom of the sidebar shows how many you have. At 5,000, adding a task says there's no room, and keeps what you typed.</p>
+  <p>Each gist holds up to <strong>5,000 tasks</strong>, counting completed tasks and the Trash, in a file of up to <strong>5 MB</strong>, whichever comes first. Tasks with long notes or checklists can fill the 5 MB before 5,000 tasks. From 4,500 tasks or 4.5 MB, the bottom of the sidebar says how near you are. At 5,000 tasks, adding a task says there's no room, and keeps what you typed. Past 5 MB, the gist can't be updated: the sidebar says <em>Sync error — too large</em>, and your changes wait on the device until you make room.</p>
   <ul>
     <li>To make room while keeping a record, use <a href="#archive">Archive</a>: it saves old completed tasks to a file, then removes them.</li>
     <li>Or empty the Trash, then delete completed tasks you no longer need: in Completed, select them (<kbd>Cmd</kbd> <kbd>A</kbd> selects them all) and press <kbd>Delete</kbd>, then empty the Trash.</li>
     <li>To keep a record of them first, save a backup in Settings › Backup.</li>
+    <li>For the 5 MB, shorten very long notes too. Deleted items still take a little room until they're cleared, 180 days after deletion. Settings › Sync shows the file's size.</li>
     <li>A repeating task still makes its next copy, and tasks from your other devices still arrive, even at the limit.</li>
     <li>The limit is per gist: to go past it, split your tasks into <a href="#gists-size">separate gists</a>, for example one for a large project.</li>
   </ul>

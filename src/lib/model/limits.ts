@@ -10,6 +10,7 @@
  * Adding a task is refused at the limit (TaskLimitError); a repeating task's
  * next copy and tasks arriving by sync are not, so nothing is lost or stops.
  */
+import { MAX_FILE_CHARS } from '../sync/crypto';
 
 /** The most tasks a list may hold. */
 export const MAX_TASKS = 5000;
@@ -45,6 +46,38 @@ export function formatCount(n: number): string {
 /** The sidebar's warning line. */
 export function limitWarning(count: number): string {
   return `${formatCount(count)} of ${formatCount(MAX_TASKS)} tasks.`;
+}
+
+/**
+ * From this gist file size the sidebar warns too (v1.11.6): 90% of the 5 MB a
+ * sync or Restore will upload (MAX_FILE_CHARS), so tasks with long notes or
+ * checklists, which fill the file before 5,000 tasks, are warned about before
+ * an upload is refused ("Sync error — too large").
+ */
+export const WARN_FILE_CHARS = Math.floor(MAX_FILE_CHARS * 0.9);
+
+/** Whether the gist file, as the last sync left it, is near its 5 MB limit; false before a first sync. */
+export function nearFileLimit(chars: number | undefined): boolean {
+  return chars !== undefined && chars >= WARN_FILE_CHARS;
+}
+
+/** A file size against the limit: "4.6 MB of 5 MB". */
+function sizeOfLimit(chars: number): string {
+  const mb = 1024 * 1024;
+  return `${(chars / mb).toFixed(1)} MB of ${MAX_FILE_CHARS / mb} MB`;
+}
+
+/**
+ * The sidebar's warning line (NFR-7): from 4,500 tasks or 4.5 MB, whichever
+ * comes first, or both; null when neither is near. `chars` is the gist
+ * file's size from the last sync.
+ */
+export function roomWarning(count: number, chars: number | undefined): string | null {
+  const tasks = nearLimit(count);
+  const size = nearFileLimit(chars);
+  if (tasks && size) return `${formatCount(count)} of ${formatCount(MAX_TASKS)} tasks · ${sizeOfLimit(chars!)}.`;
+  if (size) return `Your gist is ${sizeOfLimit(chars!)}.`;
+  return tasks ? limitWarning(count) : null;
 }
 
 /** The message when an add is refused. */
