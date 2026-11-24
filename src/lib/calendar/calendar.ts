@@ -17,9 +17,11 @@ import { readCalendar, type CalendarData } from './events';
  * Why the calendar file shows no events:
  * - `passphrase`: it was written with another passphrase (setup on the Mac
  *   predates a passphrase change); the helper's setup must be run again
+ * - `setup`: the helper's marker for a gist it has no passphrase for
+ *   (FR-21.8); the helper's setup must be run again to include this gist
  * - `unreadable`: it isn't a calendar file this version can read
  */
-export type CalendarProblem = 'passphrase' | 'unreadable';
+export type CalendarProblem = 'passphrase' | 'setup' | 'unreadable';
 
 export interface CalendarState {
   /** The events, or null when there is no file or it can't be opened. */
@@ -42,8 +44,23 @@ let shownIv: string | null = null;
 /** The key and its derivation settings, which the calendar file must match. */
 type Keys = Pick<DeviceConfig, 'key' | 'salt' | 'iterations'>;
 
+/**
+ * Whether `file` is the helper's marker for a gist it has no passphrase for
+ * (FR-21.8): `{"app": "mytasks-calendar", "format": 1, "setupNeeded": true,
+ * "updatedAt": …}`, unencrypted and holding no events or names.
+ */
+export function isSetupMarker(file: string): boolean {
+  try {
+    const m = JSON.parse(file);
+    return m?.app === 'mytasks-calendar' && m.format === 1 && m.setupNeeded === true;
+  } catch {
+    return false;
+  }
+}
+
 /** Open a calendar file into a state; never throws. */
 async function open(keys: Keys, file: string): Promise<CalendarState> {
+  if (isSetupMarker(file)) return { ...NONE, problem: 'setup' };
   const env = parseEnvelope(file, 'mytasks-calendar');
   if (!env) return { ...NONE, problem: 'unreadable' };
   const updatedAt = env.updatedAt;

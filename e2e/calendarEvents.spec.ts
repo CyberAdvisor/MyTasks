@@ -139,6 +139,18 @@ test('Today and Scheduled show the events; an event opens its details; Settings 
   expect(errors).toEqual([]);
 });
 
+test('a gist the helper has no passphrase for says to run its setup again (FR-21.8)', async ({ page, context }) => {
+  const gh = await fakeGitHub(context);
+  await connect(page);
+  await synced(page);
+  const id = [...gh.gists.keys()][0];
+  gh.gists.get(id)!.files['calendar.json'] = { content: JSON.stringify({ app: 'mytasks-calendar', format: 1, setupNeeded: true, updatedAt: new Date().toISOString() }) };
+  await page.reload();
+  await synced(page);
+  await page.evaluate(() => (location.hash = '#/settings'));
+  await expect(page.getByRole('alert').filter({ hasText: /Calendar events aren.t set up for this gist/ })).toBeVisible();
+});
+
 test('the events stay on the device for the next launch, offline included', async ({ page, context }) => {
   const gh = await fakeGitHub(context);
   await connectWithCalendar(page, gh);

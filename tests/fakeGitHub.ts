@@ -128,8 +128,9 @@ export class FakeGitHub {
     if (method === 'PATCH') {
       // Only the owner can change a gist; GitHub answers not found to anyone else.
       if (g.owner !== login) return this.json({ message: 'Not Found' }, 404);
-      const body = JSON.parse(String(init.body)) as { files: Record<string, { content: string }> };
+      const body = JSON.parse(String(init.body)) as { description?: string; files: Record<string, { content: string }> };
       Object.assign(g.files, body.files);
+      if (body.description !== undefined) g.description = body.description;
       g.updated_at = this.tick();
       this.writes++;
       return this.json(this.view(g, true));
