@@ -91,9 +91,9 @@ test('a device that hasn’t synced for over 170 days waits for Replace With Gis
       r.onsuccess = () => ok(r.result);
       r.onerror = () => fail(r.error);
     });
-    const store = db.transaction('config', 'readwrite').objectStore('config');
+    const store = db.transaction('gists', 'readwrite').objectStore('gists');
     const row = await new Promise<Record<string, unknown>>((ok) => {
-      const r = store.get('sync');
+      const r = store.get('mytasks');
       r.onsuccess = () => ok(r.result);
     });
     await new Promise((ok) => {

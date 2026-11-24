@@ -1,14 +1,20 @@
 /**
- * This device's sync settings (FR-19.2, FR-19.6): the token, the gist's id
- * and the encryption key, and the acknowledgment given at Setup. They live in their own small IndexedDB database,
- * never in the synced data, and are removed by Disconnect. The last
- * calendar.json read is kept here too.
+ * This device's sync settings (FR-19.2, FR-19.6), one set per gist on the
+ * device (FR-19.11): the token, the gist's id and the encryption key, and the
+ * acknowledgment given at Setup. They live in their own small IndexedDB
+ * database, never in the synced data, and are removed by Disconnect. Each
+ * gist's last calendar.json read is kept with them.
+ *
+ * Every function here works on the active gist (gists/active.ts) unless it
+ * says otherwise. An entry is keyed by its task database's name, which never
+ * changes, rather than by the gist id.
  *
  * The key is a non-extractable CryptoKey: IndexedDB can store it, the app can
  * use it, but nothing can read the key itself back out. The passphrase is
  * never stored.
  */
 import Dexie, { type Table } from 'dexie';
+import { FIRST_DB, activeDbName, isTaskDbName } from '../gists/active';
 
 export interface DeviceConfig {
   /** GitHub personal access token (classic, `gist` scope). */
@@ -58,51 +64,99 @@ export interface Acknowledgment {
   limitationsUpdated: string;
 }
 
-type Row = DeviceConfig & { id: 'sync' };
+/** One gist on this device: its sync settings, its task database and its last calendar.json. */
+export interface GistEntry extends DeviceConfig {
+  /** The gist's task database (gists/active.ts). */
+  db: string;
+  /** The last calendar.json read from this gist (FR-21.2), still encrypted. */
+  calendar?: string;
+}
 
-/**
- * The last calendar.json read from the gist (FR-21.2), still encrypted, so
- * events show at launch and offline. Kept beside the sync settings, so
- * Disconnect removes it with them.
- */
-type CalendarRow = { id: 'calendar'; file: string };
+/** Version 1's rows: the one gist's settings and its calendar file. */
+type V1Row = (DeviceConfig & { id: 'sync' }) | { id: 'calendar'; file: string };
 
 class DeviceDB extends Dexie {
-  config!: Table<Row | CalendarRow, string>;
+  gists!: Table<GistEntry, string>;
 
   constructor() {
     super('mytasks-device');
     this.version(1).stores({ config: 'id' });
+    // Version 2 (v1.11.0): one entry per gist. The device's one gist becomes the
+    // first gist's entry, on the database it already had.
+    this.version(2)
+      .stores({ config: null, gists: 'db, gistId' })
+      .upgrade(async (tx) => {
+        const rows = (await tx.table('config').toArray()) as V1Row[];
+        const sync = rows.find((r) => r.id === 'sync');
+        const calendar = rows.find((r) => r.id === 'calendar');
+        if (!sync) return;
+        const { id: _, ...config } = sync;
+        const entry: GistEntry = { ...config, db: FIRST_DB };
+        if (calendar) entry.calendar = calendar.file;
+        await tx.table('gists').put(entry);
+      });
   }
 }
 
 const deviceDb = new DeviceDB();
 
-/** The saved sync settings, or null when this device is not connected. */
-export async function loadConfig(): Promise<DeviceConfig | null> {
-  const row = (await deviceDb.config.get('sync')) as Row | undefined;
-  if (!row) return null;
-  const { id: _, ...config } = row;
+/** An entry's sync settings, without the device's own fields. */
+function configOf(entry: GistEntry): DeviceConfig {
+  const { db: _, calendar: __, ...config } = entry;
   return config;
 }
 
+/** The active gist's sync settings, or null when it is not connected. */
+export async function loadConfig(): Promise<DeviceConfig | null> {
+  const entry = await deviceDb.gists.get(activeDbName());
+  return entry ? configOf(entry) : null;
+}
+
+/** Save the active gist's sync settings, keeping its calendar file. */
 export async function saveConfig(config: DeviceConfig): Promise<void> {
-  await deviceDb.config.put({ ...config, id: 'sync' });
+  const db = activeDbName();
+  await deviceDb.transaction('rw', deviceDb.gists, async () => {
+    const calendar = (await deviceDb.gists.get(db))?.calendar;
+    const entry: GistEntry = { ...config, db };
+    if (calendar !== undefined) entry.calendar = calendar;
+    await deviceDb.gists.put(entry);
+  });
 }
 
-/** Remove the sync settings and the saved calendar file (Disconnect). */
+/** Remove the active gist's sync settings and calendar file (Disconnect); other gists stay. */
 export async function clearConfig(): Promise<void> {
-  await deviceDb.config.clear();
+  await deviceDb.gists.delete(activeDbName());
 }
 
-/** The saved calendar.json, encrypted, or null when there is none. */
+/** The active gist's saved calendar.json, encrypted, or null when there is none. */
 export async function loadCalendarFile(): Promise<string | null> {
-  const row = (await deviceDb.config.get('calendar')) as CalendarRow | undefined;
-  return row?.file ?? null;
+  return (await deviceDb.gists.get(activeDbName()))?.calendar ?? null;
 }
 
-/** Save calendar.json as read from the gist, or remove it (null). */
+/** Save the active gist's calendar.json as read from the gist, or remove it (null). Needs the gist connected. */
 export async function saveCalendarFile(file: string | null): Promise<void> {
-  if (file === null) await deviceDb.config.delete('calendar');
-  else await deviceDb.config.put({ id: 'calendar', file });
+  await deviceDb.gists
+    .where('db')
+    .equals(activeDbName())
+    .modify((entry) => {
+      if (file === null) delete entry.calendar;
+      else entry.calendar = file;
+    });
+}
+
+/** Every gist on this device, as its database name and gist id, in database-name order. */
+export async function listGists(): Promise<{ db: string; gistId: string }[]> {
+  return (await deviceDb.gists.toArray()).map(({ db, gistId }) => ({ db, gistId }));
+}
+
+/**
+ * Add a gist to this device (FR-19.16, Add Gist…) on its own database, without
+ * making it active. Refuses a gist already on the device.
+ */
+export async function addGist(db: string, config: DeviceConfig): Promise<void> {
+  if (!isTaskDbName(db)) throw new Error(`Not a task database: ${db}`);
+  await deviceDb.transaction('rw', deviceDb.gists, async () => {
+    if ((await deviceDb.gists.where('gistId').equals(config.gistId).count()) > 0) throw new Error('This gist is already on this device.');
+    await deviceDb.gists.add({ ...config, db });
+  });
 }

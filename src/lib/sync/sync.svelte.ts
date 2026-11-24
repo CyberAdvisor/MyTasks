@@ -24,7 +24,9 @@ import { onLocalChange } from '../db/history';
 import { nowIso } from '../model/ids';
 import { KDF_ITERATIONS, deriveKey, newSalt } from './crypto';
 import { SyncError, envelopeOf, mergeAndPush, openPayload, sealPayload, syncOnce, type SyncProblem } from './cycle';
-import { clearConfig, loadConfig, saveConfig, type DeviceConfig, type SyncMark } from './device';
+import { clearConfig, listGists, loadConfig, saveConfig, type DeviceConfig, type SyncMark } from './device';
+import { activeDbName, setActiveDbName } from '../gists/active';
+import { saveAllNow } from '../state/onHide';
 import { SYNCED_TABLES, idsOf, replacement, type Payload } from './payload';
 import { GistError, checkToken, createGist, gistOwner, readGist, writeGist, type GistErrorCode } from './github';
 import { adoptRemote, readLocal, replaceLocal } from './local';
@@ -52,9 +54,10 @@ export const RATE_LIMIT_FALLBACK_MS = 60_000;
  */
 export const REFRESH_MS = 15 * 60_000;
 
-/** The channel the app's windows use to tell each other about Disconnect. */
+/** The channel the app's windows use to tell each other about Disconnect and switching gists. */
 const CHANNEL_NAME = 'mytasks-sync';
 const DISCONNECTED = 'disconnected';
+const SWITCHED = 'switched';
 
 export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline' | 'error';
 export type SyncCode = GistErrorCode | SyncProblem;
@@ -102,15 +105,17 @@ export class SyncEngine {
 
   private async begin(): Promise<void> {
     this.config = await loadConfig();
+    if (!this.config && (await this.repairActive())) return;
     this.ready = true;
     if (this.config) {
       keepStorage();
       await showSavedCalendar(this.config);
     }
-    // Another window disconnected this device: stop, and reload to Setup.
+    // Another window disconnected a gist or switched gists: stop, and reload
+    // on the gist now active (Setup, after the last one is disconnected).
     this.channel = new BroadcastChannel(CHANNEL_NAME);
     this.channel.onmessage = (e: MessageEvent) => {
-      if (e.data !== DISCONNECTED) return;
+      if (e.data !== DISCONNECTED && e.data !== SWITCHED) return;
       this.stop();
       location.reload();
     };
@@ -125,6 +130,20 @@ export class SyncEngine {
       if (document.visibilityState === 'visible') this.auto();
     }, REFRESH_MS);
     this.auto();
+  }
+
+  /**
+   * The active gist has no settings but the device has other gists (its
+   * database name was lost from localStorage, or it was disconnected in a
+   * window that closed before switching): make the first of them active and
+   * reload on it. True when it did.
+   */
+  private async repairActive(): Promise<boolean> {
+    const [first] = await listGists();
+    if (!first || first.db === activeDbName()) return false;
+    setActiveDbName(first.db);
+    location.reload();
+    return true;
   }
 
   /** Setup finished: use these settings from now on. */
@@ -415,9 +434,31 @@ export class SyncEngine {
     await exclusive(async () => {
       await clearConfig();
       await db.delete();
+      // Another gist on this device becomes active; with none left, Setup shows.
+      const [next] = await listGists();
+      if (next) setActiveDbName(next.db);
     });
     this.config = null;
     this.channel?.postMessage(DISCONNECTED);
+  }
+
+  /**
+   * Switch to another gist on this device (FR-19.11): save any edit in
+   * progress, stop syncing, wait for a sync or action running in any window,
+   * then make `dbName` active. Other open windows are told, and reload on it.
+   * The caller reloads this one. Refuses a gist that isn't on this device.
+   */
+  async switchTo(dbName: string): Promise<void> {
+    if (!(await listGists()).some((g) => g.db === dbName)) throw new Error('That gist isn’t on this device.');
+    if (dbName === activeDbName()) return;
+    saveAllNow();
+    // The saves run in their own transactions; one over every table starts
+    // only once they have finished.
+    await new Promise((r) => setTimeout(r, 0));
+    await db.transaction('rw', db.tables, async () => undefined);
+    this.stop();
+    await exclusive(async () => setActiveDbName(dbName));
+    this.channel?.postMessage(SWITCHED);
   }
 }
 

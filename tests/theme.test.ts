@@ -3,7 +3,9 @@
  * the design tokens in both themes (design doc, Section 6: 4.5:1).
  */
 import { describe, expect, it } from 'vitest';
-import { readSettings } from '../src/lib/model/settings';
+import { get } from 'svelte/store';
+import { db } from '../src/lib/db/database';
+import { adoptOldTheme, setTheme, theme } from '../src/lib/state/theme';
 import { TITLE_BAR, applyTheme } from '../src/lib/theme';
 import tokensCss from '../src/tokens.css?raw';
 
@@ -83,10 +85,26 @@ describe('design tokens', () => {
 });
 
 describe('Appearance setting', () => {
-  it('defaults to System and ignores unknown values', () => {
-    expect(readSettings([]).theme).toBe('system');
-    expect(readSettings([{ key: 'theme', value: 'dark' }]).theme).toBe('dark');
-    expect(readSettings([{ key: 'theme', value: 'sepia' }]).theme).toBe('system');
+  it('is kept on this device for every gist, not in the tasks (FR-19.11)', async () => {
+    localStorage.clear();
+    setTheme('dark');
+    expect(get(theme)).toBe('dark');
+    expect(localStorage.getItem('mytasks.theme')).toBe('dark');
+    expect(await db.settings.get('theme')).toBeUndefined();
+  });
+
+  it('moves a theme chosen before 1.11 out of the task database, once', async () => {
+    localStorage.clear();
+    await db.settings.put({ key: 'theme', value: 'light' });
+    await adoptOldTheme();
+    expect(localStorage.getItem('mytasks.theme')).toBe('light');
+    expect(await db.settings.get('theme')).toBeUndefined();
+    // A choice already made on this device wins over an old row; an unknown value is dropped.
+    setTheme('dark');
+    await db.settings.put({ key: 'theme', value: 'sepia' });
+    await adoptOldTheme();
+    expect(localStorage.getItem('mytasks.theme')).toBe('dark');
+    expect(await db.settings.get('theme')).toBeUndefined();
   });
 
   it('pins Light or Dark on <html>, and System removes the pin', () => {

@@ -22,6 +22,7 @@ import { VERSION } from './version';
 import type { BaseRecord, Todo } from './model/types';
 import { datedOutOfDeferred } from './model/lists';
 import type { Browser } from './pwa/platform';
+import { gistFileName, type GistLabel } from './model/settings';
 
 /** What a backup file says it is. */
 export const BACKUP_FORMAT = 'mytasks-backup';
@@ -79,10 +80,10 @@ export function backupProblemText(code: BackupProblem): string {
   }
 }
 
-/** The file's name, from when it was saved: My Tasks backup 2026-11-13 1150.json. */
-export function backupFileName(at: Date): string {
+/** The file's name, from the gist's name and when it was saved: My Tasks Work backup 2026-11-13 1150.json. */
+export function backupFileName(at: Date, gist: GistLabel): string {
   const p = (n: number) => String(n).padStart(2, '0');
-  return `My Tasks backup ${at.getFullYear()}-${p(at.getMonth() + 1)}-${p(at.getDate())} ${p(at.getHours())}${p(at.getMinutes())}.json`;
+  return `My Tasks ${gistFileName(gist)} backup ${at.getFullYear()}-${p(at.getMonth() + 1)}-${p(at.getDate())} ${p(at.getHours())}${p(at.getMinutes())}.json`;
 }
 
 /** The backup file's text, from one consistent snapshot of this device. */

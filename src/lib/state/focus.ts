@@ -3,13 +3,15 @@
  *
  * Kept on this device only, like the sidebar width: you can focus on one area
  * on the Mac while the phone shows everything. Never synced, so no schema
- * change. The rule itself is in `src/lib/model/focus.ts`.
+ * change. Kept per gist (FR-19.11), since each gist has its own areas. The
+ * rule itself is in `src/lib/model/focus.ts`.
  */
 import { writable } from 'svelte/store';
 import type { ID } from '../model/types';
 import { readText, writeText } from './flags';
+import { perGistKey } from '../gists/active';
 
-const KEY = 'mytasks.focusArea';
+const KEY = perGistKey('mytasks.focusArea');
 
 const store = writable<ID | null>(readText(KEY));
 

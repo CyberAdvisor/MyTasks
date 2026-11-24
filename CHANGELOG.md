@@ -4,6 +4,21 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.11.0"></a>
+
+## 1.11.0 — 2026-11-24
+
+### Added
+
+- Groundwork for several gists on one device (Milestone 19), such as Work and Personal: each gist will have its own copy of its tasks on the device, its own passphrase, and a name and colour. Nothing changes on screen yet; adding and switching gists come in the next version.
+- Each gist has a name and a colour, kept encrypted in the gist so every device shows the same. A gist from before this version is named **Default**, and can be renamed once naming arrives.
+
+### Changed
+
+- Backup and archive file names include the gist's name, such as "My Tasks Default backup 2026-11-24 0905.json".
+- The theme (Light, Dark or System) is kept for the device rather than with the tasks, so it stays the same whichever gist is open. Your current choice carries over.
+- Every device needs this version before it syncs with a device that has it: an older version says "Update needed — reload the app".
+
 <a id="v1.10.5"></a>
 
 ## 1.10.5 — 2026-11-23

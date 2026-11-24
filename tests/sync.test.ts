@@ -372,8 +372,7 @@ describe('local changes (FR-19.5)', () => {
     expect((await db.settings.get('sequentialTags'))?.value).toEqual(rows);
   });
 
-  it('settings carry a change time; the theme stays on this device', async () => {
-    await repo.setSetting('theme', 'dark');
+  it('settings carry a change time', async () => {
     await repo.setSetting('autoP1', false);
     expect((await db.settings.get('autoP1'))?.modifiedAt).toBeTruthy();
     expect((await readLocal()).settings.map((s) => s.key)).toEqual(['autoP1']);

@@ -12,6 +12,7 @@
   import { archiveCounts, archiveCsv, archiveCutoff, archiveFileName, longDate, selectArchive, type ArchiveSelection } from '../lib/archive';
   import type { Existing } from '../lib/import/plan';
   import { saveFile } from '../lib/saveFile';
+  import { settings } from '../lib/state/live';
 
   let { onmessage, onerror }: { onmessage: (text: string) => void; onerror: (text: string) => void } = $props();
 
@@ -41,7 +42,7 @@
     if (v !== 'archive' || !p) return;
     busy = true;
     try {
-      const name = archiveFileName(today());
+      const name = archiveFileName(today(), $settings.gistLabel);
       const saved = await saveFile(new File([archiveCsv(p.sel, p.live)], name, { type: 'text/csv' }));
       if (saved === 'dismissed') {
         onmessage('Nothing was archived: the file wasn’t saved.');
@@ -73,7 +74,7 @@
     title={`Archive ${archiveCounts(pending.sel)}?`}
     message={`They were completed before ${longDate(pending.sel.before)}.`}
     points={[
-      `They’re saved to a new file, ${archiveFileName(today())}, then removed from My Tasks on every device.`,
+      `They’re saved to a new file, ${archiveFileName(today(), $settings.gistLabel)}, then removed from My Tasks on every device.`,
       'This can’t be undone in My Tasks: keep the file. Import… can bring them back from it.',
     ]}
     choices={[{ label: 'Archive', value: 'archive', danger: true }]}

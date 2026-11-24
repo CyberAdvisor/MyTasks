@@ -40,9 +40,10 @@
   import { get } from 'svelte/store';
   import { tick, untrack } from 'svelte';
   import { focusArea, setFocus } from './lib/state/focus';
-  import { fullSnapshot, listSnapshot, settings, todayDate } from './lib/state/live';
+  import { fullSnapshot, listSnapshot, todayDate } from './lib/state/live';
   import { outsideFocus } from './lib/model/focus';
   import { applyTheme } from './lib/theme';
+  import { theme } from './lib/state/theme';
   import { ui } from './lib/state/ui.svelte';
   import { canAddHere, draftStartFor, openQuickEntry, trashProject } from './lib/actions';
   import { COPY_NOW_DIALOG, DELETE_TEMPLATE_DIALOG, stopProjectDialog } from './lib/dialogs';
@@ -66,7 +67,7 @@
   });
 
   // Light, dark or system theme (FR-V.3).
-  $effect(() => applyTheme($settings.theme));
+  $effect(() => applyTheme($theme));
 
   // On wider screens there is no Home screen: open Today instead.
   $effect(() => {

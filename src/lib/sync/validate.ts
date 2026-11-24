@@ -22,7 +22,7 @@
  * are refused in payload.ts.
  */
 import { generateKeyBetween } from 'fractional-indexing';
-import { PRIORITIES, MOVE_TO_COMPLETED, UNSCHEDULED_LIMITS } from '../model/settings';
+import { GIST_COLOURS, PRIORITIES, MOVE_TO_COMPLETED, UNSCHEDULED_LIMITS, isGistName } from '../model/settings';
 import { PROJECT_PARTS, TODO_PARTS } from '../model/parts';
 import type { EntityName, SettingEntry } from '../model/types';
 
@@ -203,6 +203,12 @@ const SETTING_VALUES: Record<string, Rule> = {
     v.every((t) => isObject(t) && matches(t, { tagId: id, priority: orNull(priority), contextId: orNull(id) })),
   showCalendarEvents: bool,
   unscheduledLimit: (v) => UNSCHEDULED_LIMITS.includes(v as number | null),
+  gistLabel: (v) =>
+    isObject(v) &&
+    matches(v, {
+      name: orNull((n) => typeof n === 'string' && isGistName(n)),
+      colour: oneOf(...GIST_COLOURS),
+    }),
 };
 
 /** The settings the checks accept: exactly the ones that sync (SYNCED_SETTINGS in payload.ts). */
