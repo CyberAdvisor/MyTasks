@@ -7,9 +7,9 @@ import { db } from '../src/lib/db/database';
 import * as repo from '../src/lib/db/repo';
 import { clearUndo, onLocalChange, undo } from '../src/lib/db/history';
 import { DecryptError, base64Bytes, deriveKey, newSalt, parseEnvelope, seal, toBase64, unseal } from '../src/lib/sync/crypto';
-import { SyncError, syncOnce } from '../src/lib/sync/cycle';
+import { SyncError, sealPayload, syncOnce } from '../src/lib/sync/cycle';
 import { clearConfig, listGists, loadConfig, type DeviceConfig } from '../src/lib/sync/device';
-import { GistError, checkToken, readGist } from '../src/lib/sync/github';
+import { GistError, checkToken, readGist, writeGist } from '../src/lib/sync/github';
 import { adoptRemote, applyRemote, readLocal } from '../src/lib/sync/local';
 import { changesSince, returnCheck } from '../src/lib/state/live';
 import { SYNCED_SETTINGS, SYNCED_TABLES, mergePayloads, type Payload } from '../src/lib/sync/payload';
@@ -510,6 +510,23 @@ describe('setup (FR-19.1 to FR-19.3)', () => {
     await expect(addExistingGist('good', again, { name: 'Elsewhere', colour: 'red' }, ACK)).rejects.toThrow('already on this device');
     expect(gh.writes).toBe(writes);
     expect((await unlockGist('good', other.gistId, 'other passphrase')).label).toEqual({ name: 'Home', colour: 'green' });
+  });
+
+  it('Add Gist… writes the new name into the gist as it is now, keeping what another device synced meanwhile (v1.11.7)', async () => {
+    const other = await createList('good', 'other passphrase', ACK);
+    await newDevice();
+    await createList('good', 'correct horse', ACK);
+    const opened = await unlockGist('good', other.gistId, 'other passphrase');
+    // Another device syncs a new task to that gist while the name is being typed.
+    // (A real task record, made by the app here, stands in for the other device's.)
+    await repo.createTodo({ title: 'from another device' });
+    const [added] = (await readLocal()).tables.todos;
+    const tables = { ...opened.list.tables, todos: [...opened.list.tables.todos, added] };
+    await writeGist('good', other.gistId, await sealPayload(opened, { ...opened.list, tables }));
+    await addExistingGist('good', opened, { name: 'Home', colour: 'green' }, ACK);
+    const after = await unlockGist('good', other.gistId, 'other passphrase');
+    expect(after.label).toEqual({ name: 'Home', colour: 'green' });
+    expect(after.list.tables.todos.map((r) => r.id)).toContain(added.id);
   });
 
   it('refuses a list from a newer version of the app', async () => {
