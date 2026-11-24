@@ -204,5 +204,6 @@ v1 is built in milestones, each a pull request.
 | 16 | Formatted notes (1.8.0 to 1.8.4): bold, italic, lists and clickable links in task and project notes; fixes on phones; clickable links in checklist items; larger text on the Mac; Apple Pencil drags only after a long press | Done |
 | 17 | Tidier lists (1.9.0 to 1.9.3): a few tasks per project in Unscheduled, with Show All (1.9.0); Scheduled by priority (1.9.1); schema 12 (1.9.2); a chosen None holding only in Today (1.9.3). Then 1.9.4: the return check waits for the sync | Done |
 | 18 | Changes kept on two devices (from 1.10.0): changes to different parts of a task on two devices all kept (1.10.0); a notice when a change was replaced (1.10.1); the count of changes waiting while offline (1.10.2); sharing with people you trust on the website, and its screenshots retaken; the book showing sharing, with Elena's own area, its pictures retaken (1.10.5) | Done |
+| 19 | Several gists (1.11.0 to 1.11.2): several gists on a device, each with its own task database, passphrase, name and colour (1.11.0); the gist band and switcher, Add Gist…, Rename… and Disconnect This Gist (1.11.1); the calendar helper writing to every gist, and the gist's name in its description (1.11.2); the Guide, Limitations and Privacy pages | Done |
 
 The backlog is on the website's [Roadmap](https://mytasks.fyi/roadmap/) page.
