@@ -83,6 +83,7 @@ class FakeGitHub:
     def __init__(self, salts=None):
         salts = salts or {'g1': SALT}
         self.gists = {gid: {cs.TASKS_FILE: json.dumps(self.tasks_envelope(salt))} for gid, salt in salts.items()}
+        self.descriptions = {}  # gist id: description, when not plain "My Tasks"
         self.writes = []
 
     @staticmethod
@@ -93,7 +94,8 @@ class FakeGitHub:
         return dict(env, app='mytasks')
 
     def task_gists(self):
-        return [{'id': gid, 'updated_at': '2026-11-19T00:00:00Z'} for gid in self.gists]
+        return [{'id': gid, 'updated_at': '2026-11-19T00:00:00Z', 'name': cs.description_name(self.descriptions.get(gid, 'My Tasks'))}
+                for gid in self.gists]
 
     def file(self, gist_id, name):
         return self.gists[gist_id].get(name)
@@ -246,6 +248,7 @@ class Syncing(unittest.TestCase):
     def test_a_gist_with_no_passphrase_is_skipped_and_marked_once(self):
         gh, state = FakeGitHub({'g1': SALT, 'g2': OTHER_SALT, 'g3': OTHER_SALT}), {}
         gh.gists['g3'][cs.CALENDAR_FILE] = 'written earlier'
+        gh.descriptions['g3'] = 'My Tasks · Side project'
         self.config['gists'] = self.config['gists'][:1]
         self.sync(gh, state)
         self.events = [event(title='Moved')]
@@ -259,6 +262,7 @@ class Syncing(unittest.TestCase):
             lines = cs.status_lines(self.config, state)
         self.assertIn('Home (gist g1…): last write ' + state['gists']['g1']['lastWrite'] + ' (1 events)', lines)
         self.assertIn(f'Gist g2…: {cs.SKIPPED}', lines)
+        self.assertIn(f'Side project (gist g3…): {cs.SKIPPED}', lines)  # named from its description
 
     def test_marker_fixture(self):
         # The app reads this file as "set up again" (tests/calendarEnvelope.test.ts).
@@ -280,11 +284,23 @@ class Syncing(unittest.TestCase):
         gh = FakeGitHub({'g1': SALT, 'g2': OTHER_SALT, 'g3': SALT})
         gh.gists['g1'][cs.TASKS_FILE] = json.dumps(FakeGitHub.tasks_envelope(SALT, name='Home'))
         gh.gists['g3'][cs.TASKS_FILE] = json.dumps(FakeGitHub.tasks_envelope(SALT, passphrase='another one'))
-        answers = iter(['wrong', PASSPHRASE, ''])  # g1: wrong, then right; g2 opens with it; g3: skipped
+        gh.descriptions['g1'] = 'My Tasks · Home'
+        answers, prompts = iter(['wrong', PASSPHRASE, '']), []  # g1: wrong, then right; g2 opens with it; g3: skipped
+
+        def ask(prompt):
+            prompts.append(prompt)
+            return next(answers)
         with mock.patch('sys.stdout', io.StringIO()):
-            opened = cs.open_gists(gh, gh.task_gists(), ask=lambda prompt: next(answers))
+            opened = cs.open_gists(gh, gh.task_gists(), ask=ask)
         self.assertEqual([(g['id'], g['name']) for g in opened], [('g1', 'Home'), ('g2', 'Default')])
         self.assertEqual(next(answers, 'all used'), 'all used')
+        self.assertTrue(prompts[0].startswith('Passphrase for Home (gist g1…, updated '))  # the name from the description
+        self.assertTrue(prompts[2].startswith('Passphrase for gist g3…, updated '))  # no name: the id alone
+
+    def test_the_name_in_a_description(self):
+        self.assertEqual(cs.description_name('My Tasks · Work'), 'Work')
+        for none in ('My Tasks', 'My Tasks · ', 'Notes', None):
+            self.assertIsNone(cs.description_name(none))
 
 
 class Commands(unittest.TestCase):

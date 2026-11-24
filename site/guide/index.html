@@ -210,7 +210,7 @@
 curl -fsSLO https://raw.githubusercontent.com/CyberAdvisor/MyTasks/main/helper/calendar_sync.py
 python3 -m pip install --user cryptography</code></pre>
       If your Mac offers to install the command line developer tools, install them (they include Python) and paste the lines again.</li>
-    <li>Run the setup and answer its questions: your token, then the passphrase of each of your gists in turn (press Return to skip one; a passphrase you’ve already typed is tried on the next gists first), then the calendars to show and how many months ahead besides this one (1 to 6; press Return for 4). Every gist gets the same events. If macOS asks whether Terminal may access your calendars, click <strong>Allow</strong>. Your token and passphrases are kept in your Mac’s Keychain.
+    <li>Run the setup and answer its questions: your token, then the passphrase of each of your gists in turn, each asked for by the gist's name (press Return to skip one; a passphrase you’ve already typed is tried on the next gists first), then the calendars to show and how many months ahead besides this one (1 to 6; press Return for 4). Every gist gets the same events. If macOS asks whether Terminal may access your calendars, click <strong>Allow</strong>. Your token and passphrases are kept in your Mac’s Keychain.
 <pre><code>python3 calendar_sync.py setup</code></pre>
       At the end it prints a <strong>start</strong> line. Copy it.</li>
     <li>Open <strong>Shortcuts</strong>, create a new shortcut named <strong>My Tasks Calendar</strong>, add the <strong>Run Shell Script</strong> action, and paste the start line into it. It ends in <code>--every 15</code>: the helper reads your calendars every 15 minutes (5 to 60) and writes only when something changed.</li>

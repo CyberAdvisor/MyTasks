@@ -10,7 +10,8 @@ Versions follow [Semantic Versioning](https://semver.org). The first change to t
 
 ### Changed
 
-- The calendar helper on your Mac writes your events to every one of your gists, each encrypted with that gist's own passphrase. Its setup asks for each gist's passphrase in turn; press Return to skip one. `status` shows a line for each gist.
+- The calendar helper on your Mac writes your events to every one of your gists, each encrypted with that gist's own passphrase. Its setup asks for each gist's passphrase in turn, by the gist's name; press Return to skip one. `status` shows a line for each gist.
+- A gist's name is now also in its description on GitHub, such as "My Tasks · Work", in plain text, so the helper can show it before you enter the passphrase. It updates the next time the gist syncs a change. Your tasks stay encrypted.
 - If you change one gist's passphrase, the helper stops writing to that gist only; your other gists keep getting events.
 - A gist the helper has no passphrase for, such as one added after its setup, says so in Settings › Calendar Events, with a reminder to run the helper's setup again.
 

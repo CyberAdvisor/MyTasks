@@ -87,6 +87,7 @@ API = 'https://api.github.com'
 RAW_PREFIX = 'https://gist.githubusercontent.com/'
 TASKS_FILE = 'mytasks.json'
 CALENDAR_FILE = 'calendar.json'
+DESCRIPTION_PREFIX = 'My Tasks · '  # the app's gist description, "My Tasks · <name>" (gistDescription in github.ts)
 REQUEST_TIMEOUT = 30  # seconds, as the app's REQUEST_TIMEOUT_MS
 
 # The app's encryption (src/lib/sync/crypto.ts).
@@ -238,11 +239,12 @@ class GitHub:
         return json.loads(text) if url.startswith(API) and text else text
 
     def task_gists(self) -> list:
-        """The user's gists holding mytasks.json: [{id, updated_at}], newest first."""
+        """The user's gists holding mytasks.json: [{id, updated_at, name}], newest first; name from the description, or None."""
         found, page = [], 1
         while True:
             batch = self.request('GET', f'{API}/gists?per_page=100&page={page}')
-            found += [{'id': g['id'], 'updated_at': g['updated_at']} for g in batch if TASKS_FILE in (g.get('files') or {})]
+            found += [{'id': g['id'], 'updated_at': g['updated_at'], 'name': description_name(g.get('description'))}
+                      for g in batch if TASKS_FILE in (g.get('files') or {})]
             if len(batch) < 100:
                 return sorted(found, key=lambda g: g['updated_at'], reverse=True)
             page += 1
@@ -263,6 +265,13 @@ class GitHub:
     def write(self, gist_id: str, name: str, content: str) -> None:
         """Replace one file in the gist; the others are left as they are."""
         self.request('PATCH', f'{API}/gists/{gist_id}', {'files': {name: {'content': content}}})
+
+
+def description_name(description) -> str | None:
+    """The gist's name in its description ("My Tasks · Work"), or None when it has none."""
+    if isinstance(description, str) and description.startswith(DESCRIPTION_PREFIX):
+        return description[len(DESCRIPTION_PREFIX):].strip() or None
+    return None
 
 
 def tasks_envelope(gh: GitHub, gist_id: str) -> dict:
@@ -616,7 +625,8 @@ def sync_once(config: dict, keys: dict, gh: GitHub, state: dict, read=read_calen
     payload = build_payload(read((last - today).days + 1), config['calendars'], last, today)
     h = digest(payload)
     state['lastCheck'] = now_iso()
-    listed = {g['id'] for g in gh.task_gists()}
+    listing = gh.task_gists()
+    listed = {g['id'] for g in listing}
     gists = state.setdefault('gists', {})
     wrote = 0
     for g in config['gists']:
@@ -642,9 +652,13 @@ def sync_once(config: dict, keys: dict, gh: GitHub, state: dict, read=read_calen
         except HelperError as e:
             gs['error'] = str(e)
     known = {g['id'] for g in config['gists']}
-    for gist_id in sorted(listed - known):
-        gs = gists.setdefault(gist_id, {})
+    for g in listing:
+        if g['id'] in known:
+            continue
+        gist_id, gs = g['id'], gists.setdefault(g['id'], {})
         gs['error'] = SKIPPED
+        if g.get('name'):
+            gs['name'] = g['name']
         if not gs.get('marked'):
             try:
                 if gh.file(gist_id, CALENDAR_FILE) is None:
@@ -825,7 +839,7 @@ def open_gists(gh: GitHub, gists: list, ask=getpass.getpass) -> list:
     """
     opened, typed = [], []
     for g in gists:
-        label = f'gist {g["id"][:8]}…, updated {g["updated_at"]}'
+        label = (f'{g["name"]} (' if g.get('name') else '') + f'gist {g["id"][:8]}…, updated {g["updated_at"]}' + (')' if g.get('name') else '')
         env = parse_envelope(gh.file(g['id'], TASKS_FILE) or '', 'mytasks')
         if not env:
             print(f'Skipping {label}: it has no My Tasks file the helper can read.')
@@ -854,7 +868,7 @@ def open_gists(gh: GitHub, gists: list, ask=getpass.getpass) -> list:
         if not found:
             continue
         name = gist_name(found[1])
-        print(f'Opened {name} ({label}).')
+        print(f'Opened {name} (gist {g["id"][:8]}…).')
         opened.append({'id': g['id'], 'salt': salt, 'name': name, 'passphrase': found[0]})
     return opened
 

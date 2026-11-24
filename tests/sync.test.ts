@@ -424,6 +424,16 @@ describe('setup (FR-19.1 to FR-19.3)', () => {
     expect((await loadConfig())?.gistId).toBe(config.gistId);
   });
 
+  it('the gist’s description carries its name in plain text, updated by the next sync (FR-19.14, FR-21.8)', async () => {
+    const config = await createList('good', 'correct horse', ACK);
+    await sync.connected(config);
+    await repo.setSetting('gistLabel', { name: 'Work', colour: 'teal' });
+    await sync.syncNow();
+    const g = gh.gists.get(config.gistId)!;
+    expect(g.description).toBe('My Tasks · Work');
+    expect(Object.keys(g.files)).toEqual(['mytasks.json']);
+  });
+
   it('keeps the risks and limitations acknowledgment on this device, through syncs, and never in the gist', async () => {
     const config = await createList('good', 'correct horse', ACK);
     expect((await loadConfig())?.acknowledged).toEqual(ACK);

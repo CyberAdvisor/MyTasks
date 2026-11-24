@@ -8,9 +8,10 @@
 import { SCHEMA_VERSION } from '../db/database';
 import { upgradeList } from '../db/migrations';
 import { nowIso } from '../model/ids';
+import { cleanGistLabel } from '../model/settings';
 import { DecryptError, MAX_FILE_CHARS, parseEnvelope, seal, unseal, type Envelope } from './crypto';
 import type { DeviceConfig, SyncMark } from './device';
-import { readGistFiles, writeGist } from './github';
+import { gistDescription, readGistFiles, writeGist, type GistWrite } from './github';
 import { applyRemote, dropOldTombstones, readLocal } from './local';
 import { hasFuture, isAway, isOldTombstone, isPayload, mergePayloads, stampOf, type Payload } from './payload';
 import { lostChanges, type LostChange } from './lost';
@@ -97,17 +98,18 @@ export async function openPayload(key: CryptoKey, env: Envelope, wrongKey: SyncP
  * than any device would read back (MAX_FILE_CHARS) is never uploaded, so the
  * gist keeps its last good file. Every create and write goes through here.
  */
-export async function sealPayload(config: Pick<DeviceConfig, 'key' | 'salt' | 'iterations'>, payload: Payload): Promise<string> {
-  return (await sealList(config, payload)).file;
+export async function sealPayload(config: Pick<DeviceConfig, 'key' | 'salt' | 'iterations'>, payload: Payload): Promise<GistWrite> {
+  return (await sealList(config, payload)).write;
 }
 
-/** `sealPayload`, also giving the file's IV. */
-async function sealList(config: Pick<DeviceConfig, 'key' | 'salt' | 'iterations'>, payload: Payload): Promise<{ file: string; iv: string }> {
+/** `sealPayload`, also giving the file's IV. The description carries the list's gist name (`gistLabel`). */
+async function sealList(config: Pick<DeviceConfig, 'key' | 'salt' | 'iterations'>, payload: Payload): Promise<{ write: GistWrite; iv: string }> {
   if (!isPayload(payload)) throw new SyncError('invalid');
   const env = await seal(config.key, config, JSON.stringify(payload), nowIso());
-  const file = JSON.stringify(env);
-  if (file.length > MAX_FILE_CHARS) throw new SyncError('toolarge');
-  return { file, iv: env.cipher.iv };
+  const content = JSON.stringify(env);
+  if (content.length > MAX_FILE_CHARS) throw new SyncError('toolarge');
+  const label = cleanGistLabel(payload.settings.find((s) => s.key === 'gistLabel')?.value);
+  return { write: { content, description: gistDescription(label.name) }, iv: env.cipher.iv };
 }
 
 /**
@@ -132,9 +134,9 @@ function ownEnvelope(config: DeviceConfig, content: string | null): Envelope {
 
 /** Upload `list` (fingerprint `stamp`) and give the mark for the gist it leaves. */
 async function push(config: DeviceConfig, list: Payload, stamp: string): Promise<SyncMark> {
-  const { file, iv } = await sealList(config, list);
-  await writeGist(config.token, config.gistId, file);
-  return { iv, stamp, chars: file.length };
+  const { write, iv } = await sealList(config, list);
+  await writeGist(config.token, config.gistId, write);
+  return { iv, stamp, chars: write.content.length };
 }
 
 /** This device's list, first deleting any tombstones past TOMBSTONE_DAYS (rare, so usually only a read). */

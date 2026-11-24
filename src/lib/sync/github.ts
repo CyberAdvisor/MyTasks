@@ -26,8 +26,23 @@ export const REQUEST_TIMEOUT_MS = 30_000;
 /** The one file in the My Tasks gist. */
 const GIST_FILE = 'mytasks.json';
 
-/** Description of the gist the app creates. */
+/** The start of every My Tasks gist's description. */
 const GIST_DESCRIPTION = 'My Tasks';
+
+/**
+ * A gist's description on GitHub: "My Tasks · <name>", or "My Tasks" while
+ * it has no name (Default). Plain text, so the calendar helper can name the
+ * gist before its passphrase is entered (FR-19.14, FR-21.8).
+ */
+export function gistDescription(name: string | null): string {
+  return name ? `${GIST_DESCRIPTION} · ${name}` : GIST_DESCRIPTION;
+}
+
+/** What one write puts in a gist: the sealed mytasks.json and the gist's description. */
+export interface GistWrite {
+  content: string;
+  description: string;
+}
 
 export type GistErrorCode = 'token' | 'scope' | 'offline' | 'ratelimit' | 'notfound' | 'server';
 
@@ -217,17 +232,20 @@ export async function readGist(token: string, id: string): Promise<string | null
   return fullText(gist.files?.[GIST_FILE]);
 }
 
-/** Create the secret My Tasks gist holding `content`. Resolves to its id. */
-export async function createGist(token: string, content: string): Promise<string> {
+/** Create the secret My Tasks gist holding `write`. Resolves to its id. */
+export async function createGist(token: string, write: GistWrite): Promise<string> {
   const created = await request('POST', '/gists', token, json<{ id: string }>, {
-    description: GIST_DESCRIPTION,
+    description: write.description,
     public: false,
-    files: { [GIST_FILE]: { content } },
+    files: { [GIST_FILE]: { content: write.content } },
   });
   return created.id;
 }
 
-/** Replace the My Tasks file in an existing gist. */
-export async function writeGist(token: string, id: string, content: string): Promise<void> {
-  await request('PATCH', `/gists/${id}`, token, async () => undefined, { files: { [GIST_FILE]: { content } } });
+/** Replace the My Tasks file in an existing gist, and its description; other files are left as they are. */
+export async function writeGist(token: string, id: string, write: GistWrite): Promise<void> {
+  await request('PATCH', `/gists/${id}`, token, async () => undefined, {
+    description: write.description,
+    files: { [GIST_FILE]: { content: write.content } },
+  });
 }
