@@ -238,7 +238,7 @@ class Syncing(unittest.TestCase):
         gh, state = FakeGitHub({'g1': SALT, 'g2': base64.b64encode(bytes([7] * 16)).decode()}), {}
         self.assertEqual(self.sync(gh, state), 1)
         self.assertEqual(gh.writes, [('g1', cs.CALENDAR_FILE)])
-        self.assertEqual(state['gists']['g2'], {'name': 'Work', 'stopped': True, 'error': cs.PASSPHRASE_CHANGED})
+        self.assertEqual(state['gists']['g2'], {'name': 'Work', 'stopped': True, 'error': cs.CHANGED_IN_APP})
         self.assertFalse(cs.all_stopped(self.config, state))
         self.config['gists'] = self.config['gists'][1:]
         self.assertTrue(cs.all_stopped(self.config, state))

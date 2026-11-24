@@ -111,7 +111,7 @@ class HelperError(Exception):
     """A problem to report in one line, without a traceback."""
 
 
-PASSPHRASE_CHANGED = 'The passphrase was changed in My Tasks. Run setup again with the new passphrase.'
+CHANGED_IN_APP = 'The passphrase was changed in My Tasks. Run setup again with the new passphrase.'
 SKIPPED = 'Skipped: no passphrase for this gist. Run setup again to include it.'
 NOT_FOUND = 'The gist was not found. If it was recreated in My Tasks, run setup again.'
 
@@ -633,7 +633,7 @@ def sync_once(config: dict, keys: dict, gh: GitHub, state: dict, read=read_calen
             continue
         try:
             if tasks_envelope(gh, g['id'])['kdf']['salt'] != g['salt']:
-                gs.update(stopped=True, error=PASSPHRASE_CHANGED)
+                gs.update(stopped=True, error=CHANGED_IN_APP)
                 continue
             envelope = seal(keys[g['id']], g['salt'], json.dumps(payload, separators=(',', ':')), now_iso())
             gh.write(g['id'], CALENDAR_FILE, json.dumps(envelope))
@@ -682,7 +682,7 @@ def run_loop(every: int) -> int:
                 print(f'{now_iso()} {e}', flush=True)
             save_json(STATE_FILE, state)
             if all_stopped(config, state):
-                print(f'{now_iso()} {PASSPHRASE_CHANGED}', flush=True)
+                print(f'{now_iso()} {CHANGED_IN_APP}', flush=True)
                 return 1
             time.sleep(every * 60)
     finally:
