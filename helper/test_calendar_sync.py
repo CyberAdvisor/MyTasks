@@ -28,6 +28,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import calendar_sync as cs  # noqa: E402
 
 FIXTURE = os.path.join(os.path.dirname(__file__), 'testdata', 'calendar-envelope.json')
+MARKER_FIXTURE = os.path.join(os.path.dirname(__file__), 'testdata', 'calendar-setup-marker.json')
 PASSPHRASE = 'correct horse battery staple'
 SALT = base64.b64encode(bytes(range(16))).decode()
 IV = bytes(range(100, 112))
@@ -77,24 +78,29 @@ def sample_payload() -> dict:
 
 
 class FakeGitHub:
-    """The gist API in memory: one gist with mytasks.json and maybe calendar.json."""
+    """The gist API in memory: gists by id, each with mytasks.json and maybe calendar.json."""
 
-    def __init__(self, salt=SALT):
-        self.files = {cs.TASKS_FILE: json.dumps(self.tasks_envelope(salt))}
+    def __init__(self, salts=None):
+        salts = salts or {'g1': SALT}
+        self.gists = {gid: {cs.TASKS_FILE: json.dumps(self.tasks_envelope(salt))} for gid, salt in salts.items()}
         self.writes = []
 
     @staticmethod
-    def tasks_envelope(salt):
-        key = cs.derive_key(PASSPHRASE, salt)
-        env = cs.seal(key, salt, '{"records":[]}', '2026-11-19T00:00:00.000Z')
+    def tasks_envelope(salt, passphrase=PASSPHRASE, name=None):
+        key = cs.derive_key(passphrase, salt)
+        settings = [{'key': 'gistLabel', 'value': {'name': name, 'colour': 'blue'}}] if name else []
+        env = cs.seal(key, salt, json.dumps({'app': 'mytasks', 'settings': settings}), '2026-11-19T00:00:00.000Z')
         return dict(env, app='mytasks')
 
+    def task_gists(self):
+        return [{'id': gid, 'updated_at': '2026-11-19T00:00:00Z'} for gid in self.gists]
+
     def file(self, gist_id, name):
-        return self.files.get(name)
+        return self.gists[gist_id].get(name)
 
     def write(self, gist_id, name, content):
-        self.writes.append(name)
-        self.files[name] = content
+        self.writes.append((gist_id, name))
+        self.gists[gist_id][name] = content
 
 
 class Payload(unittest.TestCase):
@@ -190,39 +196,95 @@ class MonthsAhead(unittest.TestCase):
 
     def test_a_reading_covers_the_months_and_says_so(self):
         asked = []
-        config = dict(Syncing.CONFIG, months=4)
-        state = {}
-        key = cs.derive_key(PASSPHRASE, SALT)
-        cs.sync_once(config, key, FakeGitHub(), state, read=lambda days: asked.append(days) or raw(event()), today=TODAY)
+        config = {'gists': [{'id': 'g1', 'salt': SALT}], 'calendars': ['work'], 'months': 4}
+        keys = {'g1': cs.derive_key(PASSPHRASE, SALT)}
+        cs.sync_once(config, keys, FakeGitHub(), {}, read=lambda days: asked.append(days) or raw(event()), today=TODAY)
         self.assertEqual(asked, [(dt.date(2027, 3, 31) - TODAY).days + 1])
 
 
+OTHER_SALT = base64.b64encode(bytes(16)).decode()
+
+
 class Syncing(unittest.TestCase):
-    CONFIG = {'gist': 'g1', 'salt': SALT, 'calendars': ['work'], 'months': 1}
+    """FR-21.8: one reading written to every set-up gist, each with its own key."""
 
     def setUp(self):
-        self.key = cs.derive_key(PASSPHRASE, SALT)
+        self.config = {'gists': [{'id': 'g1', 'salt': SALT, 'name': 'Home'}, {'id': 'g2', 'salt': OTHER_SALT, 'name': 'Work'}],
+                       'calendars': ['work'], 'months': 1}
+        self.keys = {'g1': cs.derive_key(PASSPHRASE, SALT), 'g2': cs.derive_key(PASSPHRASE, OTHER_SALT)}
         self.events = [event()]
 
     def sync(self, gh, state):
-        return cs.sync_once(self.CONFIG, self.key, gh, state, read=lambda days: raw(*self.events), today=TODAY)
+        return cs.sync_once(self.config, self.keys, gh, state, read=lambda days: raw(*self.events), today=TODAY)
 
-    def test_writes_only_when_something_changed(self):
-        gh, state = FakeGitHub(), {}
-        self.assertTrue(self.sync(gh, state))
-        self.assertFalse(self.sync(gh, state))
+    def opened(self, gh, gist_id):
+        env = cs.parse_envelope(gh.gists[gist_id][cs.CALENDAR_FILE], cs.ENVELOPE_APP)
+        return json.loads(cs.unseal(self.keys[gist_id], env))
+
+    def test_writes_each_gist_with_its_own_key_only_when_something_changed(self):
+        gh, state = FakeGitHub({'g1': SALT, 'g2': OTHER_SALT}), {}
+        self.assertEqual(self.sync(gh, state), 2)
+        self.assertEqual(self.sync(gh, state), 0)
         self.events = [event(title='Moved')]
-        self.assertTrue(self.sync(gh, state))
-        self.assertEqual(gh.writes, [cs.CALENDAR_FILE, cs.CALENDAR_FILE])
-        payload = json.loads(cs.unseal(self.key, cs.parse_envelope(gh.files[cs.CALENDAR_FILE], cs.ENVELOPE_APP)))
-        self.assertEqual(payload['events'][0]['title'], 'Moved')
-        self.assertEqual((state['events'], state['lastWrite']), (1, state['lastCheck']))
+        self.assertEqual(self.sync(gh, state), 2)
+        self.assertEqual(gh.writes, [('g1', cs.CALENDAR_FILE), ('g2', cs.CALENDAR_FILE)] * 2)
+        for gid in ('g1', 'g2'):
+            self.assertEqual(self.opened(gh, gid)['events'][0]['title'], 'Moved')
+            self.assertEqual((state['gists'][gid]['events'], state['gists'][gid]['lastWrite']), (1, state['lastCheck']))
+        with self.assertRaises(cs.HelperError):  # each file needs its own gist's key
+            cs.unseal(self.keys['g1'], cs.parse_envelope(gh.gists['g2'][cs.CALENDAR_FILE], cs.ENVELOPE_APP))
 
-    def test_stops_writing_when_the_passphrase_changed(self):
-        gh = FakeGitHub(salt=base64.b64encode(bytes(16)).decode())
-        with self.assertRaises(cs.SaltChanged):
-            self.sync(gh, {})
-        self.assertEqual(gh.writes, [])
+    def test_a_changed_passphrase_stops_that_gist_alone(self):
+        gh, state = FakeGitHub({'g1': SALT, 'g2': base64.b64encode(bytes([7] * 16)).decode()}), {}
+        self.assertEqual(self.sync(gh, state), 1)
+        self.assertEqual(gh.writes, [('g1', cs.CALENDAR_FILE)])
+        self.assertEqual(state['gists']['g2'], {'name': 'Work', 'stopped': True, 'error': cs.PASSPHRASE_CHANGED})
+        self.assertFalse(cs.all_stopped(self.config, state))
+        self.config['gists'] = self.config['gists'][1:]
+        self.assertTrue(cs.all_stopped(self.config, state))
+
+    def test_a_gist_with_no_passphrase_is_skipped_and_marked_once(self):
+        gh, state = FakeGitHub({'g1': SALT, 'g2': OTHER_SALT, 'g3': OTHER_SALT}), {}
+        gh.gists['g3'][cs.CALENDAR_FILE] = 'written earlier'
+        self.config['gists'] = self.config['gists'][:1]
+        self.sync(gh, state)
+        self.events = [event(title='Moved')]
+        self.sync(gh, state)
+        self.assertEqual(gh.writes, [('g1', cs.CALENDAR_FILE), ('g2', cs.CALENDAR_FILE), ('g1', cs.CALENDAR_FILE)])
+        marker = json.loads(gh.gists['g2'][cs.CALENDAR_FILE])
+        self.assertEqual({k: marker[k] for k in ('app', 'format', 'setupNeeded')}, {'app': cs.ENVELOPE_APP, 'format': 1, 'setupNeeded': True})
+        self.assertEqual(gh.gists['g3'][cs.CALENDAR_FILE], 'written earlier')  # an existing file is left as it is
+        self.assertEqual(state['gists']['g2']['error'], cs.SKIPPED)
+        with mock.patch.object(cs, 'running_pid', return_value=None):
+            lines = cs.status_lines(self.config, state)
+        self.assertIn('Home (gist g1…): last write ' + state['gists']['g1']['lastWrite'] + ' (1 events)', lines)
+        self.assertIn(f'Gist g2…: {cs.SKIPPED}', lines)
+
+    def test_marker_fixture(self):
+        # The app reads this file as "set up again" (tests/calendarEnvelope.test.ts).
+        with open(MARKER_FIXTURE) as f:
+            self.assertEqual(json.load(f), cs.setup_marker('2026-11-24T12:00:00.000Z'))
+
+    def test_settings_from_one_gist_keep_working(self):
+        config = cs.upgrade_config({'gist': 'g1', 'salt': SALT, 'calendars': ['work'], 'months': 2})
+        self.assertEqual(config, {'gists': [{'id': 'g1', 'salt': SALT, 'legacy': True}], 'calendars': ['work'], 'months': 2})
+        asked = []
+
+        def run(args, **kw):
+            asked.append(args[args.index('-a') + 1])
+            return subprocess.CompletedProcess(args, 0, 'secret\n', '')
+        self.assertEqual(cs.secrets(config, run), ('secret', {'g1': 'secret'}))
+        self.assertEqual(asked, [cs.TOKEN_ACCOUNT, cs.LEGACY_PASSPHRASE_ACCOUNT])
+
+    def test_setup_tries_typed_passphrases_first_and_enter_skips(self):
+        gh = FakeGitHub({'g1': SALT, 'g2': OTHER_SALT, 'g3': SALT})
+        gh.gists['g1'][cs.TASKS_FILE] = json.dumps(FakeGitHub.tasks_envelope(SALT, name='Home'))
+        gh.gists['g3'][cs.TASKS_FILE] = json.dumps(FakeGitHub.tasks_envelope(SALT, passphrase='another one'))
+        answers = iter(['wrong', PASSPHRASE, ''])  # g1: wrong, then right; g2 opens with it; g3: skipped
+        with mock.patch('sys.stdout', io.StringIO()):
+            opened = cs.open_gists(gh, gh.task_gists(), ask=lambda prompt: next(answers))
+        self.assertEqual([(g['id'], g['name']) for g in opened], [('g1', 'Home'), ('g2', 'Default')])
+        self.assertEqual(next(answers, 'all used'), 'all used')
 
 
 class Commands(unittest.TestCase):
@@ -245,7 +307,7 @@ class Commands(unittest.TestCase):
                 return subprocess.CompletedProcess(args, 0, '', '')
             return subprocess.CompletedProcess(args, 0, 'pa"ss\\word\n', '')
 
-        cs.keychain_set(cs.PASSPHRASE_ACCOUNT, 'pa"ss\\word', run)
+        cs.keychain_set(cs.passphrase_account('g1'), 'pa"ss\\word', run)
         self.assertIn('-w "pa\\"ss\\\\word"', kept['command'])
         self.assertFalse(any('pa"ss' in a for a in kept['args']))
 

@@ -7,8 +7,10 @@
  */
 import { describe, expect, it } from 'vitest';
 import fixture from '../helper/testdata/calendar-envelope.json?raw';
+import marker from '../helper/testdata/calendar-setup-marker.json?raw';
 import { deriveKey, KDF_ITERATIONS, parseEnvelope, unseal, type Envelope } from '../src/lib/sync/crypto';
 import { readCalendar } from '../src/lib/calendar/events';
+import { isSetupMarker } from '../src/lib/calendar/calendar';
 
 describe('calendar.json from the helper', () => {
   it('decrypts with the gist passphrase and holds the events with their details', async () => {
@@ -41,5 +43,13 @@ describe('calendar.json from the helper', () => {
   it('refuses a wrong passphrase', async () => {
     const env = JSON.parse(fixture) as Envelope;
     await expect(unseal(await deriveKey('a different passphrase', env.kdf.salt), env)).rejects.toThrow();
+  });
+
+  it('reads the helper\'s marker for a gist it has no passphrase for (FR-21.8), and nothing else as one', () => {
+    expect(isSetupMarker(marker)).toBe(true);
+    expect(parseEnvelope(marker, 'mytasks-calendar')).toBeNull();
+    expect(isSetupMarker(fixture)).toBe(false);
+    expect(isSetupMarker(JSON.stringify({ ...JSON.parse(marker), app: 'mytasks' }))).toBe(false);
+    expect(isSetupMarker('not json')).toBe(false);
   });
 });

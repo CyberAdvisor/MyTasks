@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Calendar events for My Tasks (FR-21.1, FR-21.2, Milestone 13).
+Calendar events for My Tasks (FR-21.1, FR-21.2, FR-21.8).
 
 Reads the Mac's calendars you choose through EventKit (as Do Things does)
-and writes them, encrypted like your tasks, to a second file in your gist,
-calendar.json. My Tasks reads that file on every device; it never changes
-the calendars.
+and writes them, encrypted like your tasks, to a second file in each of
+your gists, calendar.json. My Tasks reads that file on every device; it
+never changes the calendars.
 
-    python3 calendar_sync.py setup             # once: token, passphrase, calendars, months
+    python3 calendar_sync.py setup             # once: token, each gist's passphrase, calendars, months
     python3 calendar_sync.py start --every 15  # read every 15 minutes (5 to 60), in the background
     python3 calendar_sync.py stop
     python3 calendar_sync.py status            # running or not, last write, any error
@@ -25,10 +25,19 @@ start again replaces the copy already running (for example to change the
 interval).
 
 Where things are kept:
-- The GitHub token and the passphrase: your login Keychain, under
-  "My Tasks calendar helper".
-- Settings (gist, calendars, months) and status: ~/Library/Application
+- The GitHub token and each gist's passphrase: your login Keychain, under
+  "My Tasks calendar helper" (the passphrases as "passphrase:<gist id>").
+- Settings (gists, calendars, months) and status: ~/Library/Application
   Support/My Tasks/. Errors go to calendar-helper.log there too.
+
+Several gists (FR-21.8): every gist in the token's account that holds
+mytasks.json gets the same events, each encrypted with that gist's own
+key. Setup asks for each gist's passphrase in turn (Enter skips one). A
+gist the helper has no passphrase for, including one added later in the
+app, is skipped; if it has no calendar.json, the helper writes a small
+unencrypted marker there, {"app": "mytasks-calendar", "format": 1,
+"setupNeeded": true, "updatedAt": ...}, holding no events or names, so
+that gist's Settings › Calendar Events says to run setup again.
 
 calendar.json is an envelope like mytasks.json (src/lib/sync/crypto.ts):
 the same key (PBKDF2-SHA-256, 600,000 rounds, the salt in mytasks.json),
@@ -45,8 +54,8 @@ fields, left out when empty: location, notes, url, attendees ([{name,
 status}]), organizer, repeat (a line such as "Every 2 weeks on Tue, Thu"),
 alerts ([{"before": minutes}] or [{"at": timestamp}]), availability (busy,
 free, tentative or unavailable) and travelMinutes. Canceled events are left
-out. If the passphrase is changed in the app (a new salt), the helper stops
-writing until setup is run again.
+out. If a gist's passphrase is changed in the app (a new salt), the helper
+stops writing to that gist until setup is run again; the others carry on.
 """
 from __future__ import annotations
 
@@ -66,7 +75,7 @@ import urllib.request
 
 SERVICE = 'My Tasks calendar helper'
 TOKEN_ACCOUNT = 'github-token'
-PASSPHRASE_ACCOUNT = 'passphrase'
+LEGACY_PASSPHRASE_ACCOUNT = 'passphrase'  # the one passphrase kept before several gists
 
 SUPPORT_DIR = os.path.expanduser('~/Library/Application Support/My Tasks')
 CONFIG_FILE = 'calendar-helper.json'
@@ -102,11 +111,9 @@ class HelperError(Exception):
     """A problem to report in one line, without a traceback."""
 
 
-class SaltChanged(HelperError):
-    """The gist's salt changed: the passphrase was changed in the app."""
-
-    def __init__(self) -> None:
-        super().__init__('The passphrase was changed in My Tasks. Run setup again with the new passphrase.')
+PASSPHRASE_CHANGED = 'The passphrase was changed in My Tasks. Run setup again with the new passphrase.'
+SKIPPED = 'Skipped: no passphrase for this gist. Run setup again to include it.'
+NOT_FOUND = 'The gist was not found. If it was recreated in My Tasks, run setup again.'
 
 
 # ---------------------------------------------------------------------------
@@ -173,6 +180,11 @@ def seal(key: bytes, salt: str, plaintext: str, updated_at: str, iv: bytes = Non
     }
 
 
+def setup_marker(updated_at: str) -> dict:
+    """The file written to a gist the helper has no passphrase for (FR-21.8): no events, no names."""
+    return {'app': ENVELOPE_APP, 'format': 1, 'setupNeeded': True, 'updatedAt': updated_at}
+
+
 def unseal(key: bytes, envelope: dict) -> str:
     """Decrypt an envelope. A wrong key or a damaged file raises HelperError."""
     try:
@@ -219,7 +231,7 @@ class GitHub:
             if e.code == 401:
                 raise HelperError('GitHub refused the token. Run setup again with a working token.') from None
             if e.code == 404:
-                raise HelperError('The gist was not found. If it was recreated in My Tasks, run setup again.') from None
+                raise HelperError(NOT_FOUND) from None
             raise HelperError(f'GitHub answered {e.code}.') from None
         except (urllib.error.URLError, TimeoutError, OSError):
             raise HelperError('GitHub could not be reached (offline?).') from None
@@ -253,12 +265,23 @@ class GitHub:
         self.request('PATCH', f'{API}/gists/{gist_id}', {'files': {name: {'content': content}}})
 
 
-def gist_salt(gh: GitHub, gist_id: str) -> str:
-    """The salt in the gist's mytasks.json."""
+def tasks_envelope(gh: GitHub, gist_id: str) -> dict:
+    """The envelope of the gist's mytasks.json."""
     env = parse_envelope(gh.file(gist_id, TASKS_FILE) or '', 'mytasks')
     if not env:
         raise HelperError('The gist has no My Tasks file the helper can read.')
-    return env['kdf']['salt']
+    return env
+
+
+def gist_name(tasks_json: str) -> str:
+    """A gist's name from its decrypted mytasks.json (the gistLabel setting), or Default."""
+    try:
+        settings = json.loads(tasks_json).get('settings') or []
+        label = next((s.get('value') for s in settings if s.get('key') == 'gistLabel'), None) or {}
+        name = label.get('name')
+    except (ValueError, AttributeError):
+        name = None
+    return name if isinstance(name, str) and name else 'Default'
 
 
 # ---------------------------------------------------------------------------
@@ -286,12 +309,25 @@ def keychain_set(account: str, value: str, run=subprocess.run) -> None:
         raise HelperError('The Keychain did not keep the value. Try setup again.')
 
 
-def secrets(run=subprocess.run):
-    """The token and passphrase from the Keychain."""
-    token, passphrase = keychain_get(TOKEN_ACCOUNT, run), keychain_get(PASSPHRASE_ACCOUNT, run)
-    if not token or not passphrase:
-        raise HelperError('The token or passphrase is not in the Keychain. Run setup first.')
-    return token, passphrase
+def keychain_delete(account: str, run=subprocess.run) -> None:
+    """Remove a value from the Keychain; nothing happens if it isn't there."""
+    run(['security', 'delete-generic-password', '-s', SERVICE, '-a', account], capture_output=True, text=True)
+
+
+def passphrase_account(gist_id: str) -> str:
+    return f'passphrase:{gist_id}'
+
+
+def secrets(config: dict, run=subprocess.run):
+    """The token, and each set-up gist's passphrase ({gist id: passphrase}), from the Keychain."""
+    token = keychain_get(TOKEN_ACCOUNT, run)
+    passphrases = {}
+    for g in config['gists']:
+        account = LEGACY_PASSPHRASE_ACCOUNT if g.get('legacy') else passphrase_account(g['id'])
+        passphrases[g['id']] = keychain_get(account, run)
+    if not token or not all(passphrases.values()):
+        raise HelperError('The token or a passphrase is not in the Keychain. Run setup first.')
+    return token, passphrases
 
 
 # ---------------------------------------------------------------------------
@@ -548,39 +584,88 @@ def save_json(name: str, value) -> None:
     os.replace(tmp, path(name))
 
 
+def upgrade_config(config: dict) -> dict:
+    """Settings from before several gists ({gist, salt}) as one gist, whose passphrase is the old Keychain entry."""
+    if 'gists' in config or 'gist' not in config:
+        return config
+    rest = {k: v for k, v in config.items() if k not in ('gist', 'salt')}
+    return dict(rest, gists=[{'id': config['gist'], 'salt': config['salt'], 'legacy': True}])
+
+
 def load_config() -> dict:
     config = load_json(CONFIG_FILE)
     if not config:
         raise HelperError('The helper is not set up yet. Run: python3 calendar_sync.py setup')
-    return config
+    return upgrade_config(config)
 
 
 # ---------------------------------------------------------------------------
 # One reading, and the loop.
 
 
-def sync_once(config: dict, key: bytes, gh: GitHub, state: dict, read=read_calendar, today=None) -> bool:
-    """Read the calendars and write calendar.json if anything changed. True if it wrote."""
+def sync_once(config: dict, keys: dict, gh: GitHub, state: dict, read=read_calendar, today=None) -> int:
+    """
+    Read the calendars once and write calendar.json to each set-up gist whose
+    events changed, with that gist's key (`keys`: {gist id: key}). A gist
+    whose passphrase changed is stopped; one with no passphrase is skipped
+    and gets the setup marker if it has no calendar.json. Each gist's result
+    is in state['gists'][id]. How many gists it wrote to.
+    """
     today = today or dt.date.today()
     last = last_day(today, config_months(config))
     payload = build_payload(read((last - today).days + 1), config['calendars'], last, today)
     h = digest(payload)
     state['lastCheck'] = now_iso()
-    if h == state.get('hash'):
-        return False
-    if gist_salt(gh, config['gist']) != config['salt']:
-        raise SaltChanged()
-    envelope = seal(key, config['salt'], json.dumps(payload, separators=(',', ':')), now_iso())
-    gh.write(config['gist'], CALENDAR_FILE, json.dumps(envelope))
-    state.update(hash=h, lastWrite=state['lastCheck'], events=len(payload['events']))
-    return True
+    listed = {g['id'] for g in gh.task_gists()}
+    gists = state.setdefault('gists', {})
+    wrote = 0
+    for g in config['gists']:
+        gs = gists.setdefault(g['id'], {})
+        if g.get('name'):
+            gs['name'] = g['name']
+        if gs.get('stopped'):
+            continue
+        if g['id'] not in listed:
+            gs['error'] = NOT_FOUND
+            continue
+        if h == gs.get('hash'):
+            gs['error'] = None
+            continue
+        try:
+            if tasks_envelope(gh, g['id'])['kdf']['salt'] != g['salt']:
+                gs.update(stopped=True, error=PASSPHRASE_CHANGED)
+                continue
+            envelope = seal(keys[g['id']], g['salt'], json.dumps(payload, separators=(',', ':')), now_iso())
+            gh.write(g['id'], CALENDAR_FILE, json.dumps(envelope))
+            gs.update(hash=h, lastWrite=state['lastCheck'], events=len(payload['events']), error=None)
+            wrote += 1
+        except HelperError as e:
+            gs['error'] = str(e)
+    known = {g['id'] for g in config['gists']}
+    for gist_id in sorted(listed - known):
+        gs = gists.setdefault(gist_id, {})
+        gs['error'] = SKIPPED
+        if not gs.get('marked'):
+            try:
+                if gh.file(gist_id, CALENDAR_FILE) is None:
+                    gh.write(gist_id, CALENDAR_FILE, json.dumps(setup_marker(now_iso())))
+                gs['marked'] = True
+            except HelperError:
+                pass  # tried again at the next reading
+    return wrote
+
+
+def all_stopped(config: dict, state: dict) -> bool:
+    """Whether every set-up gist's passphrase was changed, leaving nothing to write to."""
+    gists = state.get('gists') or {}
+    return all((gists.get(g['id']) or {}).get('stopped') for g in config['gists'])
 
 
 def run_loop(every: int) -> int:
-    """The background reading: every `every` minutes until stopped or the passphrase changes."""
+    """The background reading: every `every` minutes until stopped or every gist's passphrase changed."""
     config = load_config()
-    token, passphrase = secrets()
-    key = derive_key(passphrase, config['salt'])
+    token, passphrases = secrets(config)
+    keys = {g['id']: derive_key(passphrases[g['id']], g['salt']) for g in config['gists']}
     gh = GitHub(token)
     state = load_json(STATE_FILE) or {}
     state.update(pid=os.getpid(), every=every, startedAt=now_iso(), error=None)
@@ -590,17 +675,15 @@ def run_loop(every: int) -> int:
     try:
         while True:
             try:
-                sync_once(config, key, gh, state)
+                sync_once(config, keys, gh, state)
                 state['error'] = None
-            except SaltChanged as e:
-                state['error'] = str(e)
-                save_json(STATE_FILE, state)
-                print(f'{now_iso()} {e}', flush=True)
-                return 1
             except HelperError as e:
                 state['error'] = str(e)
                 print(f'{now_iso()} {e}', flush=True)
             save_json(STATE_FILE, state)
+            if all_stopped(config, state):
+                print(f'{now_iso()} {PASSPHRASE_CHANGED}', flush=True)
+                return 1
             time.sleep(every * 60)
     finally:
         if running_pid() == os.getpid():
@@ -647,8 +730,7 @@ def every_minutes(value: str) -> int:
 
 
 def cmd_start(every: int) -> int:
-    load_config()
-    secrets()
+    secrets(load_config())
     aesgcm(bytes(32))  # the package is installed
     replaced = stop()
     os.makedirs(SUPPORT_DIR, exist_ok=True)
@@ -666,36 +748,58 @@ def cmd_stop() -> int:
     return 0
 
 
+def status_lines(config: dict, state: dict) -> list:
+    """What `status` prints: running or not, the settings, and a line for each gist."""
+    lines = [f'Running, every {state.get("every")} minutes.' if running_pid() else 'Not running.']
+    months = config_months(config)
+    lines.append(f'Calendars: {len(config["calendars"])}, this month and {months} {"month" if months == 1 else "months"} ahead.')
+    lines.append(f'Last check: {state.get("lastCheck") or "never"}')
+    gists = state.get('gists') or {}
+    known = [g['id'] for g in config['gists']]
+    for gist_id in known + sorted(set(gists) - set(known)):
+        gs = gists.get(gist_id) or {}
+        name = gs.get('name') or next((g.get('name') for g in config['gists'] if g['id'] == gist_id), None)
+        label = f'{name} (gist {gist_id[:8]}…)' if name else f'Gist {gist_id[:8]}…'
+        if gist_id in known:
+            line = f'{label}: last write {gs.get("lastWrite") or "never"} ({gs.get("events", 0)} events)'
+            lines.append(line + (f'. {gs["error"]}' if gs.get('error') else ''))
+        else:
+            lines.append(f'{label}: {gs.get("error") or SKIPPED}')
+    if state.get('error'):
+        lines.append(f'Error: {state["error"]}')
+    return lines
+
+
 def cmd_status() -> int:
-    config, state = load_json(CONFIG_FILE), load_json(STATE_FILE) or {}
+    config = load_json(CONFIG_FILE)
     if not config:
         print('Not set up. Run: python3 calendar_sync.py setup')
         return 0
-    pid = running_pid()
-    print(f'Running, every {state.get("every")} minutes.' if pid else 'Not running.')
-    months = config_months(config)
-    print(f'Calendars: {len(config["calendars"])}, this month and {months} {"month" if months == 1 else "months"} ahead.')
-    print(f'Last check: {state.get("lastCheck") or "never"}')
-    print(f'Last write: {state.get("lastWrite") or "never"} ({state.get("events", 0)} events)')
-    if state.get('error'):
-        print(f'Error: {state["error"]}')
+    print('\n'.join(status_lines(upgrade_config(config), load_json(STATE_FILE) or {})))
     return 0
 
 
 def cmd_check() -> int:
     config = load_config()
-    token, passphrase = secrets()
-    content = GitHub(token).file(config['gist'], CALENDAR_FILE)
-    if content is None:
-        print('The gist has no calendar.json yet.')
-        return 1
-    env = parse_envelope(content, ENVELOPE_APP)
-    if not env:
-        raise HelperError('calendar.json is not a calendar file the helper wrote.')
-    payload = json.loads(unseal(derive_key(passphrase, env['kdf']['salt']), env))
-    print(f'calendar.json: {len(payload["events"])} events from {len(payload["calendars"])} calendars, '
-          f'{payload["from"]} to {payload["to"]}, written {env["updatedAt"]}.')
-    return 0
+    token, passphrases = secrets(config)
+    gh, failed = GitHub(token), 0
+    for g in config['gists']:
+        label = f'{g.get("name") or "Gist"} (gist {g["id"][:8]}…)'
+        content = gh.file(g['id'], CALENDAR_FILE)
+        env = parse_envelope(content, ENVELOPE_APP) if content is not None else None
+        if not env:
+            print(f'{label}: ' + ('no calendar.json yet.' if content is None else 'calendar.json is not a calendar file the helper wrote.'))
+            failed += 1
+            continue
+        try:
+            payload = json.loads(unseal(derive_key(passphrases[g['id']], env['kdf']['salt']), env))
+        except HelperError as e:
+            print(f'{label}: {e}')
+            failed += 1
+            continue
+        print(f'{label}: {len(payload["events"])} events from {len(payload["calendars"])} calendars, '
+              f'{payload["from"]} to {payload["to"]}, written {env["updatedAt"]}.')
+    return 1 if failed else 0
 
 
 def choose(prompt: str, count: int, allow_many: bool):
@@ -713,6 +817,48 @@ def choose(prompt: str, count: int, allow_many: bool):
         print(f'Type {"numbers" if allow_many else "a number"} from 1 to {count}.')
 
 
+def open_gists(gh: GitHub, gists: list, ask=getpass.getpass) -> list:
+    """
+    Each gist's passphrase, in turn (FR-21.8): passphrases already typed are
+    tried first, then the user is asked, up to three times; Enter skips the
+    gist. [{id, salt, name, passphrase}] for the gists that opened.
+    """
+    opened, typed = [], []
+    for g in gists:
+        label = f'gist {g["id"][:8]}…, updated {g["updated_at"]}'
+        env = parse_envelope(gh.file(g['id'], TASKS_FILE) or '', 'mytasks')
+        if not env:
+            print(f'Skipping {label}: it has no My Tasks file the helper can read.')
+            continue
+        salt = env['kdf']['salt']
+
+        def opens(passphrase: str):
+            try:
+                return unseal(derive_key(passphrase, salt), env)
+            except HelperError:
+                return None
+
+        found = next(((p, t) for p in typed for t in [opens(p)] if t is not None), None)
+        for tries in range(3):
+            if found:
+                break
+            passphrase = ask(f'Passphrase for {label} (Enter to skip; typing is hidden): ')
+            if not passphrase:
+                break
+            text = opens(passphrase)
+            if text is not None:
+                found = (passphrase, text)
+                typed.append(passphrase)
+            else:
+                print('That passphrase does not open this gist.' + (' Try again.' if tries < 2 else ' Skipping it.'))
+        if not found:
+            continue
+        name = gist_name(found[1])
+        print(f'Opened {name} ({label}).')
+        opened.append({'id': g['id'], 'salt': salt, 'name': name, 'passphrase': found[0]})
+    return opened
+
+
 def cmd_setup() -> int:
     aesgcm(bytes(32))  # the package is installed
     print('My Tasks calendar helper setup. Nothing is saved until the end.\n')
@@ -720,24 +866,10 @@ def cmd_setup() -> int:
     gists = gh.task_gists()
     if not gists:
         raise HelperError('No My Tasks gist was found for this token.')
-    gist = gists[0]
-    if len(gists) > 1:
-        for i, g in enumerate(gists, 1):
-            print(f'  {i}. gist {g["id"][:8]}…, updated {g["updated_at"]}')
-        gist = gists[(choose('Which gist? (Enter for 1) ', len(gists), False) or [1])[0] - 1]
-    env = parse_envelope(gh.file(gist['id'], TASKS_FILE) or '', 'mytasks')
-    if not env:
-        raise HelperError('The gist has no My Tasks file the helper can read.')
-    salt = env['kdf']['salt']
-    for tries in range(3):
-        passphrase = getpass.getpass('Passphrase (typing is hidden): ')
-        key = derive_key(passphrase, salt)
-        try:
-            unseal(key, env)
-            break
-        except HelperError:
-            print('That passphrase does not open your tasks.' + (' Try again.' if tries < 2 else ''))
-    else:
+    print(f'Your gists: {len(gists)}. Each needs its own passphrase.')
+    opened = open_gists(gh, gists)
+    if not opened:
+        print('No gist was opened, so nothing was saved.')
         return 1
     raw = read_calendar(1)
     print('\nYour calendars:')
@@ -747,10 +879,17 @@ def cmd_setup() -> int:
     calendars = [raw['calendars'][p - 1]['id'] for p in picks] if picks else [c['id'] for c in raw['calendars']]
     months = (choose(f'Months ahead, {MIN_MONTHS} to {MAX_MONTHS} (Enter for {DEFAULT_MONTHS}): ', MAX_MONTHS, False) or [DEFAULT_MONTHS])[0]
     keychain_set(TOKEN_ACCOUNT, gh.token)
-    keychain_set(PASSPHRASE_ACCOUNT, passphrase)
-    save_json(CONFIG_FILE, {'gist': gist['id'], 'salt': salt, 'calendars': calendars, 'months': months})
+    for g in opened:
+        keychain_set(passphrase_account(g['id']), g['passphrase'])
+    keychain_delete(LEGACY_PASSPHRASE_ACCOUNT)
+    config_gists = [{k: g[k] for k in ('id', 'salt', 'name')} for g in opened]
+    save_json(CONFIG_FILE, {'gists': config_gists, 'calendars': calendars, 'months': months})
     save_json(STATE_FILE, {})  # the next start writes calendar.json at once
-    print(f'\nSaved: {len(calendars)} calendars, this month and {months} months ahead. Start it with:')
+    print(f'\nSaved: {len(calendars)} calendars, this month and {months} months ahead, for '
+          + ', '.join(g['name'] for g in opened) + '.')
+    if len(opened) < len(gists):
+        print(f'Skipped: {len(gists) - len(opened)} gists. Run setup again to include them.')
+    print('Start it with:')
     print(f'  {sys.executable} "{os.path.abspath(__file__)}" start --every {DEFAULT_EVERY}')
     if running_pid():
         print('The helper is running with the old settings: start it again to use these.')

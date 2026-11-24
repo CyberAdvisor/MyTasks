@@ -368,6 +368,11 @@
       <Icon name="alert" size={15} color="var(--danger)" /> The calendar events were written with a different passphrase.
       On your Mac, run the calendar helper’s setup again.
     </p>
+  {:else if $calendar.problem === 'setup'}
+    <p class="sync-problem" role="alert">
+      <Icon name="alert" size={15} color="var(--danger)" /> Calendar events aren’t set up for this gist. On your Mac, run
+      the calendar helper’s setup again.
+    </p>
   {:else if $calendar.problem === 'unreadable'}
     <p class="sync-problem" role="alert">
       <Icon name="alert" size={15} color="var(--danger)" /> The calendar events in your gist couldn’t be read. Update the
