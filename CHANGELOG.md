@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.11.3"></a>
+
+## 1.11.3 — 2026-11-24
+
+### Changed
+
+- The calendar helper on your Mac lets you choose the calendars for each gist, such as only your work calendar in Work. Its setup lists your calendars once, then asks for each gist: press Return for all, or 0 for none. How many months ahead is still set once for all gists. Settings from earlier versions keep working: each gist gets the calendars chosen before, until you run setup again.
+
 <a id="v1.11.2"></a>
 
 ## 1.11.2 — 2026-11-24
