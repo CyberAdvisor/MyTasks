@@ -21,7 +21,7 @@
 
 <main class="page">
   <h1>Risks and limitations</h1>
-  <p class="updated">Last updated November 23, 2026</p>
+  <p class="updated">Last updated November 24, 2026</p>
   <p>My Tasks is free and open source, and ready for use within the limitations below. Please read this page before you rely on it. When you set up My Tasks, you're asked to confirm you've read it.</p>
   <div class="toc"><strong>On this page</strong>
     <ol>
@@ -59,27 +59,31 @@
     <p>Two or more people who trust each other can share My Tasks by using one gist, one token and one passphrase. The more people who share it, the more likely conflicts and surprises become: changes replacing each other, and shared settings or actions such as Empty Trash affecting everyone. There's <strong>no privacy</strong> between you: each of you can see, change and delete every task, and Focus on this Area only filters the screen. You all use the same token from the GitHub account that holds the gist, and it can read and change every gist in that account. Synced settings, tags and contexts are shared. Empty Trash, Archive, Restore and Change Passphrase affect all of you. When two of you change the same part of a task before syncing, only the person whose change was replaced is told. The gist's history keeps earlier versions, and anyone with the gist's address and the passphrase used at the time can open them. Sharing isn't suited to teams: there are no separate sign-ins or permissions, and no record of who changed what. <a href="/guide/#sharing">How to share</a>.</p>
     <p class="do">What to do: share only with people you'd trust with all your tasks and all the gists in that GitHub account. Give the token an expiry. When sharing ends, make a new token for your own devices and revoke the old one. Agree on who runs Empty Trash, Archive and Restore, and save a backup from time to time.</p></div>
 
-  <div class="item" id="device"><h3>6. Your device's copy</h3>
+  <div class="item" id="several-gists"><h3>6. Several gists</h3>
+    <p>A device can hold several gists, such as Work and Personal (<a href="/guide/#several-gists">Guide</a>), but only one is open at a time, and nothing works across them: search, Today and the other lists show only the open gist, and tasks can't be moved from one gist to another. Each gist has its own 5,000-task limit, its own 170-day rule (a gist not synced on a device for over 170 days waits there, as a device does), and its own passphrase. A gist's name is in its description on GitHub, in plain text, where anyone with the gist's web address can read it.</p>
+    <p class="do">What to do: split your tasks where you rarely need both at once, for example a gist for a large project; this is also how to go past 5,000 tasks. Use a different passphrase for each gist, and a name you don't mind being readable.</p></div>
+
+  <div class="item" id="device"><h3>7. Your device's copy</h3>
     <p>Each device keeps a working copy of your tasks in the browser's storage so it works offline. That copy is <strong>not</strong> encrypted: anyone who can use your unlocked device can read it.</p>
     <p>A backup file you save in Settings › Backup is <strong>not</strong> encrypted either: anyone who can open it can read your tasks. Restoring one replaces all your tasks, on every device once it syncs, and can't be undone.</p>
     <p><strong>Archive</strong> files and a Things export are plain CSV files, not encrypted either. Archive removes the items it saves from every device for good: the file is then the only copy.</p>
     <p class="do">What to do: lock your devices, and use Disconnect This Device in Settings before giving one away. Keep backup, archive and export files somewhere only you can open, and save a backup before you restore one.</p></div>
 
-  <div class="item" id="safari"><h3>7. Safari tabs</h3>
+  <div class="item" id="safari"><h3>8. Safari tabs</h3>
     <p>In a Safari tab, Safari can delete a site's data after 7 days without use. Your tasks are also in your gist and come back when you connect again, but a change not yet synced would be lost. On iPhone and iPad, the installed app and Safari keep separate copies.</p>
     <p class="do">What to do: install My Tasks (Add to Home Screen, or Add to Dock on a Mac). Your tasks are also in your gist.</p></div>
 
-  <div class="item" id="not-possible"><h3>8. What a web app can't do on its own</h3>
+  <div class="item" id="not-possible"><h3>9. What a web app can't do on its own</h3>
     <p>Without a server, My Tasks itself can't send notifications. <strong>Reminders</strong> are coming through the helper you run on a Mac, Mac only for now: you'll give a task a reminder time, and the helper will add it to Apple Reminders, which alerts you on your iPhone, iPad, Mac and Apple Watch. Until then, for a task that needs an alert at a set time, add a reminder for it in your device's reminders app. Web apps also can't have widgets, Siri or Shortcuts actions, an Apple Watch app, or a Quick Entry shortcut that works from other apps. Sharing is limited to people who trust each other using one gist (<a href="#sharing">Sharing with someone else</a>).</p>
     <p>Without a server, every device's tasks travel as one encrypted file in your gist, which holds about 5 MB. So My Tasks holds up to <strong>5,000 tasks</strong>, counting completed tasks and the Trash. From 4,500 the sidebar says how many you have; at 5,000 new tasks are refused until you make room. A repeating task still makes its next copy, and tasks from your other devices still arrive.</p>
     <p>A web app can't read your device's calendars. <strong>Calendar events</strong> come only from the helper you run on a Mac (<a href="/guide/#calendar">Guide</a>): without it, no events show, on any device. Events arrive when the helper runs (every 15 minutes by default) and the app next syncs, so a new event can take a while to appear. They're read-only, and there's no helper for Windows, Linux or a phone yet. Your events, with their titles, times and details, are kept in your gist, encrypted like your tasks, and the helper keeps your token and passphrase in your Mac's login Keychain.</p>
     <p class="do">What to do: empty the Trash and delete completed tasks you no longer need. Save a backup first if you want to keep them.</p></div>
 
-  <div class="item" id="platforms"><h3>9. Platforms</h3>
+  <div class="item" id="platforms"><h3>10. Platforms</h3>
     <p>My Tasks is tuned for Safari on Mac, iPhone and iPad, and for Chrome and Edge. Android works but isn't tested. Firefox can't install web apps. Screen readers and other assistive technology aren't supported yet. English only.</p>
     <p>Tag shortcuts use Control on Apple devices. On other systems the browser keeps Control and a letter for itself, so they use Alt instead; there, Alt with 0 to 5 stays with priorities, and in a browser tab Alt+D and Alt+H stay with their own shortcuts.</p></div>
 
-  <div class="item" id="no-warranty"><h3>10. No guarantees</h3>
+  <div class="item" id="no-warranty"><h3>11. No guarantees</h3>
     <p>My Tasks is provided as is, under the MIT licence, with no warranty and no guaranteed support or availability. Ask for help in <a href="https://www.reddit.com/r/mytasksfyi/">r/mytasksfyi</a> on Reddit, or <a href="https://github.com/CyberAdvisor/MyTasks/issues">report problems on GitHub</a>.</p>
     <p>Because My Tasks is open source, you can also host your own copy, or change it to suit you: see <a href="/self-hosting/">Your own copy</a>. A copy you host is yours to look after.</p></div>
 </main>

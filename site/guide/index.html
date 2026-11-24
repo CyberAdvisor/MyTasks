@@ -115,6 +115,32 @@
     <li>Earlier versions in the gist’s history stay encrypted with the old passphrase: anyone who has the gist’s address and that passphrase can still open them.</li>
   </ul>
 
+  <h2 id="several-gists">Several gists</h2>
+  <p>You can keep more than one set of tasks on a device, each in its own gist, such as <strong>Work</strong> and <strong>Personal</strong>. Each gist has its own tasks, projects, areas, tags and settings, its own passphrase, and a name and colour. Only one is open at a time.</p>
+  <h3 id="gists-add">Adding a gist</h3>
+  <ul>
+    <li>In Settings › Sync › <strong>Your Gists</strong>, choose <strong>Add Gist…</strong>. It uses your current token; choose <strong>Use a different token</strong> only for a gist in another GitHub account.</li>
+    <li>Pick one of your other My Tasks gists and enter its passphrase, or create a new gist and choose its passphrase. Use a different passphrase from your other gists.</li>
+    <li>Give it a name (up to 24 characters, different from the device’s other gists) and one of six colours. The app then opens it.</li>
+    <li>To have the same gist on another device, choose Add Gist… there and pick it.</li>
+  </ul>
+  <h3 id="gists-switch">Switching, renaming and removing</h3>
+  <ul>
+    <li>With more than one gist on a device, a band under the sidebar’s header shows the open gist’s name in its colour. Click it to switch to another gist, add one, or manage them. On a phone the band is at the top of the lists, and each page shows the gist’s name under its title.</li>
+    <li>Settings › Sync › Your Gists lists your gists: <strong>Rename…</strong> changes the open gist’s name and colour on all your devices, and <strong>Switch</strong> opens another.</li>
+    <li><strong>Disconnect This Gist</strong> removes only the open gist’s copy from this device and opens another one. The gist itself stays on GitHub. Removing the last one returns to Setup.</li>
+  </ul>
+  <h3 id="gists-what">What’s kept per gist</h3>
+  <ul>
+    <li><strong>Per gist:</strong> its tasks and settings, sync, the focused area, Backup, Archive and Import (the file names include the gist’s name), the 5,000-task limit, the 170-day rule and calendar events.</li>
+    <li><strong>Per device, for all gists:</strong> the theme, and the sidebar’s width and whether it’s hidden.</li>
+    <li>Nothing works across gists: search, Today and the other lists show only the open gist, and tasks can’t be moved from one gist to another.</li>
+    <li>The <a href="#calendar">calendar helper</a> writes your events to every gist. After adding a gist, run its setup again on your Mac.</li>
+    <li>A gist’s name is also in its description on GitHub, such as “My Tasks · Work”, in plain text. Its tasks stay encrypted.</li>
+  </ul>
+  <h3 id="gists-size">More than 5,000 tasks</h3>
+  <p>Each gist has its own <a href="#task-limit">5,000-task limit</a>, so splitting your tasks into separate gists gives you more room: for example, a gist for a large project or for an area of your life. Since nothing works across gists, split where you rarely need to see both at once.</p>
+
   <h2 id="everyday">Everyday use</h2>
   <ul>
     <li><strong>Lists.</strong> Inbox holds new tasks. A task you move out of the Inbox while you're looking at it stays there, with its new date, under “1 task moved out of the Inbox” until you click OK or open another list. When you move one out from elsewhere, or add one that the list on screen can't show, a message says where it went, with Show to open that list. While a task is open for editing, it stays where it is in its list and moves when you close it. Today shows what's due today, Scheduled what's coming, Unscheduled what's open with no date, and Deferred what you've set aside. Completed and Trash hold the rest. Scheduled lists each day’s tasks by priority, with those that have none last. Unscheduled shows the first 3 tasks of each project or area; <strong>Show All</strong> under them shows the rest and <strong>Show 3</strong> hides them again, and <strong>Settings › Unscheduled</strong> sets how many.</li>
@@ -140,7 +166,7 @@
     <li><strong>Completed tasks</strong> stay in their list, struck through, until they move to Completed: daily by default, at midnight. In Settings › Completed Items choose <strong>Immediately</strong>, <strong>Daily</strong> or <strong>Manually</strong>. To move them yourself, choose <strong>Move Completed Items</strong> in the ⋯ menu after a list’s, project’s or area’s title, or right-click a task; it moves only what’s waiting in that list. The same settings can show waiting completed tasks at the bottom of their list, and checked checklist items at the bottom of their checklist. In Today, <strong>Hide</strong> after the ⋯ hides the completed tasks for now and becomes <strong>Show</strong>, which brings them back; it’s there only when Today has completed tasks, applies to that device, and they show again whenever the app opens.</li>
     <li><strong>Appearance.</strong> Settings › Appearance chooses Light, Dark, or System to follow your device. Each device keeps its own choice.</li>
     <li><strong>Undo and Redo.</strong> Press <kbd>Cmd</kbd> <kbd>Z</kbd> to undo your last change, and again to go further back, up to 10 changes; <kbd>Shift</kbd> <kbd>Cmd</kbd> <kbd>Z</kbd> redoes them. On touch devices, tap Undo in the message that follows a delete or move, and again for each change before it.</li>
-    <li><strong>Sync.</strong> The bottom of the sidebar shows when your tasks last synced; click it to sync now. Settings › Sync has Sync Now, Change Token, Change Passphrase and Disconnect This Device, and shows what’s in your gist: how many tasks and projects are open, completed, in the Trash and deleted, and the file’s size against its 5 MB limit. To make room, Settings › Archive moves old completed items to a file. A device that hasn’t synced for over 170 days (an old iPad in a drawer, say) waits instead: Settings › Sync explains, and offers to save a backup and then replace its tasks with the ones in your gist. This keeps tasks deleted long ago on your other devices from coming back.</li>
+    <li><strong>Sync.</strong> The bottom of the sidebar shows when your tasks last synced; click it to sync now. Settings › Sync lists Your Gists (with Add Gist…), has Sync Now, Change Token, Change Passphrase and Disconnect This Device (Disconnect This Gist with more than one), and shows what’s in your gist: how many tasks and projects are open, completed, in the Trash and deleted, and the file’s size against its 5 MB limit. To make room, Settings › Archive moves old completed items to a file. A device that hasn’t synced for over 170 days (an old iPad in a drawer, say) waits instead: Settings › Sync explains, and offers to save a backup and then replace its tasks with the ones in your gist. This keeps tasks deleted long ago on your other devices from coming back.</li>
   </ul>
 
   <h2 id="repeating">Repeating tasks and projects</h2>
@@ -238,6 +264,7 @@ python3 -m pip install --user cryptography</code></pre>
     <li>Or empty the Trash, then delete completed tasks you no longer need: in Completed, select them (<kbd>Cmd</kbd> <kbd>A</kbd> selects them all) and press <kbd>Delete</kbd>, then empty the Trash.</li>
     <li>To keep a record of them first, save a backup in Settings › Backup.</li>
     <li>A repeating task still makes its next copy, and tasks from your other devices still arrive, even at the limit.</li>
+    <li>The limit is per gist: to go past it, split your tasks into <a href="#gists-size">separate gists</a>, for example one for a large project.</li>
   </ul>
 
   <h2 id="keyboard">Keyboard shortcuts</h2>
