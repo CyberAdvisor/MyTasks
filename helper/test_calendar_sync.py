@@ -198,7 +198,7 @@ class MonthsAhead(unittest.TestCase):
 
     def test_a_reading_covers_the_months_and_says_so(self):
         asked = []
-        config = {'gists': [{'id': 'g1', 'salt': SALT}], 'calendars': ['work'], 'months': 4}
+        config = {'gists': [{'id': 'g1', 'salt': SALT, 'calendars': ['work']}], 'months': 4}
         keys = {'g1': cs.derive_key(PASSPHRASE, SALT)}
         cs.sync_once(config, keys, FakeGitHub(), {}, read=lambda days: asked.append(days) or raw(event()), today=TODAY)
         self.assertEqual(asked, [(dt.date(2027, 3, 31) - TODAY).days + 1])
@@ -211,8 +211,8 @@ class Syncing(unittest.TestCase):
     """FR-21.8: one reading written to every set-up gist, each with its own key."""
 
     def setUp(self):
-        self.config = {'gists': [{'id': 'g1', 'salt': SALT, 'name': 'Home'}, {'id': 'g2', 'salt': OTHER_SALT, 'name': 'Work'}],
-                       'calendars': ['work'], 'months': 1}
+        self.config = {'gists': [{'id': 'g1', 'salt': SALT, 'name': 'Home', 'calendars': ['work']},
+                                 {'id': 'g2', 'salt': OTHER_SALT, 'name': 'Work', 'calendars': ['work']}], 'months': 1}
         self.keys = {'g1': cs.derive_key(PASSPHRASE, SALT), 'g2': cs.derive_key(PASSPHRASE, OTHER_SALT)}
         self.events = [event()]
 
@@ -260,9 +260,33 @@ class Syncing(unittest.TestCase):
         self.assertEqual(state['gists']['g2']['error'], cs.SKIPPED)
         with mock.patch.object(cs, 'running_pid', return_value=None):
             lines = cs.status_lines(self.config, state)
-        self.assertIn('Home (gist g1…): last write ' + state['gists']['g1']['lastWrite'] + ' (1 events)', lines)
+        self.assertIn('Home (gist g1…): 1 calendar, last write ' + state['gists']['g1']['lastWrite'] + ' (1 events)', lines)
         self.assertIn(f'Gist g2…: {cs.SKIPPED}', lines)
         self.assertIn(f'Side project (gist g3…): {cs.SKIPPED}', lines)  # named from its description
+
+    def test_each_gist_gets_only_its_own_calendars(self):
+        # FR-21.9: Home shows the home calendar, Work the work one; a gist set to none gets an empty file.
+        self.config['gists'][0]['calendars'] = ['home']
+        self.config['gists'].append({'id': 'g3', 'salt': SALT, 'name': 'Side', 'calendars': []})
+        self.keys['g3'] = self.keys['g1']
+        gh, state = FakeGitHub({'g1': SALT, 'g2': OTHER_SALT, 'g3': SALT}), {}
+        self.events = [event(), event(id='E2', calendar='home', title='Dentist')]
+        self.assertEqual(self.sync(gh, state), 3)
+        self.assertEqual([e['title'] for e in self.opened(gh, 'g1')['events']], ['Dentist'])
+        self.assertEqual([c['id'] for c in self.opened(gh, 'g1')['calendars']], ['home'])
+        self.assertEqual([e['title'] for e in self.opened(gh, 'g2')['events']], ['Standup'])
+        self.assertEqual(self.opened(gh, 'g3'), dict(self.opened(gh, 'g3'), calendars=[], events=[]))
+        # A change to the work calendar rewrites only the gist that shows it.
+        gh.writes.clear()
+        self.events[0] = event(title='Moved')
+        self.assertEqual(self.sync(gh, state), 1)
+        self.assertEqual(gh.writes, [('g2', cs.CALENDAR_FILE)])
+
+    def test_setup_asks_for_each_gists_calendars(self):
+        answers = iter(['', '0', '3, 1', 'x', '2'])
+        with mock.patch('sys.stdout', io.StringIO()):
+            picked = [cs.pick_calendars(name, CALENDARS, ask=lambda prompt: next(answers)) for name in ('A', 'B', 'C', 'D')]
+        self.assertEqual(picked, [['work', 'home', 'holidays'], [], ['work', 'holidays'], ['home']])  # 'x' is asked again
 
     def test_marker_fixture(self):
         # The app reads this file as "set up again" (tests/calendarEnvelope.test.ts).
@@ -271,7 +295,11 @@ class Syncing(unittest.TestCase):
 
     def test_settings_from_one_gist_keep_working(self):
         config = cs.upgrade_config({'gist': 'g1', 'salt': SALT, 'calendars': ['work'], 'months': 2})
-        self.assertEqual(config, {'gists': [{'id': 'g1', 'salt': SALT, 'legacy': True}], 'calendars': ['work'], 'months': 2})
+        self.assertEqual(config, {'gists': [{'id': 'g1', 'salt': SALT, 'legacy': True, 'calendars': ['work']}], 'months': 2})
+        # Settings from several gists sharing one list (1.11.2): each gist gets that list.
+        shared = cs.upgrade_config({'gists': [{'id': 'g1', 'salt': SALT}, {'id': 'g2', 'salt': OTHER_SALT}], 'calendars': ['home'], 'months': 2})
+        self.assertEqual([g['calendars'] for g in shared['gists']], [['home'], ['home']])
+        self.assertNotIn('calendars', shared)
         asked = []
 
         def run(args, **kw):

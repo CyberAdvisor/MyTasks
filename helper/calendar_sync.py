@@ -7,7 +7,7 @@ and writes them, encrypted like your tasks, to a second file in each of
 your gists, calendar.json. My Tasks reads that file on every device; it
 never changes the calendars.
 
-    python3 calendar_sync.py setup             # once: token, each gist's passphrase, calendars, months
+    python3 calendar_sync.py setup             # once: token, each gist's passphrase and calendars, months
     python3 calendar_sync.py start --every 15  # read every 15 minutes (5 to 60), in the background
     python3 calendar_sync.py stop
     python3 calendar_sync.py status            # running or not, last write, any error
@@ -31,8 +31,8 @@ Where things are kept:
   Support/My Tasks/. Errors go to calendar-helper.log there too.
 
 Several gists (FR-21.8): every gist in the token's account that holds
-mytasks.json gets the same events, each encrypted with that gist's own
-key. Setup asks for each gist's passphrase in turn (Enter skips one). A
+mytasks.json gets the events of the calendars chosen for it (FR-21.9),
+encrypted with that gist's own key; months ahead is shared. Setup asks for each gist's passphrase in turn (Enter skips one). A
 gist the helper has no passphrase for, including one added later in the
 app, is skipped; if it has no calendar.json, the helper writes a small
 unencrypted marker there, {"app": "mytasks-calendar", "format": 1,
@@ -594,11 +594,18 @@ def save_json(name: str, value) -> None:
 
 
 def upgrade_config(config: dict) -> dict:
-    """Settings from before several gists ({gist, salt}) as one gist, whose passphrase is the old Keychain entry."""
-    if 'gists' in config or 'gist' not in config:
-        return config
-    rest = {k: v for k, v in config.items() if k not in ('gist', 'salt')}
-    return dict(rest, gists=[{'id': config['gist'], 'salt': config['salt'], 'legacy': True}])
+    """
+    Older settings in today's shape: from before several gists ({gist, salt},
+    one gist whose passphrase is the old Keychain entry), and from before
+    calendars per gist (one top-level `calendars` list, given to every gist).
+    """
+    config = dict(config)
+    if 'gists' not in config and 'gist' in config:
+        config['gists'] = [{'id': config.pop('gist'), 'salt': config.pop('salt'), 'legacy': True}]
+    shared = config.pop('calendars', None)
+    if shared is not None:
+        config['gists'] = [dict(g, calendars=g.get('calendars', shared)) for g in config.get('gists', [])]
+    return config
 
 
 def load_config() -> dict:
@@ -615,15 +622,15 @@ def load_config() -> dict:
 def sync_once(config: dict, keys: dict, gh: GitHub, state: dict, read=read_calendar, today=None) -> int:
     """
     Read the calendars once and write calendar.json to each set-up gist whose
-    events changed, with that gist's key (`keys`: {gist id: key}). A gist
+    events changed: the events of its own calendars (FR-21.9), with its own
+    key (`keys`: {gist id: key}). A gist
     whose passphrase changed is stopped; one with no passphrase is skipped
     and gets the setup marker if it has no calendar.json. Each gist's result
     is in state['gists'][id]. How many gists it wrote to.
     """
     today = today or dt.date.today()
     last = last_day(today, config_months(config))
-    payload = build_payload(read((last - today).days + 1), config['calendars'], last, today)
-    h = digest(payload)
+    raw = read((last - today).days + 1)
     state['lastCheck'] = now_iso()
     listing = gh.task_gists()
     listed = {g['id'] for g in listing}
@@ -638,6 +645,8 @@ def sync_once(config: dict, keys: dict, gh: GitHub, state: dict, read=read_calen
         if g['id'] not in listed:
             gs['error'] = NOT_FOUND
             continue
+        payload = build_payload(raw, g['calendars'], last, today)
+        h = digest(payload)
         if h == gs.get('hash'):
             gs['error'] = None
             continue
@@ -766,7 +775,7 @@ def status_lines(config: dict, state: dict) -> list:
     """What `status` prints: running or not, the settings, and a line for each gist."""
     lines = [f'Running, every {state.get("every")} minutes.' if running_pid() else 'Not running.']
     months = config_months(config)
-    lines.append(f'Calendars: {len(config["calendars"])}, this month and {months} {"month" if months == 1 else "months"} ahead.')
+    lines.append(f'Reading this month and {months} {"month" if months == 1 else "months"} ahead.')
     lines.append(f'Last check: {state.get("lastCheck") or "never"}')
     gists = state.get('gists') or {}
     known = [g['id'] for g in config['gists']]
@@ -775,7 +784,9 @@ def status_lines(config: dict, state: dict) -> list:
         name = gs.get('name') or next((g.get('name') for g in config['gists'] if g['id'] == gist_id), None)
         label = f'{name} (gist {gist_id[:8]}…)' if name else f'Gist {gist_id[:8]}…'
         if gist_id in known:
-            line = f'{label}: last write {gs.get("lastWrite") or "never"} ({gs.get("events", 0)} events)'
+            count = len(next(g for g in config['gists'] if g['id'] == gist_id).get('calendars', []))
+            line = (f'{label}: {count} {"calendar" if count == 1 else "calendars"}, '
+                    f'last write {gs.get("lastWrite") or "never"} ({gs.get("events", 0)} events)')
             lines.append(line + (f'. {gs["error"]}' if gs.get('error') else ''))
         else:
             lines.append(f'{label}: {gs.get("error") or SKIPPED}')
@@ -816,19 +827,21 @@ def cmd_check() -> int:
     return 1 if failed else 0
 
 
-def choose(prompt: str, count: int, allow_many: bool):
-    """Numbers typed by the user (1-based), or None for Enter."""
+def choose(prompt: str, count: int, allow_many: bool, allow_none: bool = False, ask=input):
+    """Numbers typed by the user (1-based), or None for Enter; [] for 0 when `allow_none`."""
     while True:
-        answer = input(prompt).strip()
+        answer = ask(prompt).strip()
         if not answer:
             return None
+        if allow_none and answer == '0':
+            return []
         try:
             picks = sorted({int(x) for x in answer.replace(',', ' ').split()})
         except ValueError:
             picks = []
         if picks and all(1 <= p <= count for p in picks) and (allow_many or len(picks) == 1):
             return picks
-        print(f'Type {"numbers" if allow_many else "a number"} from 1 to {count}.')
+        print(f'Type {"numbers" if allow_many else "a number"} from 1 to {count}' + (', or 0 for none.' if allow_none else '.'))
 
 
 def open_gists(gh: GitHub, gists: list, ask=getpass.getpass) -> list:
@@ -873,6 +886,13 @@ def open_gists(gh: GitHub, gists: list, ask=getpass.getpass) -> list:
     return opened
 
 
+def pick_calendars(gist: str, calendars: list, ask=input) -> list:
+    """The ids of the calendars chosen for one gist (FR-21.9): Enter for all, 0 for none."""
+    picks = choose(f'Calendars for {gist}: numbers separated by commas (Enter for all, 0 for none): ',
+                   len(calendars), True, allow_none=True, ask=ask)
+    return [c['id'] for c in calendars] if picks is None else [calendars[p - 1]['id'] for p in picks]
+
+
 def cmd_setup() -> int:
     aesgcm(bytes(32))  # the package is installed
     print('My Tasks calendar helper setup. Nothing is saved until the end.\n')
@@ -889,18 +909,18 @@ def cmd_setup() -> int:
     print('\nYour calendars:')
     for i, c in enumerate(raw['calendars'], 1):
         print(f'  {i}. {c["title"]}' + (f' ({c["source"]})' if c['source'] else ''))
-    picks = choose('Numbers of the calendars to show, separated by commas (Enter for all): ', len(raw['calendars']), True)
-    calendars = [raw['calendars'][p - 1]['id'] for p in picks] if picks else [c['id'] for c in raw['calendars']]
+    for g in opened:
+        g['calendars'] = pick_calendars(g['name'], raw['calendars'])
     months = (choose(f'Months ahead, {MIN_MONTHS} to {MAX_MONTHS} (Enter for {DEFAULT_MONTHS}): ', MAX_MONTHS, False) or [DEFAULT_MONTHS])[0]
     keychain_set(TOKEN_ACCOUNT, gh.token)
     for g in opened:
         keychain_set(passphrase_account(g['id']), g['passphrase'])
     keychain_delete(LEGACY_PASSPHRASE_ACCOUNT)
-    config_gists = [{k: g[k] for k in ('id', 'salt', 'name')} for g in opened]
-    save_json(CONFIG_FILE, {'gists': config_gists, 'calendars': calendars, 'months': months})
+    config_gists = [{k: g[k] for k in ('id', 'salt', 'name', 'calendars')} for g in opened]
+    save_json(CONFIG_FILE, {'gists': config_gists, 'months': months})
     save_json(STATE_FILE, {})  # the next start writes calendar.json at once
-    print(f'\nSaved: {len(calendars)} calendars, this month and {months} months ahead, for '
-          + ', '.join(g['name'] for g in opened) + '.')
+    print(f'\nSaved: this month and {months} months ahead, for '
+          + ', '.join(f'{g["name"]} ({len(g["calendars"])} calendars)' for g in opened) + '.')
     if len(opened) < len(gists):
         print(f'Skipped: {len(gists) - len(opened)} gists. Run setup again to include them.')
     print('Start it with:')
