@@ -32,22 +32,19 @@ export const CSP = Object.entries(DIRECTIVES)
   .map(([name, sources]) => `${name} ${sources.join(' ')}`)
   .join('; ');
 
-/** Statcounter, the website's visit counter: its script, and where it reports. */
-export const STATCOUNTER_SCRIPT = 'https://www.statcounter.com';
-export const STATCOUNTER_REPORT = 'https://c.statcounter.com';
-
 /**
  * The website's policy (site/, the pages around the app). Stricter than the
- * app's: its own scripts and styles only, no inline styles, and no outside
- * connections except Statcounter's visit counting (never in the app). Each
- * page carries it in a meta tag; tests/website.test.ts checks every page.
+ * app's: its own scripts and styles only, no inline styles, and no
+ * connections at all. Nothing from another site runs on the website: it shares
+ * the app's origin, and so its storage (the token, the keys and the tasks).
+ * Each page carries it in a meta tag; tests/website.test.ts checks every page.
  */
 const SITE_DIRECTIVES: Record<string, string[]> = {
   'default-src': ["'self'"],
-  'script-src': ["'self'", STATCOUNTER_SCRIPT],
+  'script-src': ["'self'"],
   'style-src': ["'self'"],
-  'img-src': ["'self'", STATCOUNTER_REPORT],
-  'connect-src': [STATCOUNTER_REPORT],
+  'img-src': ["'self'"],
+  'connect-src': ["'none'"],
   'object-src': ["'none'"],
   'base-uri': ["'none'"],
   'form-action': ["'none'"],
