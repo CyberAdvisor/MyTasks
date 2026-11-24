@@ -1,7 +1,9 @@
 <!--
   Settings (design doc, Section 5.10 FR-14.13 and Section 5.4 FR-6.1).
-  - Sync (FR-19.6 to FR-19.8): the gist connection, its problems and their
-    fixes, Sync Now, Change Token, Change Passphrase, Disconnect.
+  - Sync (FR-19.6 to FR-19.8): Your gists (FR-19.16: each gist on this
+    device with Rename… or Switch, then Add Gist…), then the active gist's
+    connection, its problems and their fixes, Sync Now, Change Token, Change
+    Passphrase, Disconnect.
   - Calendar Events (FR-21.3): show or hide the Mac helper's events, when
     the helper last wrote them or why they can't be read, and the guide.
   - Backup (FR-12.8): Save Backup downloads a file of all synced data;
@@ -38,12 +40,17 @@
     PRIORITIES,
     UNSCHEDULED_LIMITS,
     cleanLabels,
+    gistName,
     type MoveToCompleted,
     type Theme,
   } from '../lib/model/settings';
   import * as repo from '../lib/db/repo';
   import type { ID, Priority } from '../lib/model/types';
   import SyncDialog, { type SyncForm } from '../components/SyncDialog.svelte';
+  import RenameGistDialog from '../components/RenameGistDialog.svelte';
+  import { deviceGists } from '../lib/gists/onDevice.svelte';
+  import { activeDbName } from '../lib/gists/active';
+  import { ui } from '../lib/state/ui.svelte';
   import SiteLink from '../components/SiteLink.svelte';
   import { COMMUNITY } from '../lib/website';
   import SequentialTags from '../components/SequentialTags.svelte';
@@ -99,7 +106,20 @@
     }
   }
 
-  /** Disconnect clears this device, then the app restarts at Setup. */
+  /** Rename… is open (FR-19.14). */
+  let renaming = $state(false);
+  /** Several gists on this device: Disconnect then removes only the open one (FR-19.16). */
+  let severalGists = $derived(deviceGists.list.length > 1);
+
+  /** Switch to another gist, then start again on it (FR-19.11). */
+  function switchGist(db: string) {
+    void syncAction(async () => {
+      await sync.switchTo(db);
+      location.replace(location.pathname);
+    });
+  }
+
+  /** Disconnect clears this gist from the device, then the app restarts on another gist or at Setup. */
   async function onDisconnectChoice(v: string | null) {
     confirmDisconnect = false;
     if (v !== 'disconnect') return;
@@ -248,6 +268,24 @@
 
 <section aria-labelledby="sync-heading">
   <h2 id="sync-heading">Sync</h2>
+  <h3 id="your-gists">Your Gists</h3>
+  <ul class="gists" aria-labelledby="your-gists">
+    {#each deviceGists.list as g (g.db)}
+      {@const open = g.db === activeDbName()}
+      <li>
+        <span class="gist-dot" style={`background: var(--gist-${g.label.colour})`} aria-hidden="true"></span>
+        <span class="gist-name">{gistName(g.label)}</span>
+        {#if open}<span class="gist-open">Open</span>{/if}
+        {#if open}
+          <button type="button" class="outline" onclick={() => (renaming = true)}>Rename…</button>
+        {:else}
+          <button type="button" class="outline" disabled={syncBusy} onclick={() => switchGist(g.db)}>Switch</button>
+        {/if}
+      </li>
+    {/each}
+  </ul>
+  <p class="sync-buttons"><button type="button" class="outline" onclick={() => (ui.addingGist = true)}>Add Gist…</button></p>
+  {#if severalGists}<h3>{gistName(deviceGists.active?.label ?? $settings.gistLabel)}</h3>{/if}
   {#if sync.status === 'error' && sync.problem}
     <p class="sync-problem" role="alert"><Icon name="alert" size={15} color="var(--danger)" /> {problemText(sync.problem, sync.retryAt)}</p>
     {#if sync.problem === 'passphrase'}
@@ -303,7 +341,9 @@
     </button>
     <button type="button" class="outline" onclick={() => (syncForm = 'token')}>Change Token</button>
     <button type="button" class="outline" onclick={() => (syncForm = 'change-passphrase')}>Change Passphrase</button>
-    <button type="button" class="outline danger" onclick={() => (confirmDisconnect = true)}>Disconnect This Device</button>
+    <button type="button" class="outline danger" onclick={() => (confirmDisconnect = true)}>
+      {severalGists ? 'Disconnect This Gist' : 'Disconnect This Device'}
+    </button>
   </div>
   {#if syncError}<p class="form-error" role="alert">⚠ {syncError}</p>{/if}
   <p class="help">
@@ -547,6 +587,10 @@
   <SyncDialog form={syncForm} onclose={() => (syncForm = null)} />
 {/if}
 
+{#if renaming}
+  <RenameGistDialog label={$settings.gistLabel} onclose={() => (renaming = false)} />
+{/if}
+
 {#if askReplace}
   <ChoiceDialog
     title="Replace this device’s tasks?"
@@ -562,7 +606,14 @@
   />
 {/if}
 
-{#if confirmDisconnect}
+{#if confirmDisconnect && severalGists}
+  <ChoiceDialog
+    title={`Disconnect “${gistName($settings.gistLabel)}”?`}
+    message="This gist’s tasks, token and key are removed from this device, and your other gists stay. Its tasks stay in the gist, and Add Gist… can bring it back."
+    choices={[{ label: 'Disconnect', value: 'disconnect', danger: true }]}
+    onchoose={onDisconnectChoice}
+  />
+{:else if confirmDisconnect}
   <ChoiceDialog
     title="Disconnect this device?"
     message="Your tasks, token and key are removed from this device. Your tasks stay in your gist, and you can connect again with your token and passphrase."
@@ -640,6 +691,40 @@
   .backup-done {
     font-size: 14px;
     margin: 6px 0 4px;
+  }
+  /* Your Gists (FR-19.16): one row per gist on this device. */
+  .gists {
+    list-style: none;
+    margin: 6px 0 10px;
+    padding: 0;
+    max-width: 420px;
+  }
+  .gists li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: 14px;
+  }
+  .gist-dot {
+    flex: none;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+  }
+  .gist-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .gist-open {
+    font-size: 12px;
+    color: var(--text-3);
+  }
+  .gists button {
+    margin-left: auto;
   }
   .sync-buttons {
     display: flex;

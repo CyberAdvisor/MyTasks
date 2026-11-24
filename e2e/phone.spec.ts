@@ -462,3 +462,47 @@ test('a long title wraps in the open card, and Return still closes it', async ({
   await expect(page.getByText('Pick up dry cleaning and the alterations from the tailor on Main Street', { exact: true })).toBeVisible();
   await expect(title).toHaveCount(0);
 });
+
+test('with several gists: the band on the Home screen, the gist’s name under each page’s title (FR-19.15)', async ({ page, context }) => {
+  await fakeGitHub(context);
+  await connect(page);
+  const lists = page.getByRole('navigation', { name: 'Lists' });
+  const label = page.getByRole('status', { name: 'Gist' });
+  // One gist: neither shows.
+  await expect(lists.getByRole('button', { name: /^Gist: / })).toHaveCount(0);
+  await lists.getByRole('link', { name: 'Inbox' }).click();
+  await expect(label).toHaveCount(0);
+
+  // A second gist on the device, as Add Gist… records it.
+  await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((ok) => {
+      const r = indexedDB.open('mytasks-device');
+      r.onsuccess = () => ok(r.result);
+    });
+    const store = db.transaction('gists', 'readwrite').objectStore('gists');
+    const first = await new Promise<Record<string, unknown>>((ok) => {
+      const r = store.get('mytasks');
+      r.onsuccess = () => ok(r.result);
+    });
+    await new Promise((ok) => {
+      const r = store.put({ ...first, db: 'mytasks-two', gistId: 'two', label: { name: 'Work', colour: 'teal' } });
+      r.onsuccess = ok;
+    });
+    db.close();
+  });
+  await page.goto('/app/');
+  const bandButton = lists.getByRole('button', { name: 'Gist: Default. Switch gist' });
+  await expect(bandButton).toBeVisible();
+  // At the top of the Home screen, under the header and full width.
+  const box = (await bandButton.boundingBox())!;
+  expect(box.y).toBeLessThan(120);
+  await bandButton.click();
+  await expect(page.getByRole('menu', { name: 'Switch gist' }).getByRole('menuitem', { name: 'Work' })).toBeVisible();
+  await bandButton.click();
+
+  await lists.getByRole('link', { name: 'Inbox' }).click();
+  await expect(label).toHaveText('Default');
+  // Under the title, in the gist's colour.
+  const title = (await page.getByRole('heading', { name: 'Inbox', level: 1 }).boundingBox())!;
+  expect((await label.boundingBox())!.y).toBeGreaterThan(title.y);
+});

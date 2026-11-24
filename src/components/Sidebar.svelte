@@ -5,11 +5,13 @@
   onto another area to move it there, or below the last area to take it out
   of any area (FR-10.8, FR-10.9, FR-15.5). Drop a to-do onto a project or an
   area to move it there (FR-10.11), or onto Inbox, Today, Scheduled,
-  Unscheduled, Deferred or Trash (FR-10.3b, see `takesDrop`). While an area is focused (FR-22.1), a band
-  at the top shows it, and only that area is listed (the focused snapshot).
+  Unscheduled, Deferred or Trash (FR-10.3b, see `takesDrop`). With several gists on the device, the gist
+  band under the header shows the active one and switches (FR-19.15). While an area is focused (FR-22.1), a band
+  below it shows the area, and only that area is listed (the focused snapshot).
 -->
 <script lang="ts">
   import FocusBand from './FocusBand.svelte';
+  import GistBand from './GistBand.svelte';
   import Icon from './Icon.svelte';
   import Logo from './Logo.svelte';
   import SyncStatus from './SyncStatus.svelte';
@@ -191,6 +193,7 @@
     </button>
   </div>
 
+  <GistBand place="sidebar" />
   <FocusBand place="sidebar" />
 
   <div class="scroll">

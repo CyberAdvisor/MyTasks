@@ -15,6 +15,7 @@
  */
 import Dexie, { type Table } from 'dexie';
 import { FIRST_DB, activeDbName, isTaskDbName } from '../gists/active';
+import { DEFAULT_SETTINGS, type GistLabel } from '../model/settings';
 
 export interface DeviceConfig {
   /** GitHub personal access token (classic, `gist` scope). */
@@ -70,6 +71,20 @@ export interface GistEntry extends DeviceConfig {
   db: string;
   /** The last calendar.json read from this gist (FR-21.2), still encrypted. */
   calendar?: string;
+  /**
+   * The gist's name and colour as last seen here (FR-19.15), so the switcher
+   * and Settings can show gists that aren't open. The gist itself holds them
+   * (the synced setting `gistLabel`); this copy follows it while the gist is
+   * active (`saveLabel`). Missing until then: shown as Default.
+   */
+  label?: GistLabel;
+}
+
+/** A gist on this device, as the switcher and Settings › Sync list it. */
+export interface GistSummary {
+  db: string;
+  gistId: string;
+  label: GistLabel;
 }
 
 /** Version 1's rows: the one gist's settings and its calendar file. */
@@ -102,7 +117,7 @@ const deviceDb = new DeviceDB();
 
 /** An entry's sync settings, without the device's own fields. */
 function configOf(entry: GistEntry): DeviceConfig {
-  const { db: _, calendar: __, ...config } = entry;
+  const { db: _, calendar: __, label: ___, ...config } = entry;
   return config;
 }
 
@@ -116,9 +131,10 @@ export async function loadConfig(): Promise<DeviceConfig | null> {
 export async function saveConfig(config: DeviceConfig): Promise<void> {
   const db = activeDbName();
   await deviceDb.transaction('rw', deviceDb.gists, async () => {
-    const calendar = (await deviceDb.gists.get(db))?.calendar;
+    const old = await deviceDb.gists.get(db);
     const entry: GistEntry = { ...config, db };
-    if (calendar !== undefined) entry.calendar = calendar;
+    if (old?.calendar !== undefined) entry.calendar = old.calendar;
+    if (old?.label) entry.label = old.label;
     await deviceDb.gists.put(entry);
   });
 }
@@ -144,19 +160,34 @@ export async function saveCalendarFile(file: string | null): Promise<void> {
     });
 }
 
-/** Every gist on this device, as its database name and gist id, in database-name order. */
-export async function listGists(): Promise<{ db: string; gistId: string }[]> {
-  return (await deviceDb.gists.toArray()).map(({ db, gistId }) => ({ db, gistId }));
+/** Every gist on this device with its last-seen name and colour, in database-name order. */
+export async function listGists(): Promise<GistSummary[]> {
+  return (await deviceDb.gists.toArray()).map(({ db, gistId, label }) => ({ db, gistId, label: label ?? DEFAULT_SETTINGS.gistLabel }));
+}
+
+/** Keep the active gist's name and colour with its entry; true when they changed. Needs the gist connected. */
+export async function saveLabel(label: GistLabel): Promise<boolean> {
+  const { name, colour } = label;
+  let changed = false;
+  await deviceDb.gists
+    .where('db')
+    .equals(activeDbName())
+    .modify((entry) => {
+      if (entry.label?.name === name && entry.label?.colour === colour) return;
+      entry.label = { name, colour };
+      changed = true;
+    });
+  return changed;
 }
 
 /**
  * Add a gist to this device (FR-19.16, Add Gist…) on its own database, without
  * making it active. Refuses a gist already on the device.
  */
-export async function addGist(db: string, config: DeviceConfig): Promise<void> {
+export async function addGist(db: string, config: DeviceConfig, label: GistLabel): Promise<void> {
   if (!isTaskDbName(db)) throw new Error(`Not a task database: ${db}`);
   await deviceDb.transaction('rw', deviceDb.gists, async () => {
     if ((await deviceDb.gists.where('gistId').equals(config.gistId).count()) > 0) throw new Error('This gist is already on this device.');
-    await deviceDb.gists.add({ ...config, db });
+    await deviceDb.gists.add({ ...config, db, label: { name: label.name, colour: label.colour } });
   });
 }

@@ -23,6 +23,7 @@
   import QuickFind from './components/QuickFind.svelte';
   import QuickEntry from './components/QuickEntry.svelte';
   import KeyboardHelp from './components/KeyboardHelp.svelte';
+  import AddGistDialog from './components/AddGistDialog.svelte';
   import UndoToast from './components/UndoToast.svelte';
   import UpdateBanner from './components/UpdateBanner.svelte';
   import InstallGuide from './components/InstallGuide.svelte';
@@ -36,6 +37,7 @@
   import RowMenu from './components/RowMenu.svelte';
   import SidebarMenu from './components/SidebarMenu.svelte';
   import { sync } from './lib/sync/sync.svelte';
+  import { deviceGists } from './lib/gists/onDevice.svelte';
   import { route, go, hrefFor } from './lib/state/route';
   import { get } from 'svelte/store';
   import { tick, untrack } from 'svelte';
@@ -64,6 +66,12 @@
     const onChange = () => (isPhone = phoneQuery.matches);
     phoneQuery.addEventListener('change', onChange);
     return () => phoneQuery.removeEventListener('change', onChange);
+  });
+
+  // The gists on this device, and the active one's name kept with its entry (FR-19.15).
+  let connected = $derived(sync.config !== null);
+  $effect(() => {
+    if (connected) return untrack(() => deviceGists.watch());
   });
 
   // Light, dark or system theme (FR-V.3).
@@ -246,6 +254,9 @@
     {#key ui.draft}<QuickEntry draft={ui.draft} />{/key}
   {/if}
 
+  {#if ui.addingGist}
+    <AddGistDialog onclose={() => (ui.addingGist = false)} />
+  {/if}
   {#if ui.helpOpen}
     <KeyboardHelp />
   {/if}

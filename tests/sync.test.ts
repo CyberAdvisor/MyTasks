@@ -8,16 +8,17 @@ import * as repo from '../src/lib/db/repo';
 import { clearUndo, onLocalChange, undo } from '../src/lib/db/history';
 import { DecryptError, base64Bytes, deriveKey, newSalt, parseEnvelope, seal, toBase64, unseal } from '../src/lib/sync/crypto';
 import { SyncError, syncOnce } from '../src/lib/sync/cycle';
-import { clearConfig, loadConfig, type DeviceConfig } from '../src/lib/sync/device';
+import { clearConfig, listGists, loadConfig, type DeviceConfig } from '../src/lib/sync/device';
 import { GistError, checkToken, readGist } from '../src/lib/sync/github';
 import { adoptRemote, applyRemote, readLocal } from '../src/lib/sync/local';
 import { changesSince, returnCheck } from '../src/lib/state/live';
 import { SYNCED_SETTINGS, SYNCED_TABLES, mergePayloads, type Payload } from '../src/lib/sync/payload';
 import { VALIDATED_SETTINGS } from '../src/lib/sync/validate';
-import { createList, joinList, lookUp } from '../src/lib/sync/setup';
+import { addExistingGist, addNewGist, addableGists, createList, joinList, lookUp, unlockGist } from '../src/lib/sync/setup';
 import { clock, syncMessage, syncedLine } from '../src/lib/sync/messages';
 import { OFFLINE_RETRY_MS, SyncEngine, sync } from '../src/lib/sync/sync.svelte';
 import { FakeGitHub } from './fakeGitHub';
+import { FIRST_DB, dbNameFor, setActiveDbName } from '../src/lib/gists/active';
 import { project, todo } from './helpers';
 import { PROJECT_PARTS, RECORD_FIELDS, TODO_PARTS, stampParts, toSeconds } from '../src/lib/model/parts';
 import { replacement } from '../src/lib/sync/payload';
@@ -202,7 +203,12 @@ let gh: FakeGitHub;
 beforeEach(async () => {
   await db.delete();
   await db.open();
-  await clearConfig();
+  // Every gist's entry goes, including ones Add Gist… added (FR-19.16).
+  for (const g of await listGists()) {
+    setActiveDbName(g.db);
+    await clearConfig();
+  }
+  setActiveDbName(FIRST_DB);
   clearUndo();
   gh = new FakeGitHub();
   vi.stubGlobal('fetch', gh.fetch);
@@ -455,6 +461,41 @@ describe('setup (FR-19.1 to FR-19.3)', () => {
     const b = await createList('good', 'passphrase two', ACK);
     const found = await lookUp('good');
     expect(found.kind === 'found' && found.lists.map((l) => l.id)).toEqual([b.gistId, a.gistId]);
+  });
+
+  it('Add Gist… (FR-19.16): a new gist holds only its name; the open gist is untouched and stays open', async () => {
+    await repo.createTodo({ title: 'in the first gist' });
+    const first = await createList('good', 'correct horse', ACK);
+    expect(await addableGists('good', [first.gistId])).toEqual([]);
+    const db2 = await addNewGist('good', 'another passphrase', { name: 'Work', colour: 'teal' }, ACK);
+    const gistId = db2.slice('mytasks-'.length);
+    expect(await listGists()).toMatchObject([{ gistId: first.gistId }, { db: db2, gistId, label: { name: 'Work', colour: 'teal' } }]);
+    expect((await loadConfig())?.gistId).toBe(first.gistId);
+    expect(await titles()).toEqual(['in the first gist']);
+    const opened = await unlockGist('good', gistId, 'another passphrase');
+    expect(opened.label).toEqual({ name: 'Work', colour: 'teal' });
+    expect(Object.values(opened.list.tables).flat()).toEqual([]);
+    expect(opened.list.settings.map((s) => s.key)).toEqual(['gistLabel']);
+  });
+
+  it('Add Gist… (FR-19.16): an existing gist needs its passphrase, and gets its new name written in', async () => {
+    const other = await createList('good', 'other passphrase', ACK);
+    await newDevice();
+    const first = await createList('good', 'correct horse', ACK);
+    expect((await addableGists('good', [first.gistId])).map((l) => l.id)).toEqual([other.gistId]);
+    await expect(unlockGist('good', other.gistId, 'correct horse')).rejects.toMatchObject({ code: 'wrong-passphrase' });
+    const opened = await unlockGist('good', other.gistId, 'other passphrase');
+    expect(opened.label).toEqual({ name: null, colour: 'grey' });
+    await addExistingGist('good', opened, { name: 'Home', colour: 'green' }, ACK);
+    expect((await unlockGist('good', other.gistId, 'other passphrase')).label).toEqual({ name: 'Home', colour: 'green' });
+    // Added again with its name unchanged: nothing is written.
+    const again = await unlockGist('good', other.gistId, 'other passphrase');
+    setActiveDbName(dbNameFor(other.gistId));
+    await clearConfig();
+    setActiveDbName(FIRST_DB);
+    const writes = gh.writes;
+    await addExistingGist('good', again, again.label, ACK);
+    expect(gh.writes).toBe(writes);
   });
 
   it('refuses a list from a newer version of the app', async () => {

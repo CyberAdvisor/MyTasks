@@ -7,9 +7,14 @@
 import { nowIso } from '../model/ids';
 import { KDF_ITERATIONS, deriveKey, newSalt, parseEnvelope, type Envelope } from './crypto';
 import { envelopeOf, mergeAndPush, openPayload, sealPayload } from './cycle';
-import { saveConfig, type Acknowledgment, type DeviceConfig } from './device';
-import { checkToken, createGist, findGists, readGist } from './github';
+import { addGist, saveConfig, type Acknowledgment, type DeviceConfig } from './device';
+import { checkToken, createGist, findGists, readGist, writeGist } from './github';
 import { readLocal } from './local';
+import type { Payload } from './payload';
+import { SCHEMA_VERSION } from '../db/database';
+import { dbNameFor } from '../gists/active';
+import { cleanGistLabel, type GistLabel } from '../model/settings';
+import { ENTITY_NAMES, type BaseRecord, type EntityName } from '../model/types';
 
 /** A My Tasks list found in the account. */
 export interface FoundList {
@@ -79,4 +84,92 @@ export async function joinList(
   await mergeAndPush(config, remote);
   await saveConfig(config);
   return config;
+}
+
+// ---------------------------------------------------------------------------
+// Add Gist… (FR-19.16): another gist on a device that already has one. Its
+// tasks go into a database of their own, filled by its first sync after the
+// switch, so nothing here reads or changes the active gist's tasks.
+// ---------------------------------------------------------------------------
+
+/** The My Tasks gists in the account that aren't on this device yet (`onDevice`, their ids). */
+export async function addableGists(token: string, onDevice: string[]): Promise<FoundList[]> {
+  const found = await lookUp(token);
+  return found.kind === 'found' ? found.lists.filter((l) => !onDevice.includes(l.id)) : [];
+}
+
+/** Open an existing gist with its passphrase; fails with SyncError('wrong-passphrase'). */
+export async function unlockGist(token: string, gistId: string, passphrase: string): Promise<UnlockedGist> {
+  const env = envelopeOf(await readGist(token, gistId));
+  const key = await deriveKey(passphrase, env.kdf.salt, env.kdf.iterations);
+  const list = await openPayload(key, env, 'wrong-passphrase');
+  const label = cleanGistLabel(list.settings.find((s) => s.key === 'gistLabel')?.value);
+  return { gistId, key, salt: env.kdf.salt, iterations: env.kdf.iterations, list, label };
+}
+
+/** An existing gist, opened (`unlockGist`): its key, its list and the name and colour it has. */
+export interface UnlockedGist {
+  gistId: string;
+  key: CryptoKey;
+  salt: string;
+  iterations: number;
+  list: Payload;
+  label: GistLabel;
+}
+
+/**
+ * Add an opened gist to this device under `label`, written into the gist
+ * first when it differs from the one the gist has. Gives its database name.
+ */
+export async function addExistingGist(
+  token: string,
+  gist: UnlockedGist,
+  label: GistLabel,
+  acknowledged: Acknowledgment | undefined,
+): Promise<string> {
+  const draft = { key: gist.key, salt: gist.salt, iterations: gist.iterations };
+  if (label.name !== gist.label.name || label.colour !== gist.label.colour) {
+    const settings = [...gist.list.settings.filter((s) => s.key !== 'gistLabel'), labelSetting(label)];
+    await writeGist(token, gist.gistId, await sealPayload(draft, { ...gist.list, settings }));
+  }
+  return addEntry(token, gist.gistId, draft, label, acknowledged);
+}
+
+/** A new secret gist named `label`, with no tasks, encrypted with `passphrase`. Gives its database name. */
+export async function addNewGist(
+  token: string,
+  passphrase: string,
+  label: GistLabel,
+  acknowledged: Acknowledgment | undefined,
+): Promise<string> {
+  const salt = newSalt();
+  const draft = { key: await deriveKey(passphrase, salt, KDF_ITERATIONS), salt, iterations: KDF_ITERATIONS };
+  const tables = {} as Record<EntityName, BaseRecord[]>;
+  for (const t of ENTITY_NAMES) tables[t] = [];
+  const list: Payload = { app: 'mytasks', schema: SCHEMA_VERSION, tables, settings: [labelSetting(label)] };
+  const gistId = await createGist(token, await sealPayload(draft, list));
+  return addEntry(token, gistId, draft, label, acknowledged);
+}
+
+/** The synced setting holding a gist's name and colour. */
+function labelSetting(label: GistLabel) {
+  return { key: 'gistLabel', value: { name: label.name, colour: label.colour }, modifiedAt: nowIso() };
+}
+
+/**
+ * The gist's entry on this device. It has not synced here yet, so its first
+ * sync is a full one and fills its database.
+ */
+async function addEntry(
+  token: string,
+  gistId: string,
+  draft: Pick<DeviceConfig, 'key' | 'salt' | 'iterations'>,
+  label: GistLabel,
+  acknowledged: Acknowledgment | undefined,
+): Promise<string> {
+  const db = dbNameFor(gistId);
+  const config: DeviceConfig = { token, gistId, ...draft, lastSyncedAt: nowIso() };
+  if (acknowledged) config.acknowledged = acknowledged;
+  await addGist(db, config, label);
+  return db;
 }
