@@ -1,11 +1,14 @@
 /**
  * The website in site/ (design doc NFR-13): every page carries the website's
  * Content Security Policy, uses no inline scripts or styles, shares the same
- * header and footer, and links only to pages, files and anchors that exist.
+ * header and footer, links only to pages, files and anchors that exist, and
+ * has its canonical address and share tags, with every page in the sitemap.
  */
 import { describe, expect, it } from 'vitest';
 import { CSP, SITE_CSP } from '../src/lib/csp';
 import appHtml from '../index.html?raw';
+import sitemap from '../site/sitemap.xml?raw';
+import robots from '../site/robots.txt?raw';
 import { COMMUNITY, LIMITATIONS_UPDATED, SITE_PAGES } from '../src/lib/website';
 import { version } from '../package.json';
 
@@ -152,6 +155,27 @@ describe('website pages', () => {
         expect(sources[`../site/${fileFor(path)}`], url).toContain(`id="${hash}"`);
       }
     }
+  });
+
+  it.each(pages)('$name has its canonical address and the tags a shared link shows', ({ name, html }) => {
+    const url = 'https://mytasks.fyi/' + name.replace(/index\.html$/, '');
+    const title = html.match(/<title>([^<]*)<\/title>/)![1];
+    const description = html.match(/<meta name="description" content="([^"]*)">/)![1];
+    expect(html).toContain(`<link rel="canonical" href="${url}">`);
+    expect(html).toContain(`<meta property="og:url" content="${url}">`);
+    expect(html).toContain(`<meta property="og:title" content="${title}">`);
+    expect(html).toContain(`<meta property="og:description" content="${description}">`);
+    expect(html).toContain('<meta name="twitter:card" content="summary_large_image">');
+    const image = html.match(/<meta property="og:image" content="https:\/\/mytasks\.fyi(\/[^"]+)">/)![1];
+    expect(served(image), image).toBe(true);
+  });
+
+  it('lists every page in the sitemap, which robots.txt names, keeping search engines out of the app', () => {
+    const listed = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]).sort();
+    const expected = pages.map((p) => 'https://mytasks.fyi/' + p.name.replace(/index\.html$/, '')).sort();
+    expect(listed).toEqual(expected);
+    expect(robots).toContain('Disallow: /app/');
+    expect(robots).toContain('Sitemap: https://mytasks.fyi/sitemap.xml');
   });
 
   it('never names a version, except on the Roadmap page and the Book page (the version the book reflects)', () => {

@@ -153,6 +153,7 @@ My Tasks is served as static files from Cloudflare (since 2026-11-16; before tha
 
 The domain is where each device keeps its data (the browser's storage belongs to the site's address, not its path), so it must never change. The app moved from the root to `/app/` in 0.5.0 on the same domain, so every device kept its data. Two files keep earlier installs working:
 
+- `site/sitemap.xml` lists every website page and `site/robots.txt` names it, keeping search engines out of `/app/`. Every page has a canonical link to its mytasks.fyi address and share tags (Open Graph and a Twitter card, with the Home page's Mac screenshot). A new page goes into the sitemap and gets the same tags; `tests/website.test.ts` checks both.
 - `site/sw.js` replaces the old root service worker: it deletes that worker's caches (not the app's), unregisters it and reloads open pages.
 - `site/assets/site.js`, on the home page, forwards old links (`mytasks.fyi/#/today`) to the app, and sends an app installed before the move, which still starts at the root, straight to `/app/`.
 
