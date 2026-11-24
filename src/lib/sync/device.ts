@@ -213,3 +213,27 @@ export async function freeDbName(gistId: string): Promise<string> {
   for (let n = 2; taken.has(name); n++) name = `${base}x${n}`;
   return name;
 }
+
+/**
+ * The other gists on this device that use `token` (not the active one): the
+ * ones Change Token offers the new token to (FR-19.7).
+ */
+export async function otherGistsWithToken(token: string): Promise<{ db: string; gistId: string }[]> {
+  const active = activeDbName();
+  return (await deviceDb.gists.toArray()).filter((g) => g.db !== active && g.token === token).map(({ db, gistId }) => ({ db, gistId }));
+}
+
+/**
+ * Give another gist on this device a new token, if it still has `oldToken`.
+ * Its next sync is a full one, as after Change Token on the open gist.
+ */
+export async function replaceToken(db: string, oldToken: string, token: string): Promise<void> {
+  await deviceDb.gists
+    .where('db')
+    .equals(db)
+    .modify((entry) => {
+      if (entry.token !== oldToken) return;
+      entry.token = token;
+      delete entry.lastSync;
+    });
+}
