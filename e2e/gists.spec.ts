@@ -161,7 +161,7 @@ test('Change Token in one gist also changes it for the device’s other gists th
   await page.getByRole('button', { name: 'Change Token' }).click();
   gh.tokens.set('new', 'gist');
   const dialog = page.getByRole('dialog', { name: 'Change Token' });
-  await expect(dialog.getByText('It’s used for every gist on this device that used the old one.')).toBeVisible();
+  await expect(dialog.getByText('It’s used for every gist connected on this device that used the old one.')).toBeVisible();
   await dialog.getByLabel('Personal access token').fill('new');
   await dialog.getByRole('button', { name: 'Change Token' }).click();
   await expect(dialog).toBeHidden();
