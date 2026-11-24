@@ -4,7 +4,7 @@
  * header and footer, and links only to pages, files and anchors that exist.
  */
 import { describe, expect, it } from 'vitest';
-import { CSP, SITE_CSP, STATCOUNTER_REPORT, STATCOUNTER_SCRIPT } from '../src/lib/csp';
+import { CSP, SITE_CSP } from '../src/lib/csp';
 import appHtml from '../index.html?raw';
 import { COMMUNITY, LIMITATIONS_UPDATED, SITE_PAGES } from '../src/lib/website';
 import { version } from '../package.json';
@@ -176,12 +176,14 @@ describe('links from the app (src/lib/website.ts)', () => {
 });
 
 describe('the website policy', () => {
-  it('allows only its own files, plus Statcounter on the website and never in the app', () => {
+  it('allows only its own files and no connections, so nothing from another site shares the app\'s origin', () => {
     expect(SITE_CSP).not.toContain('unsafe');
-    expect(SITE_CSP).toContain(`script-src 'self' ${STATCOUNTER_SCRIPT}`);
-    expect(SITE_CSP).toContain(`connect-src ${STATCOUNTER_REPORT}`);
-    for (const { html } of pages) expect(html).toContain('<script src="/assets/statcounter.js"></script>');
-    expect(appHtml).not.toMatch(/statcounter/i);
-    expect(CSP).not.toMatch(/statcounter/i);
+    expect(SITE_CSP).toContain("script-src 'self';");
+    expect(SITE_CSP).toContain("img-src 'self';");
+    expect(SITE_CSP).toContain("connect-src 'none'");
+    expect(SITE_CSP).not.toMatch(/https?:/);
+    for (const { html } of pages) expect(html).not.toMatch(/<(script|img)[^>]+src="https?:/);
+    expect(CSP).toContain("script-src 'self';");
+    expect(appHtml).not.toMatch(/<script[^>]+src="https?:/);
   });
 });
