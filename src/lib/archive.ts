@@ -17,6 +17,7 @@ import type { Area, ChecklistItem, Context, Heading, ID, LocalDate, Project, Tag
 import type { Existing } from './import/plan';
 import { toCsv } from './import/csv';
 import { COLUMN_NAMES } from './import/rows';
+import { gistFileName, type GistLabel } from './model/settings';
 
 export interface ArchiveSelection {
   /** The cutoff: items completed before this day. */
@@ -65,8 +66,9 @@ export function archiveCounts(s: ArchiveSelection): string {
   return s.projects.length ? `${n(s.todos.length, 'task')} and ${n(s.projects.length, 'project')}` : n(s.todos.length, 'task');
 }
 
-export function archiveFileName(day: LocalDate): string {
-  return `My Tasks archive ${day}.csv`;
+/** The archive file's name, from the gist's name and the day: My Tasks Work archive 2026-11-24.csv. */
+export function archiveFileName(day: LocalDate, gist: GistLabel): string {
+  return `My Tasks ${gistFileName(gist)} archive ${day}.csv`;
 }
 
 /**

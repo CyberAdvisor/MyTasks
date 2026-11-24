@@ -32,7 +32,7 @@ test('archives old completed tasks to a file, then removes them', async ({ page 
   const download = page.waitForEvent('download');
   await dialog.getByRole('button', { name: 'Archive', exact: true }).click();
   // Playwright's WebKit turns the spaces in a download's name into underscores.
-  expect((await download).suggestedFilename()).toMatch(/^My[ _]Tasks[ _]archive[ _]\d{4}-\d{2}-\d{2}\.csv$/);
+  expect((await download).suggestedFilename()).toMatch(/^My[ _]Tasks[ _]Default[ _]archive[ _]\d{4}-\d{2}-\d{2}\.csv$/);
   const text = await page.evaluate(() => (window as unknown as { saved: Blob }).saved.text());
   expect(text).toContain('Ancient');
   expect(text).not.toContain('Fresh');

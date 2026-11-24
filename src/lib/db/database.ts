@@ -7,6 +7,7 @@
  * migrations.ts, which also upgrades lists from a gist or a backup file.
  */
 import Dexie, { type Table } from 'dexie';
+import { FIRST_DB, activeDbName } from '../gists/active';
 import { addCollapsed, addContext, addFieldTimes, addGivenContext, addReleased, addRepeat, addSortByDate, markMoved, stripDeleted } from './migrations';
 import type {
   Area,
@@ -22,7 +23,7 @@ import type {
 } from '../model/types';
 
 /** The current schema version; synced lists record it (FR-19.4). */
-export const SCHEMA_VERSION = 13;
+export const SCHEMA_VERSION = 14;
 
 export class MyTasksDB extends Dexie {
   areas!: Table<Area, string>;
@@ -36,7 +37,7 @@ export class MyTasksDB extends Dexie {
   changeLog!: Table<ChangeLogEntry, number>;
   settings!: Table<SettingEntry, string>;
 
-  constructor(name = 'mytasks') {
+  constructor(name = FIRST_DB) {
     super(name);
     // Version 1: initial schema. Only indexed fields are listed.
     this.version(1).stores({
@@ -111,8 +112,10 @@ export class MyTasksDB extends Dexie {
         await tx.table(name).toCollection().modify(addFieldTimes);
       }
     });
+    // Version 14: the synced setting gistLabel, the gist's name and colour (FR-19.14); no record changes.
+    this.version(14).stores({});
   }
 }
 
-/** The app's single database instance. */
-export const db = new MyTasksDB();
+/** The active gist's database (FR-19.11): the app's single database instance. */
+export const db = new MyTasksDB(activeDbName());

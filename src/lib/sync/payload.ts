@@ -46,6 +46,7 @@ export const SYNCED_SETTINGS: SettingKey[] = [
   'sequentialTags',
   'showCalendarEvents',
   'unscheduledLimit',
+  'gistLabel',
 ];
 
 /** The decrypted contents of the gist; also the body of a backup file (backup.ts). */

@@ -11,6 +11,7 @@ import { failureKind } from './lib/db/failures';
 import { ui } from './lib/state/ui.svelte';
 import { rowLimit } from './lib/state/rowLimit.svelte';
 import { blockZoom } from './lib/pwa/noZoom';
+import { adoptOldTheme } from './lib/state/theme';
 
 const target = document.getElementById('app')!;
 
@@ -20,6 +21,8 @@ if (isFramed()) {
 } else {
   // Read this device's sync settings, then keep the tasks in step with the gist (FR-19).
   void sync.start();
+  // A theme chosen before 1.11 moves to this device's own setting (FR-19.11).
+  void adoptOldTheme();
 
   // Catch the browser's install prompt (FR-0.2) and watch for app updates (NFR-8).
   install.watch();

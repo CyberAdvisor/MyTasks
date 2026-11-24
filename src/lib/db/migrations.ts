@@ -136,6 +136,9 @@ const STEPS: Record<number, (tables: Record<string, Row[]>) => void> = {
   13: (t) => {
     for (const name of ALL_TABLES) t[name]?.forEach(addFieldTimes);
   },
+  // Version 14 adds the synced setting gistLabel (FR-19.14) and no field, for
+  // the same reason as version 10.
+  14: () => {},
 };
 
 /**

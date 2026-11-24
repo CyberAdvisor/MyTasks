@@ -30,6 +30,7 @@
   import TagList from '../components/TagList.svelte';
   import Segmented from '../components/Segmented.svelte';
   import { settings, snapshot } from '../lib/state/live';
+  import { setTheme, theme } from '../lib/state/theme';
   import { bySortKey } from '../lib/model/order';
   import { descendantIds } from '../lib/model/tags';
   import {
@@ -148,7 +149,7 @@
    */
   async function saveBackup(): Promise<string> {
     const now = new Date();
-    const name = backupFileName(now);
+    const name = backupFileName(now, $settings.gistLabel);
     const file = new File([await buildBackup(now.toISOString())], name, { type: 'application/json' });
     const result = await saveFile(file);
     if (result === 'dismissed') return '';
@@ -396,8 +397,8 @@
     <Segmented
       label="Theme"
       options={THEME_OPTIONS}
-      value={$settings.theme}
-      onchange={(v) => repo.setSetting('theme', v)}
+      value={$theme}
+      onchange={(v) => setTheme(v)}
     />
   </div>
   <p class="help">System follows your device's light or dark setting.</p>

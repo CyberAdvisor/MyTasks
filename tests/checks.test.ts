@@ -132,6 +132,7 @@ describe('records and settings, field by field', () => {
       12: ['priorityLabels', 'autoP1', 'defaultP2', 'todayGrouping', 'moveToCompleted', 'sinkCompleted', 'sinkChecked', 'sequentialTags', 'showCalendarEvents', 'unscheduledLimit'],
       // Schema 13 adds part times on records (FR-19.10), no setting.
       13: ['priorityLabels', 'autoP1', 'defaultP2', 'todayGrouping', 'moveToCompleted', 'sinkCompleted', 'sinkChecked', 'sequentialTags', 'showCalendarEvents', 'unscheduledLimit'],
+      14: ['priorityLabels', 'autoP1', 'defaultP2', 'todayGrouping', 'moveToCompleted', 'sinkCompleted', 'sinkChecked', 'sequentialTags', 'showCalendarEvents', 'unscheduledLimit', 'gistLabel'],
     };
     expect([...SYNCED_SETTINGS].sort(), `schema ${SCHEMA_VERSION}`).toEqual([...(SINCE[SCHEMA_VERSION] ?? [])].sort());
   });

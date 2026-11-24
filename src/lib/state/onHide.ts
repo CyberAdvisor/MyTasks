@@ -17,8 +17,8 @@ export function onHide(save: () => void): () => void {
   return () => saves.delete(save);
 }
 
-/** Run every registered save now. Exported for tests. */
-function saveAllNow(): void {
+/** Run every registered save now: also before switching gists (FR-19.11). */
+export function saveAllNow(): void {
   for (const save of [...saves]) {
     try {
       save();

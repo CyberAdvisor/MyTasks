@@ -28,7 +28,7 @@ import { readLocal } from '../src/lib/sync/local';
 import type { Payload } from '../src/lib/sync/payload';
 import { createList, joinList } from '../src/lib/sync/setup';
 import { SyncEngine, sync } from '../src/lib/sync/sync.svelte';
-import { readSettings } from '../src/lib/model/settings';
+import { DEFAULT_SETTINGS, readSettings } from '../src/lib/model/settings';
 import { uuidv7 } from '../src/lib/model/ids';
 import { MAX_TASKS } from '../src/lib/model/limits';
 import { FakeGitHub } from './fakeGitHub';
@@ -132,7 +132,6 @@ describe('the backup file (FR-12.8)', () => {
     gh.tokens.set('tok-SECRET-123', 'gist');
     await repo.createTodo({ title: 'kept' });
     await repo.setSetting('autoP1', false);
-    await repo.setSetting('theme', 'dark');
     const config = await createList('tok-SECRET-123', PASS, ACK);
     const text = await buildBackup('2026-11-13T18:50:00.000Z');
     const file = JSON.parse(text) as BackupFile;
@@ -156,7 +155,8 @@ describe('the backup file (FR-12.8)', () => {
   });
 
   it('is named by when it was saved', () => {
-    expect(backupFileName(new Date(2026, 10, 3, 9, 5))).toBe('My Tasks backup 2026-11-03 0905.json');
+    expect(backupFileName(new Date(2026, 10, 3, 9, 5), DEFAULT_SETTINGS.gistLabel)).toBe('My Tasks Default backup 2026-11-03 0905.json');
+    expect(backupFileName(new Date(2026, 10, 3, 9, 5), { name: 'Work/Home', colour: 'blue' })).toBe('My Tasks Work-Home backup 2026-11-03 0905.json');
   });
 
   it('is shared from the installed iPhone and iPad app, and downloaded everywhere else', () => {
@@ -369,17 +369,16 @@ describe('restore (FR-12.8)', () => {
     expect(await titles()).toEqual(['new on B, not synced', 'one', 'two']);
   });
 
-  it('puts settings back as the backup had them, and the rest to their defaults; the theme stays', async () => {
+  it('puts settings back as the backup had them, and the rest to their defaults', async () => {
     const config = await connected('x');
     await repo.setSetting('autoP1', false);
     const backup = readBackup(await buildBackup());
     await repo.setSetting('autoP1', true);
     await repo.setSetting('sinkChecked', true);
-    await repo.setSetting('theme', 'dark');
     await syncOnce(config);
     await sync.restore(backup.list);
     const s = readSettings(await db.settings.toArray());
-    expect(s).toMatchObject({ autoP1: false, sinkChecked: false, theme: 'dark' });
+    expect(s).toMatchObject({ autoP1: false, sinkChecked: false });
   });
 
   it('runs under the cross-window lock: a sync in another window waits for it', async () => {
