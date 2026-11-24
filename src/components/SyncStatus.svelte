@@ -4,9 +4,10 @@
   build's version, on its right. A message goes on its own line above it
   when there is one: Offline (with how many changes wait to sync), or the
   problem, which links to Settings ›
-  Sync, where it is explained and fixed. From 4,500 tasks a line above
-  says how near the 5,000-task limit the list is (NFR-7), with a link to
-  the Guide's section on making room.
+  Sync, where it is explained and fixed. From 4,500 tasks or a 4.5 MB gist
+  file (as the last sync left it), whichever comes first, a line above says
+  how near the gist's limits it is (NFR-7), with a link to the Guide's
+  section on making room.
   Clicking the bottom line (its icon and text) syncs now, as Settings › Sync
   Now does (Michael, 2026-11-18); not while a sync is running.
 -->
@@ -17,7 +18,7 @@
   import { syncMessage, syncedLine } from '../lib/sync/messages';
   import { sync } from '../lib/sync/sync.svelte';
   import { changesSince, taskCount } from '../lib/state/live';
-  import { limitWarning, nearLimit } from '../lib/model/limits';
+  import { roomWarning } from '../lib/model/limits';
   import { siteUrl } from '../lib/website';
 
   /** Shown at the right of the bottom line. */
@@ -31,6 +32,8 @@
     return changesSince(since).subscribe((n) => (waiting = n));
   });
 
+  /** How near the gist's limits it is, by tasks or by size; null when neither is near. */
+  let room = $derived(roomWarning($taskCount, sync.config?.lastSync?.chars));
   let line = $derived(syncedLine(sync.status, sync.config?.lastSyncedAt ?? null));
   let message = $derived(syncMessage(sync.status, sync.problem, sync.config?.lastSyncedAt ?? null, waiting));
 
@@ -41,10 +44,10 @@
 </script>
 
 <div class="sync" role="status">
-  {#if nearLimit($taskCount)}
+  {#if room}
     <a href="{siteUrl('guide')}#task-limit" target="_blank" rel="noopener" class="message limit">
       <Icon name="alert" size={13} color="var(--danger)" />
-      <span>{limitWarning($taskCount)} <span class="fix">Make room</span></span>
+      <span>{room} <span class="fix">Make room</span></span>
     </a>
   {/if}
   {#if message && sync.status === 'error'}

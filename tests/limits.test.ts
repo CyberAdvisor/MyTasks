@@ -9,7 +9,7 @@ import * as repo from '../src/lib/db/repo';
 import * as bulk from '../src/lib/bulk';
 import { clearUndo } from '../src/lib/db/history';
 import { today, weekday } from '../src/lib/model/dates';
-import { MAX_TASKS, TaskLimitError, WARN_TASKS, hasRoom, limitRefusal, limitWarning, nearLimit } from '../src/lib/model/limits';
+import { MAX_TASKS, TaskLimitError, WARN_FILE_CHARS, WARN_TASKS, hasRoom, limitRefusal, limitWarning, nearLimit, roomWarning } from '../src/lib/model/limits';
 import { todo } from './helpers';
 import { seed } from '../perf/seed';
 import { SCHEMA_VERSION } from '../src/lib/db/database';
@@ -56,6 +56,16 @@ describe('counting and wording', () => {
     expect(limitWarning(4612)).toBe('4,612 of 5,000 tasks.');
     expect(limitRefusal(5000, 1)).toMatch(/^Another task would take you past 5,000.*you have 5,000\)\. Empty the Trash/);
     expect(limitRefusal(4999, 3)).toMatch(/^3 more tasks would/);
+  });
+
+  it('warns from 4,500 tasks or 4.5 MB, whichever comes first (v1.11.6)', () => {
+    const mb = 1024 * 1024;
+    expect(WARN_FILE_CHARS).toBe(Math.floor(4.5 * mb));
+    expect(roomWarning(4499, undefined)).toBeNull(); // before a first sync, no size
+    expect(roomWarning(4499, WARN_FILE_CHARS - 1)).toBeNull();
+    expect(roomWarning(4612, 1 * mb)).toBe('4,612 of 5,000 tasks.');
+    expect(roomWarning(1200, 4.6 * mb)).toBe('Your gist is 4.6 MB of 5 MB.');
+    expect(roomWarning(4612, 4.6 * mb)).toBe('4,612 of 5,000 tasks · 4.6 MB of 5 MB.');
   });
 
   it('counts every task not deleted: open, completed and trashed', async () => {

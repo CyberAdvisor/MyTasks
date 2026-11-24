@@ -39,6 +39,23 @@ async function fillTo(page: Page, total: number, fields: Record<string, unknown>
   await page.reload();
 }
 
+test('warns when the gist file nears 5 MB, before 4,500 tasks (v1.11.6)', async ({ browser }) => {
+  test.setTimeout(120_000);
+  const context = await browser.newContext();
+  await fakeGitHub(context);
+  const page = await context.newPage();
+  const errors = watchErrors(page);
+  await connect(page);
+  await addTask(page, 'First');
+  // 360 tasks with 10,000-character notes: about 4.9 MB once encrypted, under the 5 MB an upload may be.
+  await fillTo(page, 360, { notes: 'n'.repeat(10_000) });
+  const warning = page.getByRole('link', { name: /^Your gist is 4\.\d MB of 5 MB\. Make room/ });
+  await expect(warning).toBeVisible({ timeout: 30_000 });
+  await expect(warning).toHaveAttribute('href', 'https://mytasks.fyi/guide/#task-limit');
+  await expect(page.getByText(/of 5,000 tasks/)).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 test('warns near the limit and refuses a new task at it', async ({ browser }) => {
   test.setTimeout(120_000);
   const context = await browser.newContext();
