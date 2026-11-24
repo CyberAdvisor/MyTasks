@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.11.8"></a>
+
+## 1.11.8 — 2026-11-24
+
+### Changed
+
+- Wording: gists live in your GitHub account, and a device connects to several of them. The Change Token dialog says the new token is used for every gist connected on the device that used the old one; the Guide, Limitations and Roadmap pages say the same.
+
 <a id="v1.11.7"></a>
 
 ## 1.11.7 — 2026-11-24
