@@ -7,12 +7,11 @@
 import { nowIso } from '../model/ids';
 import { KDF_ITERATIONS, deriveKey, newSalt, parseEnvelope, type Envelope } from './crypto';
 import { envelopeOf, mergeAndPush, openPayload, sealPayload } from './cycle';
-import { addGist, saveConfig, type Acknowledgment, type DeviceConfig } from './device';
+import { addGist, freeDbName, refuseIfOnDevice, saveConfig, type Acknowledgment, type DeviceConfig } from './device';
 import { checkToken, createGist, findGists, readGist, writeGist } from './github';
 import { readLocal } from './local';
 import type { Payload } from './payload';
 import { SCHEMA_VERSION } from '../db/database';
-import { dbNameFor } from '../gists/active';
 import { cleanGistLabel, type GistLabel } from '../model/settings';
 import { ENTITY_NAMES, type BaseRecord, type EntityName } from '../model/types';
 
@@ -120,6 +119,7 @@ export interface UnlockedGist {
 /**
  * Add an opened gist to this device under `label`, written into the gist
  * first when it differs from the one the gist has. Gives its database name.
+ * A gist already on the device is refused before anything is written to it.
  */
 export async function addExistingGist(
   token: string,
@@ -127,6 +127,7 @@ export async function addExistingGist(
   label: GistLabel,
   acknowledged: Acknowledgment | undefined,
 ): Promise<string> {
+  await refuseIfOnDevice(gist.gistId);
   const draft = { key: gist.key, salt: gist.salt, iterations: gist.iterations };
   if (label.name !== gist.label.name || label.colour !== gist.label.colour) {
     const settings = [...gist.list.settings.filter((s) => s.key !== 'gistLabel'), labelSetting(label)];
@@ -167,7 +168,7 @@ async function addEntry(
   label: GistLabel,
   acknowledged: Acknowledgment | undefined,
 ): Promise<string> {
-  const db = dbNameFor(gistId);
+  const db = await freeDbName(gistId);
   const config: DeviceConfig = { token, gistId, ...draft, lastSyncedAt: nowIso() };
   if (acknowledged) config.acknowledged = acknowledged;
   await addGist(db, config, label);

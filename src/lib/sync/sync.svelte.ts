@@ -25,7 +25,7 @@ import { nowIso } from '../model/ids';
 import { KDF_ITERATIONS, deriveKey, newSalt } from './crypto';
 import { SyncError, envelopeOf, mergeAndPush, openPayload, sealPayload, syncOnce, type SyncProblem } from './cycle';
 import { clearConfig, listGists, loadConfig, saveConfig, type DeviceConfig, type SyncMark } from './device';
-import { activeDbName, setActiveDbName } from '../gists/active';
+import { FIRST_DB, activeDbName, setActiveDbName } from '../gists/active';
 import { saveAllNow } from '../state/onHide';
 import { SYNCED_TABLES, idsOf, replacement, type Payload } from './payload';
 import { GistError, checkToken, createGist, gistOwner, readGist, writeGist, type GistErrorCode } from './github';
@@ -434,9 +434,11 @@ export class SyncEngine {
     await exclusive(async () => {
       await clearConfig();
       await db.delete();
-      // Another gist on this device becomes active; with none left, Setup shows.
+      // Another gist on this device becomes active. With none left, Setup
+      // shows, on the first database name, so the next gist set up here never
+      // keeps the name of the gist just disconnected.
       const [next] = await listGists();
-      if (next) setActiveDbName(next.db);
+      setActiveDbName(next ? next.db : FIRST_DB);
     });
     this.config = null;
     this.channel?.postMessage(DISCONNECTED);

@@ -506,6 +506,10 @@ describe('setup (FR-19.1 to FR-19.3)', () => {
     const writes = gh.writes;
     await addExistingGist('good', again, again.label, ACK);
     expect(gh.writes).toBe(writes);
+    // Already on the device: refused before its new name is written in (v1.11.4).
+    await expect(addExistingGist('good', again, { name: 'Elsewhere', colour: 'red' }, ACK)).rejects.toThrow('already on this device');
+    expect(gh.writes).toBe(writes);
+    expect((await unlockGist('good', other.gistId, 'other passphrase')).label).toEqual({ name: 'Home', colour: 'green' });
   });
 
   it('refuses a list from a newer version of the app', async () => {

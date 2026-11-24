@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.11.4"></a>
+
+## 1.11.4 — 2026-11-24
+
+### Fixed
+
+- After every gist on a device was disconnected, a gist set up there again could take the old gist's place, so adding the old gist back later failed, and wrote its new name into it first. Disconnecting the last gist now starts the device afresh, Add Gist… checks the device before writing anything to the gist, and a device already in this state gives the gist being added a name of its own.
+
 <a id="v1.11.3"></a>
 
 ## 1.11.3 — 2026-11-24

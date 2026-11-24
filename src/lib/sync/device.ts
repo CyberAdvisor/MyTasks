@@ -14,7 +14,7 @@
  * never stored.
  */
 import Dexie, { type Table } from 'dexie';
-import { FIRST_DB, activeDbName, isTaskDbName } from '../gists/active';
+import { FIRST_DB, activeDbName, dbNameFor, isTaskDbName } from '../gists/active';
 import { DEFAULT_SETTINGS, type GistLabel } from '../model/settings';
 
 export interface DeviceConfig {
@@ -187,7 +187,29 @@ export async function saveLabel(label: GistLabel): Promise<boolean> {
 export async function addGist(db: string, config: DeviceConfig, label: GistLabel): Promise<void> {
   if (!isTaskDbName(db)) throw new Error(`Not a task database: ${db}`);
   await deviceDb.transaction('rw', deviceDb.gists, async () => {
-    if ((await deviceDb.gists.where('gistId').equals(config.gistId).count()) > 0) throw new Error('This gist is already on this device.');
+    await refuseIfOnDevice(config.gistId);
     await deviceDb.gists.add({ ...config, db, label: { name: label.name, colour: label.colour } });
   });
+}
+
+/**
+ * Refuse a gist that is already on this device, before anything is written
+ * to it (Add Gist…). `addGist` checks again when it adds the entry.
+ */
+export async function refuseIfOnDevice(gistId: string): Promise<void> {
+  if ((await deviceDb.gists.where('gistId').equals(gistId).count()) > 0) throw new Error('This gist is already on this device.');
+}
+
+/**
+ * The database name for a gist being added: `mytasks-<gist id>`, or, when
+ * another gist on the device already has that name, the first free one after
+ * it (`mytasks-<gist id>x2`, …). A device set up again after its last gist was
+ * disconnected, before 1.11.4, kept the old gist's name for the new one.
+ */
+export async function freeDbName(gistId: string): Promise<string> {
+  const taken = new Set((await deviceDb.gists.toArray()).map((g) => g.db));
+  const base = dbNameFor(gistId);
+  let name = base;
+  for (let n = 2; taken.has(name); n++) name = `${base}x${n}`;
+  return name;
 }

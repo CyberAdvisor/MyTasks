@@ -10,6 +10,7 @@ import { FIRST_DB, activeDbName, dbNameFor, perGistKey, setActiveDbName } from '
 import {
   addGist,
   clearConfig,
+  freeDbName,
   listGists,
   loadCalendarFile,
   loadConfig,
@@ -149,6 +150,21 @@ describe('the device’s gists (FR-19.11)', () => {
     expect(activeDbName()).toBe('mytasks-two');
     await new SyncEngine().disconnect();
     expect(await listGists()).toEqual([]);
+    // Back on the first database, so the next gist set up here never keeps the last one's name (v1.11.4).
+    expect(activeDbName()).toBe(FIRST_DB);
+  });
+
+  it('a gist being added gets a free database name, even where Setup kept an old gist\'s name (v1.11.4)', async () => {
+    expect(await freeDbName('x')).toBe('mytasks-x');
+    // Before 1.11.4: the last gist, x, disconnected, then Setup with y stored y under x's name.
+    setActiveDbName(dbNameFor('x'));
+    await saveConfig(config('y'));
+    expect(await freeDbName('x')).toBe('mytasks-xx2');
+    await addGist(await freeDbName('x'), config('x'), TWO);
+    expect(await listGists()).toEqual([
+      { db: 'mytasks-x', gistId: 'y', label: DEFAULT },
+      { db: 'mytasks-xx2', gistId: 'x', label: TWO },
+    ]);
   });
 });
 
