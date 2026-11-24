@@ -715,6 +715,29 @@ describe('Settings › Sync (FR-19.6 to FR-19.8)', () => {
     expect((await loadConfig())!.token).toBe('good');
   });
 
+  it('Change Token also gives the new token to the device’s other gists that used the old one, once checked (v1.11.5)', async () => {
+    const label = (name: string) => ({ name, colour: 'blue' }) as const;
+    const shared = await addNewGist('good', 'second passphrase', label('Work'), ACK);
+    const gone = await addNewGist('good', 'third passphrase', label('Gone'), ACK);
+    gh.gists.delete(gone.slice('mytasks-'.length));
+    gh.tokens.set('own', 'gist');
+    const separate = await addNewGist('own', 'fourth passphrase', label('Own'), ACK);
+    gh.tokens.set('new', 'gist');
+    await sync.changeToken('new');
+    const tokenOf = async (dbName: string) => {
+      setActiveDbName(dbName);
+      const token = (await loadConfig())!.token;
+      setActiveDbName(FIRST_DB);
+      return token;
+    };
+    expect(await tokenOf(FIRST_DB)).toBe('new');
+    // Same old token, and the new one reaches it: changed too, its next sync a full one.
+    expect(await tokenOf(shared)).toBe('new');
+    // The new token can't reach it: it keeps its own. Added with another token: untouched.
+    expect(await tokenOf(gone)).toBe('good');
+    expect(await tokenOf(separate)).toBe('own');
+  });
+
   it('Recreate Gist: a deleted gist is made again from this device', async () => {
     await repo.createTodo({ title: 'survivor' });
     gh.gists.delete(config.gistId);

@@ -66,7 +66,7 @@
   <form onsubmit={submit}>
     <h2 id="sync-form-title">{TITLES[form]}</h2>
     {#if form === 'token'}
-      <p>Paste a new personal access token (classic, gist scope) from the same GitHub account.</p>
+      <p>Paste a new personal access token (classic, gist scope) from the same GitHub account. It’s used for every gist on this device that used the old one.</p>
       <label class="form-label" for="sync-token">Personal access token</label>
       <input id="sync-token" class="form-field" type="password" bind:value={first} autocomplete="off" spellcheck="false" />
     {:else if form === 'change-passphrase'}

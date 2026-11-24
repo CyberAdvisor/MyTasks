@@ -24,7 +24,7 @@ import { onLocalChange } from '../db/history';
 import { nowIso } from '../model/ids';
 import { KDF_ITERATIONS, deriveKey, newSalt } from './crypto';
 import { SyncError, envelopeOf, mergeAndPush, openPayload, sealPayload, syncOnce, type SyncProblem } from './cycle';
-import { clearConfig, listGists, loadConfig, saveConfig, type DeviceConfig, type SyncMark } from './device';
+import { clearConfig, listGists, loadConfig, otherGistsWithToken, replaceToken, saveConfig, type DeviceConfig, type SyncMark } from './device';
 import { FIRST_DB, activeDbName, setActiveDbName } from '../gists/active';
 import { saveAllNow } from '../state/onHide';
 import { SYNCED_TABLES, idsOf, replacement, type Payload } from './payload';
@@ -306,7 +306,10 @@ export class SyncEngine {
    * Use a new token (FR-19.7). It must work, reach this device's gist, and
    * belong to the GitHub account that owns the gist, so the tasks never move
    * to another account. (A deleted gist can't be checked: the user
-   * disconnects this device and sets it up again.)
+   * disconnects this device and sets it up again.) Every other gist on this
+   * device that used the same old token gets the new one too, once the same
+   * check passes for it; one that fails it, or can't be checked (offline),
+   * keeps its own token.
    */
   async changeToken(token: string): Promise<void> {
     const changed = await this.exclusive(async (config) => {
@@ -317,6 +320,10 @@ export class SyncEngine {
       if (owner.toLowerCase() !== account.toLowerCase()) throw new SyncError('otheraccount');
       await saveConfig({ ...config, token, lastSync: undefined });
       this.config = { ...config, token, lastSync: undefined };
+      for (const other of await otherGistsWithToken(config.token)) {
+        const ownerOfOther = await gistOwner(token, other.gistId).catch(() => null);
+        if (ownerOfOther?.toLowerCase() === account.toLowerCase()) await replaceToken(other.db, config.token, token);
+      }
       this.problem = null;
       this.status = 'idle';
       return true;

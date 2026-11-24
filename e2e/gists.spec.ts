@@ -20,6 +20,21 @@ async function openSettings(page: Page): Promise<void> {
   await page.getByRole('link', { name: 'Settings' }).click();
 }
 
+/** Add Gist… from Settings: a new gist with this name and colour; the app starts again on it. */
+async function addNewGist(page: Page, name: string, colour: string): Promise<void> {
+  await openSettings(page);
+  await page.getByRole('button', { name: 'Add Gist…' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Add Gist' });
+  await dialog.getByRole('button', { name: 'Continue' }).click();
+  await dialog.getByLabel('Passphrase', { exact: true }).fill('a second passphrase');
+  await dialog.getByLabel('Confirm passphrase').fill('a second passphrase');
+  await dialog.getByRole('button', { name: 'Continue' }).click();
+  await dialog.getByLabel('Name').fill(name);
+  await dialog.getByRole('radio', { name: colour }).check();
+  await dialog.getByRole('button', { name: 'Add Gist' }).click();
+  await started(page);
+}
+
 test('add, switch, rename and disconnect gists, keeping their tasks apart', async ({ context, page }) => {
   const errors = watchErrors(page);
   const gh = await fakeGitHub(context);
@@ -110,7 +125,8 @@ test('add, switch, rename and disconnect gists, keeping their tasks apart', asyn
   await page.getByRole('button', { name: 'Disconnect This Device' }).click();
   await page.getByRole('dialog', { name: 'Disconnect this device?' }).getByRole('button', { name: 'Disconnect' }).click();
   await expect(page.getByLabel('Personal access token')).toBeVisible({ timeout: 30_000 });
-  expect(await page.evaluate(() => localStorage.getItem('mytasks.activeDb'))).toBeNull();
+  // Read once the reload after Disconnect has settled.
+  await expect(async () => expect(await page.evaluate(() => localStorage.getItem('mytasks.activeDb'))).toBeNull()).toPass();
   // ...so Setup with the first gist, then Add Gist… with Work, brings Work back with its tasks.
   await page.getByLabel('Personal access token').fill(TOKEN);
   await page.getByRole('checkbox').check();
@@ -132,5 +148,28 @@ test('add, switch, rename and disconnect gists, keeping their tasks apart', asyn
   await expect(band(page)).toHaveAccessibleName('Gist: Work. Switch gist');
   await openList(page, 'Inbox');
   await expect(page.getByText('Only in Work')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('Change Token in one gist also changes it for the device’s other gists that used it (v1.11.5)', async ({ context, page }) => {
+  const errors = watchErrors(page);
+  const gh = await fakeGitHub(context);
+  await connect(page);
+  await synced(page);
+  await addNewGist(page, 'Work', 'Teal');
+  await openSettings(page);
+  await page.getByRole('button', { name: 'Change Token' }).click();
+  gh.tokens.set('new', 'gist');
+  const dialog = page.getByRole('dialog', { name: 'Change Token' });
+  await expect(dialog.getByText('It’s used for every gist on this device that used the old one.')).toBeVisible();
+  await dialog.getByLabel('Personal access token').fill('new');
+  await dialog.getByRole('button', { name: 'Change Token' }).click();
+  await expect(dialog).toBeHidden();
+  // The old token stops working; the first gist syncs with the new one.
+  gh.tokens.delete(TOKEN);
+  await band(page).click();
+  await page.getByRole('menu', { name: 'Switch gist' }).getByRole('menuitem', { name: 'Default' }).click();
+  await started(page);
+  await expect(band(page)).toHaveAccessibleName('Gist: Default. Switch gist');
   expect(errors).toEqual([]);
 });
