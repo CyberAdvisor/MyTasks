@@ -35,6 +35,7 @@ A better task manager that is **free**, **private** and **secure**. My Tasks giv
 | Works offline | ✅ | ✅ | ✅ | ✅ |
 | Areas, projects and headings | ✅ | ✅ | Projects and sections | Folders, projects and action groups |
 | Focus on one area | ✅ | — | Through filters | ✅ Focus (Pro) |
+| Separate sets of tasks (Work, Personal, etc.) | ✅ Several gists, switched in one click ([Guide](https://mytasks.fyi/guide/#several-gists)) | Limited: one library; switch by signing into another Things Cloud account | Team workspaces (team plans), beside personal projects | Limited: one database; switch by changing the sync account |
 | Checklists | ✅ | ✅ | Sub-tasks | Action groups |
 | Tags | ✅ | ✅ | ✅ | ✅ |
 | Priorities | ✅ 5 levels | — | ✅ 4 levels | Flags |
