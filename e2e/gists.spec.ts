@@ -5,7 +5,7 @@
  * one gist. Each gist has its own task database and syncs only its own file.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { addTask, connect, openList, synced, watchErrors } from './app';
+import { PASSPHRASE, TOKEN, addTask, connect, openList, synced, watchErrors } from './app';
 import { fakeGitHub } from './fakeGitHub';
 
 const band = (page: Page) => page.getByRole('navigation', { name: 'Lists' }).getByRole('button', { name: /^Gist: / });
@@ -105,5 +105,32 @@ test('add, switch, rename and disconnect gists, keeping their tasks apart', asyn
   await openSettings(page);
   await expect(page.getByRole('list', { name: 'Your Gists' }).getByRole('listitem')).toHaveText([/Work\s*Open/]);
   await expect(page.getByRole('button', { name: 'Disconnect This Device' })).toBeVisible();
+
+  // Disconnecting the last gist returns to Setup on the first database (v1.11.4)...
+  await page.getByRole('button', { name: 'Disconnect This Device' }).click();
+  await page.getByRole('dialog', { name: 'Disconnect this device?' }).getByRole('button', { name: 'Disconnect' }).click();
+  await expect(page.getByLabel('Personal access token')).toBeVisible({ timeout: 30_000 });
+  expect(await page.evaluate(() => localStorage.getItem('mytasks.activeDb'))).toBeNull();
+  // ...so Setup with the first gist, then Add Gist… with Work, brings Work back with its tasks.
+  await page.getByLabel('Personal access token').fill(TOKEN);
+  await page.getByRole('checkbox').check();
+  await page.getByRole('button', { name: 'Connect' }).click();
+  await page.locator(`input[value="${first}"]`).check();
+  await page.getByRole('button', { name: 'Use This List' }).click();
+  await page.getByLabel('Passphrase', { exact: true }).fill(PASSPHRASE);
+  await page.getByRole('button', { name: 'Unlock' }).click();
+  await started(page);
+  await openSettings(page);
+  await page.getByRole('button', { name: 'Add Gist…' }).click();
+  const again = page.getByRole('dialog', { name: 'Add Gist' });
+  await again.locator(`input[value="${second}"]`).check();
+  await again.getByRole('button', { name: 'Continue' }).click();
+  await again.getByLabel('Passphrase', { exact: true }).fill('a second passphrase');
+  await again.getByRole('button', { name: 'Unlock' }).click();
+  await again.getByRole('button', { name: 'Add Gist' }).click();
+  await started(page);
+  await expect(band(page)).toHaveAccessibleName('Gist: Work. Switch gist');
+  await openList(page, 'Inbox');
+  await expect(page.getByText('Only in Work')).toBeVisible();
   expect(errors).toEqual([]);
 });
