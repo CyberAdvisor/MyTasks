@@ -4,6 +4,20 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.11.1"></a>
+
+## 1.11.1 — 2026-11-24
+
+### Added
+
+- Add Gist…, in Settings › Sync and in the gist switcher: add another gist to this device, such as Work and Personal. Pick one of your other My Tasks gists and enter its passphrase, or create a new gist with its own passphrase, then give it a name and a colour. The app then opens the new gist.
+- With more than one gist on the device, a band under the sidebar's header shows the open gist's name in its colour. Click it to switch to another gist, add one, or manage them. On phones the band is at the top of the lists, and each page shows the gist's name under its title.
+- Settings › Sync lists your gists, with Rename… for the open one (its name and colour, kept in the gist so your other devices show them) and Switch for the others.
+
+### Changed
+
+- With more than one gist, Disconnect This Device becomes Disconnect This Gist: it removes only the open gist from this device, and the app opens another.
+
 <a id="v1.11.0"></a>
 
 ## 1.11.0 — 2026-11-24

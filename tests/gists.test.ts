@@ -15,6 +15,7 @@ import {
   loadConfig,
   saveCalendarFile,
   saveConfig,
+  saveLabel,
   type DeviceConfig,
 } from '../src/lib/sync/device';
 import { DEFAULT_SETTINGS, cleanGistLabel, gistName, gistNameProblem, readSettings } from '../src/lib/model/settings';
@@ -22,6 +23,10 @@ import { isValidSetting } from '../src/lib/sync/validate';
 import { upgradeList } from '../src/lib/db/migrations';
 import { adoptOldTheme } from '../src/lib/state/theme';
 import { SyncEngine } from '../src/lib/sync/sync.svelte';
+
+/** The name and colour Add Gist… gives the second gist. */
+const TWO = { name: 'Two', colour: 'teal' } as const;
+const DEFAULT = DEFAULT_SETTINGS.gistLabel;
 
 /** A gist's settings as Setup saves them; the key is a stand-in (never used to encrypt here). */
 function config(gistId: string): DeviceConfig {
@@ -62,7 +67,7 @@ describe('upgrading from 1.10.5', () => {
     expect(activeDbName()).toBe(FIRST_DB);
     expect(await loadConfig()).toMatchObject({ gistId: 'gist-1', lastSyncedAt: '2026-11-23T10:00:00.000Z' });
     expect(await loadCalendarFile()).toBe('ENCRYPTED');
-    expect(await listGists()).toEqual([{ db: FIRST_DB, gistId: 'gist-1' }]);
+    expect(await listGists()).toEqual([{ db: FIRST_DB, gistId: 'gist-1', label: DEFAULT }]);
 
     await db.open();
     expect(db.name).toBe(FIRST_DB);
@@ -87,26 +92,29 @@ describe('the device’s gists (FR-19.11)', () => {
   it('keeps one entry per gist; each function works on the active one', async () => {
     await saveConfig(config('one'));
     await saveCalendarFile('CAL-ONE');
-    await addGist(dbNameFor('two'), config('two'));
+    await addGist(dbNameFor('two'), config('two'), TWO);
     expect(await listGists()).toEqual([
-      { db: FIRST_DB, gistId: 'one' },
-      { db: 'mytasks-two', gistId: 'two' },
+      { db: FIRST_DB, gistId: 'one', label: DEFAULT },
+      { db: 'mytasks-two', gistId: 'two', label: TWO },
     ]);
-    // Saving the settings again keeps the calendar file.
+    // The open gist's name is kept with its entry (FR-19.15); saving the settings again keeps it and the calendar file.
+    expect(await saveLabel({ name: 'Work', colour: 'blue' })).toBe(true);
+    expect(await saveLabel({ name: 'Work', colour: 'blue' })).toBe(false);
     await saveConfig({ ...config('one'), token: 'new' });
     expect(await loadCalendarFile()).toBe('CAL-ONE');
+    expect((await listGists())[0].label).toEqual({ name: 'Work', colour: 'blue' });
 
     setActiveDbName('mytasks-two');
     expect((await loadConfig())?.gistId).toBe('two');
     expect(await loadCalendarFile()).toBeNull();
     await clearConfig();
-    expect(await listGists()).toEqual([{ db: FIRST_DB, gistId: 'one' }]);
+    expect(await listGists()).toEqual([{ db: FIRST_DB, gistId: 'one', label: { name: 'Work', colour: 'blue' } }]);
   });
 
   it('refuses a gist already on the device, and a name that isn’t a task database', async () => {
     await saveConfig(config('one'));
-    await expect(addGist(dbNameFor('again'), config('one'))).rejects.toThrow('already on this device');
-    await expect(addGist('other', config('x'))).rejects.toThrow('Not a task database');
+    await expect(addGist(dbNameFor('again'), config('one'), TWO)).rejects.toThrow('already on this device');
+    await expect(addGist('other', config('x'), TWO)).rejects.toThrow('Not a task database');
   });
 
   it('gives each gist its own task database', async () => {
@@ -126,7 +134,7 @@ describe('the device’s gists (FR-19.11)', () => {
 
   it('switching needs a gist on the device and makes it active', async () => {
     await saveConfig(config('one'));
-    await addGist(dbNameFor('two'), config('two'));
+    await addGist(dbNameFor('two'), config('two'), TWO);
     const engine = new SyncEngine();
     await expect(engine.switchTo('mytasks-elsewhere')).rejects.toThrow('isn’t on this device');
     await engine.switchTo('mytasks-two');
@@ -135,9 +143,9 @@ describe('the device’s gists (FR-19.11)', () => {
 
   it('disconnecting one gist makes another active; the last returns to Setup', async () => {
     await saveConfig(config('one'));
-    await addGist(dbNameFor('two'), config('two'));
+    await addGist(dbNameFor('two'), config('two'), TWO);
     await new SyncEngine().disconnect();
-    expect(await listGists()).toEqual([{ db: 'mytasks-two', gistId: 'two' }]);
+    expect(await listGists()).toEqual([{ db: 'mytasks-two', gistId: 'two', label: TWO }]);
     expect(activeDbName()).toBe('mytasks-two');
     await new SyncEngine().disconnect();
     expect(await listGists()).toEqual([]);

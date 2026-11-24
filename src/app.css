@@ -124,6 +124,45 @@ dialog .btn-plain {
   cursor: default;
 }
 
+/* Dialogs holding a form: Settings › Sync's forms, Add Gist… and Rename… */
+dialog.form-dialog {
+  border: 0;
+  border-radius: 12px;
+  padding: 20px 22px 16px;
+  max-width: 420px;
+  width: calc(100% - 32px);
+  box-shadow: var(--shadow-dialog);
+}
+dialog.form-dialog::backdrop {
+  background: var(--overlay);
+}
+dialog.form-dialog h2 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+dialog.form-dialog p {
+  margin: 0 0 16px;
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+/* Red, as in Setup: the dialog's p rule above would otherwise grey it. */
+dialog.form-dialog .form-error {
+  margin: 0 0 12px;
+  color: var(--danger);
+}
+/* The passphrase tip sits close under its field. */
+dialog.form-dialog p.tip {
+  margin: -8px 0 14px;
+  font-size: 12px;
+}
+dialog.form-dialog .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
 /* A labelled text field in a form (Setup and the sync dialogs). */
 .form-label {
   display: block;

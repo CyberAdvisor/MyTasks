@@ -4,8 +4,9 @@
   On paper only, a "Printed <date>" line follows the title (FR-12.5).
   On touch screens 768 px and wider (iPad), a sidebar button above the title
   hides and shows the sidebar (Section 6).
-  While an area is focused (FR-22.1), its marker shows under the title when the
-  sidebar's own marker isn't in view: on phones, or with the sidebar hidden.
+  The gist's name (FR-19.15, with several gists on the device) and, while an
+  area is focused (FR-22.1), its marker show under the title when the
+  sidebar's own bands aren't in view: on phones, or with the sidebar hidden.
   In Select mode (FR-10.2) a line with the number selected and Done takes the
   place of the back link and the sidebar button.
 -->
@@ -13,6 +14,7 @@
   import { LOCALE } from '../lib/model/dates';
   import type { Snippet } from 'svelte';
   import FocusBand from './FocusBand.svelte';
+  import GistBand from './GistBand.svelte';
   import Icon from './Icon.svelte';
   import { todayDate } from '../lib/state/live';
   import { ui } from '../lib/state/ui.svelte';
@@ -67,7 +69,7 @@
   </div>
   {#if actions}<div class="actions">{@render actions()}</div>{/if}
 </header>
-<div class="focus" class:shown={ui.sidebarHidden}><FocusBand place="view" /></div>
+<div class="focus" class:shown={ui.sidebarHidden}><GistBand place="view" /><FocusBand place="view" /></div>
 <p class="printed">Printed {printed}</p>
 
 <style>

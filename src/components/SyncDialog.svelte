@@ -55,6 +55,7 @@
 </script>
 
 <dialog
+  class="form-dialog"
   bind:this={dialog}
   aria-labelledby="sync-form-title"
   oncancel={(e) => {
@@ -90,43 +91,3 @@
   </form>
 </dialog>
 
-<style>
-  dialog {
-    border: 0;
-    border-radius: 12px;
-    padding: 20px 22px 16px;
-    max-width: 420px;
-    width: calc(100% - 32px);
-    box-shadow: var(--shadow-dialog);
-  }
-  dialog::backdrop {
-    background: var(--overlay);
-  }
-  h2 {
-    margin: 0 0 8px;
-    font-size: 17px;
-  }
-  p {
-    margin: 0 0 16px;
-    color: var(--text-2);
-    font-size: 14px;
-    line-height: 1.45;
-  }
-  /* Red, as in Setup: the colour must be set here, because the dialog's own
-     p rule above outranks the shared .form-error in app.css. */
-  .form-error {
-    margin: 0 0 12px;
-    color: var(--danger);
-  }
-  /* The passphrase tip sits close under its field. */
-  p.tip {
-    margin: -8px 0 14px;
-    font-size: 12px;
-  }
-  .actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-top: 6px;
-  }
-</style>

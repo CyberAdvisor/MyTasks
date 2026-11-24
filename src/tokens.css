@@ -74,6 +74,20 @@
   --c-logbook: light-dark(#079455, #3fcf7f);
   --c-trash: light-dark(#6b6b70, #9a9aa1);
 
+  /* Gist colours (FR-19.14): text and dot, then the band's background. */
+  --gist-blue: light-dark(#1f5bb8, #7fb0ff);
+  --gist-blue-bg: light-dark(#e6eefb, #1f3556);
+  --gist-green: light-dark(#05703f, #5fd894);
+  --gist-green-bg: light-dark(#e3f4ea, #173a28);
+  --gist-tan: light-dark(#7d5a26, #d4b07a);
+  --gist-tan-bg: light-dark(#f3ece0, #3d3222);
+  --gist-red: light-dark(#b3261b, #ff7d72);
+  --gist-red-bg: light-dark(#fbe7e5, #4a2220);
+  --gist-teal: light-dark(#0a7c91, #5cc9de);
+  --gist-teal-bg: light-dark(#e0f1f5, #163842);
+  --gist-grey: light-dark(#55555a, #b6b6bc);
+  --gist-grey-bg: light-dark(#ececef, #3a3a3d);
+
   /* Priority chips, P1 (highest) to P5 (FR-14.4). */
   --p1: light-dark(#c4271b, #ff6b5e);
   --p2: light-dark(#b35600, #ff9f43);

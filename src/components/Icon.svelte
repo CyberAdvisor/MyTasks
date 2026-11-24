@@ -10,7 +10,7 @@
     | 'tag' | 'checklist' | 'priority' | 'priority-circle' | 'arrow-up' | 'arrow-down' | 'heading-add' | 'copy'
     | 'project' | 'pencil' | 'cancel' | 'context' | 'cloud' | 'cloud-off' | 'alert' | 'help' | 'sync'
     | 'download' | 'share' | 'printer' | 'sidebar' | 'focus' | 'repeat' | 'minus' | 'grip'
-    | 'pin' | 'car' | 'bell' | 'link' | 'people';
+    | 'pin' | 'car' | 'bell' | 'link' | 'people' | 'selector';
 
   let { name, size = 18, color = 'currentColor', label = '', weight = 2, filled = false }: {
     name: Name; size?: number; color?: string; label?: string;
@@ -21,6 +21,8 @@
   } = $props();
 
   const PATHS: Record<Name, string> = {
+    // The gist band's switcher (FR-19.15): up and down.
+    selector: 'm7 15 5 5 5-5 M7 9l5-5 5 5',
     // Calendar event details (FR-21.4).
     pin: 'M12 21s-6.5-5.9-6.5-11a6.5 6.5 0 0 1 13 0c0 5.1-6.5 11-6.5 11z M12 7.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z',
     car: 'M5 16v-4l2-5h10l2 5v4z M5 16v2 M19 16v2 M5 12h14 M8 14h.01 M16 14h.01',

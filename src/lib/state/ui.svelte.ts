@@ -176,6 +176,8 @@ class UiState {
   sidebarMenu = $state<{ target: SidebarTarget; x: number; y: number; keyboard?: boolean } | null>(null);
   /** Keyboard Help is open (FR-7.1k). */
   helpOpen = $state(false);
+  /** Add Gist… is open (FR-19.16), from the switcher or Settings › Sync. */
+  addingGist = $state(false);
   /** The sidebar is hidden on wider screens (Cmd/Ctrl+/); remembered. */
   sidebarHidden = $state(readFlag(SIDEBAR_KEY));
   /** Today's completed tasks hidden (Hide / Show by Today's ⋯). This device only, and shown again whenever the app opens. */
@@ -344,6 +346,11 @@ class UiState {
   /** Say that a step was dropped because another device changed its tasks since (FR-1.6). */
   private showStale(what: 'undo' | 'redo'): void {
     this.showToast({ message: `Can't ${what}: changed on another device`, undo: false });
+  }
+
+  /** A plain message in the toast, with no Undo (a switch that couldn't be made). */
+  say(message: string): void {
+    this.showToast({ message, undo: false });
   }
 
   /** Open Quick Find, optionally with text already typed. */
