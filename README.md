@@ -13,11 +13,11 @@ A better task manager that is **free**, **private** and **secure**. My Tasks giv
 
 ## Why My Tasks
 
-**Free, for good.** Every feature, on every device, at no cost. No trial, no paid tier, no limits on projects or lists. Up to 5,000 tasks in all, the most your gist can sync (see the [limitations](https://mytasks.fyi/limitations/#not-possible)). My Tasks is open source under the MIT license.
+**Free, for good.** Every feature, on every device, at no cost. No trial, no paid tier, no limits on projects or lists. Up to 5,000 tasks in each gist, the most a gist can sync; keep several gists to go past it (see the [limitations](https://mytasks.fyi/limitations/#not-possible)). My Tasks is open source under the MIT license.
 
 **Private by design.** There is no My Tasks server and no My Tasks account. Your tasks live on your devices and in your own GitHub account, and nowhere else. No analytics, no tracking, no ads.
 
-**Secure.** Before your tasks leave a device, they are encrypted with a passphrase that only you know, so the copy in your GitHub account can't be read without it. GitHub can see that the gist exists, its size and when it changes. The app doesn't store your passphrase or send it anywhere. See [Security](https://mytasks.fyi/security/) for what My Tasks can't protect against.
+**Secure.** Before your tasks leave a device, they are encrypted with a passphrase that only you know, so the copy in your GitHub account can't be read without it. GitHub can see that the gist exists, its size and when it changes, and its description, which holds the gist's name. The app doesn't store your passphrase or send it anywhere. See [Security](https://mytasks.fyi/security/) for what My Tasks can't protect against.
 
 **On every device.** It runs in any modern browser on iPhone, iPad, Mac, Windows, Linux and Android, and installs like an app on each of them. Your tasks keep working without a connection, and your devices stay in step whenever they're online.
 

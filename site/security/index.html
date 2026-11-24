@@ -31,7 +31,7 @@
     <li>Your tasks are encrypted with AES-256-GCM, with a fresh 12-byte IV every time it's saved. GCM also detects any change to the encrypted file.</li>
     <li>Each device asks for your passphrase once and keeps the key in a form the browser won't let any script read out. The app doesn't store your passphrase or send it anywhere.</li>
     <li>Change Passphrase re-encrypts your gist with a new salt. Your other devices then ask for the new passphrase. Older versions of the gist stay in its history, encrypted with the passphrase in use at the time.</li>
-    <li>GitHub can see that your gist exists, its size and when it changes, but not your tasks.</li>
+    <li>GitHub can see that your gist exists, its size and when it changes, and its description, which holds the gist's name, but not your tasks.</li>
   </ul>
 
   <h2>Your GitHub token</h2>
