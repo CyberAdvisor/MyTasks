@@ -120,6 +120,10 @@ export interface UnlockedGist {
  * Add an opened gist to this device under `label`, written into the gist
  * first when it differs from the one the gist has. Gives its database name.
  * A gist already on the device is refused before anything is written to it.
+ * The name is written into the gist as it is now, read again just before,
+ * not the copy read at the passphrase step, so a change another device
+ * synced meanwhile is kept. A passphrase changed meanwhile fails it
+ * (`wrong-passphrase`).
  */
 export async function addExistingGist(
   token: string,
@@ -130,8 +134,9 @@ export async function addExistingGist(
   await refuseIfOnDevice(gist.gistId);
   const draft = { key: gist.key, salt: gist.salt, iterations: gist.iterations };
   if (label.name !== gist.label.name || label.colour !== gist.label.colour) {
-    const settings = [...gist.list.settings.filter((s) => s.key !== 'gistLabel'), labelSetting(label)];
-    await writeGist(token, gist.gistId, await sealPayload(draft, { ...gist.list, settings }));
+    const now = await openPayload(gist.key, envelopeOf(await readGist(token, gist.gistId)), 'wrong-passphrase');
+    const settings = [...now.settings.filter((s) => s.key !== 'gistLabel'), labelSetting(label)];
+    await writeGist(token, gist.gistId, await sealPayload(draft, { ...now, settings }));
   }
   return addEntry(token, gist.gistId, draft, label, acknowledged);
 }
