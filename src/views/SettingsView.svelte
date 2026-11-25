@@ -429,8 +429,8 @@
   {#if importMessage}<p class="backup-done" role="status">{importMessage}</p>{/if}
   {#if importError}<p class="form-error" role="alert">⚠ {importError}</p>{/if}
   <p class="help">
-    Add tasks from a CSV file, such as one from another app. What’s in the file is added to your tasks; nothing is
-    replaced. The file’s columns, a template and a sample are on
+    Add tasks from a CSV file in My Tasks’ format, or from one or more Todoist exports. What’s in the file is added to
+    your tasks; nothing is replaced. The file’s columns, a template and a sample are on
     <SiteLink page="import">Import from other apps</SiteLink>.
   </p>
 </section>

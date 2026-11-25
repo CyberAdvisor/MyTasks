@@ -167,9 +167,9 @@ describe('importing', () => {
     await repo.createHeading(projectId, 'Spring');
     await repo.createTag('Errand');
     await repo.createContext('Phone');
-    const { plan } = await prepareImport(
-      'type,title,area,project,heading,tags,context\ntask,Plant bulbs,,garden,spring,errand,phone\ntask,Sweep,HOME,,,,',
-    );
+    const { plan } = await prepareImport([
+      { name: 'garden.csv', text: 'type,title,area,project,heading,tags,context\ntask,Plant bulbs,,garden,spring,errand,phone\ntask,Sweep,HOME,,,,' },
+    ]);
     expect(planMatches(plan)).toBe('1 area, 1 project, 1 heading, 1 tag and 1 context you already have');
     await importCsv('type,title,area,project,heading,tags,context\ntask,Plant bulbs,,garden,spring,errand,phone\ntask,Sweep,HOME,,,,');
     expect((await live(db.areas.toArray())).length).toBe(1);

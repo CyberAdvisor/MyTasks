@@ -1,12 +1,13 @@
 /**
  * Import (FR-12.6; v1.4.0) in a real browser: the website's sample file,
- * with its repeating project (FR-4.6, v1.6.2),
- * through Settings › Backup › Import…, the preview, what it adds, and one
+ * with its repeating project (FR-4.6, v1.6.2), and a Todoist export
+ * (FR-12.13, v1.12.0), through Settings › Import…, the preview, what it adds, and one
  * Undo taking it all back.
  */
 import { expect, test } from '@playwright/test';
 import { connect, openList, pickImportFile as pick, watchErrors } from './app';
 import { fakeGitHub } from './fakeGitHub';
+import { TODOIST_EXPORT } from '../tests/fixtures/todoistExport';
 
 test.beforeEach(async ({ page, context }) => {
   await fakeGitHub(context);
@@ -63,4 +64,24 @@ test('a deferred row with a start date comes in scheduled on that date (v1.5.3)'
   await expect(row.locator('.when')).toHaveText('Dec 18');
   await openList(page, 'Deferred');
   await expect(page.getByText('Book a table')).toHaveCount(0);
+});
+
+test('imports a Todoist export after a preview naming it, and one Undo takes it back (v1.12.0)', async ({ page }) => {
+  const errors = watchErrors(page);
+  // A real Todoist export, its author's name and id replaced.
+  await pick(page, 'Claude test – delete me.csv', TODOIST_EXPORT);
+  const dialog = page.getByRole('dialog', { name: 'Import “Claude test – delete me.csv”?' });
+  await expect(dialog).toContainText('It holds 5 tasks, 1 project and 1 heading.');
+  await expect(dialog).toContainText('Read as a Todoist export: the project “Claude test – delete me”, with no area.');
+  await dialog.getByRole('button', { name: 'Import', exact: true }).click();
+
+  const lists = page.getByRole('navigation', { name: 'Lists' });
+  await openList(page, 'Claude test – delete me');
+  await expect(page.getByRole('textbox', { name: 'Heading title' }).first()).toHaveValue('Section A');
+  await expect(page.getByText('Sub-task one', { exact: true })).toBeVisible();
+  await expect(page.getByText('Pay rent', { exact: true })).toBeVisible();
+
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(lists.getByText('Claude test – delete me')).toHaveCount(0);
+  expect(errors).toEqual([]);
 });

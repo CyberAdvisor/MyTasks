@@ -30,7 +30,7 @@
 
 <main class="page">
   <h1>Import from other apps</h1>
-  <p>My Tasks imports tasks from a CSV file in its own format, described on this page. For now, you can make that file yourself, in Numbers, Excel or Google Sheets, or have the script for Things 3 write it for you. Importing the CSV files other task apps export is coming.</p>
+  <p>My Tasks imports tasks from a CSV file in its own format, described on this page. It also reads Todoist’s own export files. For other apps, you can make the file yourself, in Numbers, Excel or Google Sheets, or have the script for Things 3 write it for you. Importing the files other task apps export is coming.</p>
   <div class="toc"><strong>On this page</strong>
     <ol>
       <li><a href="#apps">What converts now, and what’s coming</a></li>
@@ -38,14 +38,15 @@
       <li><a href="#files">The template and a sample</a></li>
       <li><a href="#columns">The columns</a></li>
       <li><a href="#examples">Examples</a></li>
+      <li><a href="#todoist">From Todoist</a></li>
       <li><a href="#things">From Things 3</a></li>
     </ol>
   </div>
 
   <h2 id="apps">What converts now, and what’s coming</h2>
   <ul>
-    <li><strong>Now:</strong> a file in this page’s format that you make yourself (<a href="#columns">The columns</a>), or one the script for Things 3 writes (<a href="#things">From Things 3</a>).</li>
-    <li><strong>Coming:</strong> importing the CSV files other task apps export, starting with Todoist and OmniFocus, and Microsoft To Do once Microsoft releases its export.</li>
+    <li><strong>Now:</strong> Todoist’s own export files (<a href="#todoist">From Todoist</a>); a file in this page’s format that you make yourself (<a href="#columns">The columns</a>); or one the script for Things 3 writes (<a href="#things">From Things 3</a>).</li>
+    <li><strong>Coming:</strong> importing the files OmniFocus exports, and Microsoft To Do’s once Microsoft releases its export.</li>
   </ul>
 
   <h2 id="how">How import works</h2>
@@ -131,6 +132,9 @@ task,Team planning meeting notes,Work,regularly,month,2nd tue,2026-12-08</code><
 project,Weekly review,Work,,regularly,week,fri,2026-12-04
 task,Clear the inbox,,Weekly review,,,,
 task,Plan next week,,Weekly review,,,,</code></pre>
+
+  <h2 id="todoist">From Todoist</h2>
+  <p>Import… reads the CSV file Todoist exports for a project (its <strong>⋯</strong> menu, <strong>Import &amp; export › Export to CSV</strong>, with <strong>Use relative dates</strong> unticked), so you don’t need to change it. Each file becomes a project; you can pick several at once. Dates and repeats are read in English only. The steps, what comes across and the limits are in the Guide’s <a href="/guide/#todoist">Importing from Todoist</a>.</p>
 
   <h2 id="things">From Things 3</h2>
   <p>A small script that you run on your Mac reads Things 3 and writes this file for you: your areas, projects, headings, open tasks with their checklists, tags, notes, dates, deadlines, and repeating tasks and projects. Completed and trashed items aren’t included, and Things tags come across as tags, with one exception: Things has no priorities, so a task’s tag named <strong>P1</strong> to <strong>P5</strong> becomes its priority in My Tasks instead of a tag (the highest one, if it has several). A project keeps such a tag as a tag, since only tasks have priorities, and so does a tag inside another tag. It only reads Things; it never changes anything there, and nothing leaves your Mac.</p>

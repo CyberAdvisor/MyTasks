@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.12.0"></a>
+
+## 1.12.0 — 2026-11-25
+
+### Added
+
+- Import… reads Todoist's own export files (a project's ⋯ › Import & export › Export to CSV, with Use relative dates unticked), one project per file, several at once. Sections become headings, labels in a task's name become tags, p1–p3 become P1–P3, descriptions and comments go into the notes, and English dates, deadlines and repeats ("every friday", "every 1st", "every! 3 days") are read. A sub-task becomes a task of its own, naming its parent in its notes. A date that can't be read, and a reminder, are kept as text in the notes. The preview says the file was read as a Todoist export and names each project. The Guide's "Importing from Todoist" section gives the steps and the limits.
+
 <a id="v1.11.8"></a>
 
 ## 1.11.8 — 2026-11-24
