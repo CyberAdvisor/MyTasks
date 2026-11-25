@@ -61,8 +61,10 @@ Reminders (FR-21.10): when setup was given a Reminders list, each reading
 also turns the open tasks with a reminder in every set-up gist into
 reminders in that list (reminders.py, downloaded beside this file), and
 calendar.json says so with "reminders": true, which shows the Reminder field
-in My Tasks. A problem with Reminders is reported in status; the calendar
-events carry on.
+in My Tasks. Reminders ticked in that list come back (FR-21.11): each gist
+gets a ticks.json, encrypted with its key, listing its tasks ticked there,
+which the app completes. A problem with Reminders is reported in status; the
+calendar events carry on.
 """
 from __future__ import annotations
 
@@ -76,6 +78,7 @@ import os
 import signal
 import subprocess
 import sys
+import termios
 import time
 import urllib.error
 import urllib.request
@@ -100,6 +103,7 @@ API = 'https://api.github.com'
 RAW_PREFIX = 'https://gist.githubusercontent.com/'
 TASKS_FILE = 'mytasks.json'
 CALENDAR_FILE = 'calendar.json'
+TICKS_FILE = 'ticks.json'  # reminders ticked in Reminders, for the app to complete (FR-21.11)
 DESCRIPTION_PREFIX = 'My Tasks · '  # the app's gist description, "My Tasks · <name>" (gistDescription in github.ts)
 REQUEST_TIMEOUT = 30  # seconds, as the app's REQUEST_TIMEOUT_MS
 
@@ -108,6 +112,7 @@ KDF_ITERATIONS = 600_000
 SALT_BYTES = 16
 IV_BYTES = 12
 ENVELOPE_APP = 'mytasks-calendar'
+TICKS_APP = 'mytasks-ticks'
 
 MIN_EVERY, MAX_EVERY, DEFAULT_EVERY = 5, 60, 15  # minutes
 # How far ahead to read: this month and the next 1 to 6 months, 4 by
@@ -182,12 +187,12 @@ def parse_envelope(content: str, app: str):
     return e if ok else None
 
 
-def seal(key: bytes, salt: str, plaintext: str, updated_at: str, iv: bytes = None) -> dict:
-    """Encrypt `plaintext` into a calendar envelope. `iv` is for tests only; normally random."""
+def seal(key: bytes, salt: str, plaintext: str, updated_at: str, iv: bytes = None, app: str = ENVELOPE_APP) -> dict:
+    """Encrypt `plaintext` into an envelope (a calendar's, or `app`'s). `iv` is for tests only; normally random."""
     iv = iv if iv is not None else os.urandom(IV_BYTES)
     data = aesgcm(key).encrypt(iv, plaintext.encode(), None)  # ciphertext + tag, as Web Crypto writes it
     return {
-        'app': ENVELOPE_APP,
+        'app': app,
         'format': 1,
         'updatedAt': updated_at,
         'kdf': {'name': 'PBKDF2', 'hash': 'SHA-256', 'iterations': KDF_ITERATIONS, 'salt': salt},
@@ -711,6 +716,8 @@ def sync_once(config: dict, keys: dict, gh: GitHub, state: dict, read=read_calen
     if with_reminders:
         reminder_state = reminder_state if reminder_state is not None else {}
         state['remindersError'] = sync_reminders(config['reminders'], lists, reminder_state, remind)
+        if reminders is not None:
+            write_ticks(config, keys, gh, state, reminder_state, lists)
     known = {g['id'] for g in config['gists']}
     for g in listing:
         if g['id'] in known:
@@ -739,6 +746,30 @@ def sync_reminders(settings: dict, lists: dict, reminder_state: dict, remind=Non
         return str(e)
     reminder_state['lastSync'] = now_iso()
     return None
+
+
+def write_ticks(config: dict, keys: dict, gh: GitHub, state: dict, reminder_state: dict, lists: dict) -> None:
+    """
+    Write each gist read this time its ticks.json (FR-21.11): the reminders
+    ticked in Reminders for its tasks, {format, ticks: [{task, at, day?}]},
+    encrypted with its key (envelope app mytasks-ticks), only when they
+    changed, and only once there has been a tick.
+    """
+    for g in config['gists']:
+        if g['id'] not in lists:
+            continue
+        gs = state['gists'][g['id']]
+        ticks = reminders.ticks_for(reminder_state, g['id'])
+        payload = {'format': 1, 'ticks': ticks}
+        h = digest(payload)
+        if h == gs.get('ticksHash') or (not ticks and not gs.get('ticksHash')):
+            continue
+        try:
+            sealed = seal(keys[g['id']], g['salt'], json.dumps(payload, separators=(',', ':')), now_iso(), app=TICKS_APP)
+            gh.write(g['id'], TICKS_FILE, json.dumps(sealed))
+            gs['ticksHash'] = h
+        except HelperError as e:
+            gs['error'] = str(e)
 
 
 def all_stopped(config: dict, state: dict) -> bool:
@@ -855,6 +886,7 @@ def status_lines(config: dict, state: dict, reminder_state=None) -> list:
     else:
         lines.append('Reminders: off. Run setup again to choose a Reminders list.')
     in_list = reminders.counts(reminder_state or {}) if settings and reminders else {}
+    ticked = reminders.waiting(reminder_state or {}) if settings and reminders else {}
     lines.append(f'Last check: {state.get("lastCheck") or "never"}')
     gists = state.get('gists') or {}
     known = [g['id'] for g in config['gists']]
@@ -868,6 +900,8 @@ def status_lines(config: dict, state: dict, reminder_state=None) -> list:
                     f'last write {gs.get("lastWrite") or "never"} ({gs.get("events", 0)} events)')
             if settings:
                 line += f', {plural(in_list.get(gist_id, 0), "reminder")}'
+                if ticked.get(gist_id):
+                    line += f', {plural(ticked[gist_id], "tick")} waiting for My Tasks'
             lines.append(line + (f'. {gs["error"]}' if gs.get('error') else ''))
         else:
             lines.append(f'{label}: {gs.get("error") or SKIPPED}')
@@ -908,7 +942,31 @@ def cmd_check() -> int:
     return 1 if failed else 0
 
 
-def choose(prompt: str, count: int, allow_many: bool, allow_none: bool = False, ask=input):
+def flush_typed(stdin=None) -> None:
+    """
+    Throw away keys pressed while setup was busy (opening a gist, reading
+    Calendar), so a Return typed early can't answer the next question. Only
+    for a terminal: piped answers (tests, scripts) are kept.
+    """
+    stdin = stdin or sys.stdin
+    try:
+        if stdin.isatty():
+            termios.tcflush(stdin.fileno(), termios.TCIFLUSH)
+    except (OSError, ValueError, termios.error):
+        pass
+
+
+def ask(prompt: str, hidden: bool = False) -> str:
+    """One answer to a setup question, typed after the question appears; hidden for secrets."""
+    flush_typed()
+    return (getpass.getpass if hidden else input)(prompt)
+
+
+def ask_hidden(prompt: str) -> str:
+    return ask(prompt, hidden=True)
+
+
+def choose(prompt: str, count: int, allow_many: bool, allow_none: bool = False, ask=ask):
     """Numbers typed by the user (1-based), or None for Enter; [] for 0 when `allow_none`."""
     while True:
         answer = ask(prompt).strip()
@@ -925,7 +983,7 @@ def choose(prompt: str, count: int, allow_many: bool, allow_none: bool = False, 
         print(f'Type {"numbers" if allow_many else "a number"} from 1 to {count}' + (', or 0 for none.' if allow_none else '.'))
 
 
-def open_gists(gh: GitHub, gists: list, ask=getpass.getpass) -> list:
+def open_gists(gh: GitHub, gists: list, ask=ask_hidden) -> list:
     """
     Each gist's passphrase, in turn (FR-21.8): passphrases already typed are
     tried first, then the user is asked, up to three times; Enter skips the
@@ -967,7 +1025,7 @@ def open_gists(gh: GitHub, gists: list, ask=getpass.getpass) -> list:
     return opened
 
 
-def pick_calendars(gist: str, calendars: list, ask=input) -> list:
+def pick_calendars(gist: str, calendars: list, ask=ask) -> list:
     """The ids of the calendars chosen for one gist (FR-21.9): Enter for all, 0 for none."""
     picks = choose(f'Calendars for {gist}: numbers separated by commas (Enter for all, 0 for none): ',
                    len(calendars), True, allow_none=True, ask=ask)
@@ -977,7 +1035,7 @@ def pick_calendars(gist: str, calendars: list, ask=input) -> list:
 def cmd_setup() -> int:
     aesgcm(bytes(32))  # the package is installed
     print('My Tasks calendar helper setup. Nothing is saved until the end.\n')
-    gh = GitHub(getpass.getpass('GitHub token (the one My Tasks uses; typing is hidden): ').strip())
+    gh = GitHub(ask_hidden('GitHub token (the one My Tasks uses; typing is hidden): ').strip())
     gists = gh.task_gists()
     if not gists:
         raise HelperError('No My Tasks gist was found for this token.')
@@ -996,7 +1054,7 @@ def cmd_setup() -> int:
     if reminders is None:
         raise HelperError(NO_REMINDERS_FILE)
     try:
-        choice = reminders.choose_list()
+        choice = reminders.choose_list(ask=ask)
         if choice:
             choice = reminders.make_list(choice)
     except reminders.RemindersError as e:

@@ -1,12 +1,12 @@
 /**
  * Shared steps for the interface tests: connecting a device through Setup,
  * adding tasks the way a user does, restoring the sample tasks, and adding
- * calendar events to the faked gist.
+ * the Mac helper's files (calendar events, Reminders ticks) to the faked gist.
  */
 import { expect, type Page } from '@playwright/test';
 import { sampleBackup } from './sampleData';
 import type { FakeGitHub } from './fakeGitHub';
-import { deriveKey, seal } from '../src/lib/sync/crypto';
+import { deriveKey, seal, unseal, type Envelope, type EnvelopeApp } from '../src/lib/sync/crypto';
 
 export const TOKEN = 'good';
 export const PASSPHRASE = 'correct horse battery';
@@ -119,11 +119,36 @@ export async function pickImportFile(page: Page, name: string, text: string): Pr
   );
 }
 
-/** Put calendar.json in the faked gist, sealed with the passphrase and the gist's salt, as the Mac helper writes it (FR-21.2). */
-export async function addCalendar(gh: FakeGitHub, calendar: object, updated = new Date()): Promise<void> {
+/** Put one of the Mac helper's files in the faked gist, sealed with the passphrase and the gist's salt. */
+async function addHelperFile(gh: FakeGitHub, name: string, app: EnvelopeApp, body: object, updated: Date): Promise<void> {
   const id = [...gh.gists.keys()][0];
   const env = JSON.parse(gh.file(id)!);
   const key = await deriveKey(PASSPHRASE, env.kdf.salt, env.kdf.iterations);
-  const sealed = await seal(key, env.kdf, JSON.stringify(calendar), updated.toISOString());
-  gh.gists.get(id)!.files['calendar.json'] = { content: JSON.stringify({ ...sealed, app: 'mytasks-calendar' }) };
+  const sealed = await seal(key, env.kdf, JSON.stringify(body), updated.toISOString());
+  gh.gists.get(id)!.files[name] = { content: JSON.stringify({ ...sealed, app }) };
+}
+
+/** Put calendar.json in the faked gist, as the Mac helper writes it (FR-21.2). */
+export function addCalendar(gh: FakeGitHub, calendar: object, updated = new Date()): Promise<void> {
+  return addHelperFile(gh, 'calendar.json', 'mytasks-calendar', calendar, updated);
+}
+
+/** Put ticks.json in the faked gist, as the Mac helper writes it for reminders ticked in Reminders (FR-21.11). */
+export function addTicks(gh: FakeGitHub, ticks: { task: string; at: string; day?: string }[]): Promise<void> {
+  return addHelperFile(gh, 'ticks.json', 'mytasks-ticks', { format: 1, ticks }, new Date());
+}
+
+/** The id of the task titled `title` in the faked gist's task list, once a sync has uploaded it. */
+export async function gistTaskId(gh: FakeGitHub, title: string): Promise<string> {
+  const id = [...gh.gists.keys()][0];
+  let found: string | undefined;
+  await expect
+    .poll(async () => {
+      const env = JSON.parse(gh.file(id)!) as Envelope;
+      const list = JSON.parse(await unseal(await deriveKey(PASSPHRASE, env.kdf.salt, env.kdf.iterations), env));
+      found = list.tables.todos.find((t: { title?: string }) => t.title === title)?.id;
+      return found;
+    }, { timeout: 15_000 })
+    .toBeTruthy();
+  return found!;
 }

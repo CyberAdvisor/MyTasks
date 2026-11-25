@@ -4,6 +4,18 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.13.2"></a>
+
+## 1.13.2 — 2026-11-25
+
+### Added
+
+- Ticking a reminder in Apple Reminders completes its task in My Tasks, at the time it was ticked, after the calendar helper's next reading and the app's next sync. The app says "Completed in Reminders", with Undo; a task reopened stays open. For a repeating task's reminder, the copy for that day is completed. The helper writes the ticks to each gist's `ticks.json`, encrypted like the tasks, and `status` shows any waiting. Unticking in Reminders doesn't reopen a task, and deleting a reminder doesn't complete one.
+
+### Fixed
+
+- The helper's setup no longer takes a key pressed while it was busy (such as a Return while a gist was opening) as the answer to the next question.
+
 <a id="v1.13.1"></a>
 
 ## 1.13.1 — 2026-11-25

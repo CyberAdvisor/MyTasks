@@ -4,9 +4,10 @@
  * (FR-21.10); then a reminder is set from the
  * task menu by typing, shows on the row and as the card's chip, is cleared
  * from the chip, and is set again with the keyboard command and a preset.
+ * A reminder ticked in Reminders completes its task, with Undo (FR-21.11).
  */
 import { expect, test, type Page } from '@playwright/test';
-import { addCalendar, addTask, connect, openList, synced, watchErrors } from './app';
+import { addCalendar, addTask, addTicks, connect, gistTaskId, openList, synced, watchErrors } from './app';
 import { fakeGitHub } from './fakeGitHub';
 import { toLocalDate } from '../src/lib/model/dates';
 
@@ -62,5 +63,30 @@ test('A reminder is set, shown, cleared and set again once the helper writes rem
   await page.keyboard.press('r');
   await page.getByRole('button', { name: /^Tomorrow/ }).click();
   await expect(card(page).getByRole('button', { name: 'Tomorrow, 9:00 AM' })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('A reminder ticked in Reminders completes its task, and Undo keeps it open', async ({ context, page }) => {
+  const gh = await fakeGitHub(context);
+  const errors = watchErrors(page);
+  await connect(page);
+  await openList(page, 'Unscheduled');
+  await addTask(page, 'Call the dentist');
+  const row = page.locator('main li.row', { hasText: 'Call the dentist' });
+
+  // The helper read the tick and wrote it to the gist; the next sync completes the task.
+  const id = await gistTaskId(gh, 'Call the dentist');
+  await addTicks(gh, [{ task: id, at: new Date(Date.now() - 60_000).toISOString() }]);
+  await page.getByText(/^Synced /).click();
+  await expect(page.getByText('Completed in Reminders: Call the dentist')).toBeVisible();
+  await expect(row.getByRole('checkbox')).toBeChecked();
+
+  // Undo, here with a mouse too, reopens it; the tick, read again at the next sync, doesn't complete it again.
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(row.getByRole('checkbox')).not.toBeChecked();
+  await page.reload();
+  await synced(page);
+  await expect(row.getByRole('checkbox')).not.toBeChecked();
+  await expect(page.getByText('Completed in Reminders: Call the dentist')).toHaveCount(0);
   expect(errors).toEqual([]);
 });

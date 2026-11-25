@@ -182,8 +182,9 @@ export async function findGists(token: string): Promise<GistRef[]> {
   return found.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
 }
 
-/** The calendar helper's file in the same gist (FR-21.2), written only by the Mac helper. */
+/** The calendar helper's files in the same gist, written only by the Mac helper: events (FR-21.2) and ticks (FR-21.11). */
 const CALENDAR_FILE = 'calendar.json';
+const TICKS_FILE = 'ticks.json';
 
 /** A gist file as the API describes it. */
 interface GistFile {
@@ -193,10 +194,11 @@ interface GistFile {
   size?: number;
 }
 
-/** The two files the app reads from its gist; null when the gist lacks one. */
+/** The files the app reads from its gist; null when the gist lacks one. */
 export interface GistFiles {
   tasks: string | null;
   calendar: string | null;
+  ticks: string | null;
 }
 
 /**
@@ -215,15 +217,15 @@ async function fullText(file: GistFile | undefined): Promise<string | null> {
 }
 
 /**
- * The My Tasks file and the calendar file in a gist, from one request (the
- * calendar costs no extra request unless it's long).
+ * The My Tasks file and the helper's calendar and ticks files in a gist, from
+ * one request (the helper's files cost no extra request unless they're long).
  */
 export async function readGistFiles(token: string, id: string): Promise<GistFiles> {
   const gist = await request('GET', `/gists/${id}`, token, json<{ files?: Record<string, GistFile | undefined> }>);
   const tasks = await fullText(gist.files?.[GIST_FILE]);
-  // Only read the calendar when the tasks file is there: no tasks file is a sync error anyway.
-  const calendar = tasks === null ? null : await fullText(gist.files?.[CALENDAR_FILE]);
-  return { tasks, calendar };
+  // Only read the helper's files when the tasks file is there: no tasks file is a sync error anyway.
+  if (tasks === null) return { tasks, calendar: null, ticks: null };
+  return { tasks, calendar: await fullText(gist.files?.[CALENDAR_FILE]), ticks: await fullText(gist.files?.[TICKS_FILE]) };
 }
 
 /** The My Tasks file in a gist, or null when the gist no longer has it. */

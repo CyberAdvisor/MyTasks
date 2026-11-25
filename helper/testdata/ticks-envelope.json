@@ -1,0 +1,16 @@
+{
+  "app": "mytasks-ticks",
+  "format": 1,
+  "updatedAt": "2026-11-25T17:10:00.000Z",
+  "kdf": {
+    "name": "PBKDF2",
+    "hash": "SHA-256",
+    "iterations": 600000,
+    "salt": "AAECAwQFBgcICQoLDA0ODw=="
+  },
+  "cipher": {
+    "name": "AES-GCM",
+    "iv": "ZGVmZ2hpamtsbW5v"
+  },
+  "data": "8cLp7c5mmRGj4yzJUWfVu6/ll79WRxY+kcc6y0tll717kC86MXgZ1o55gNyy2h6/Fme6DOcoFYe8OZKB4FaDfzALeoaKyfW6PjBP2w6wxK737x0AmpZcJR3XlFSDCdicb0K5b6uHlJBw+d6MQMdxyRa7yb66x6c/AesTbsArgDvaVwner7zC9Zv/i9exGbRVrB/VDdNhTwj1Cyy6wX2U1oX3UkL6T7hP+tOqi5EvD4naoHisWdyE"
+}
