@@ -18,17 +18,22 @@
  * - DATE is the start date or the repeat (todoistDates.ts); DEADLINE the
  *   deadline. A date that can't be read, or one in another language, is
  *   left out and its text kept in the notes ("Todoist date: …")
- * - a reminder is kept as text in the notes ("Todoist reminder: …"), as
- *   tasks have no reminders yet
+ * - REMINDER_DATE is the reminder, read as a typed date and time
+ *   (`parseTypedReminder`); on a repeating task only its time is kept, as
+ *   for any repeating task. Todoist doesn't document the column's format,
+ *   so one that can't be read, and REMINDER_OFFSET (a time before the due
+ *   date, which has no time here), are kept as text in the notes
+ *   ("Todoist reminder: …")
  * - AUTHOR, RESPONSIBLE, DURATION, ICON and the view are ignored
  */
 import { readTodoistDate, readTodoistDay, type RepeatColumns } from './todoistDates';
 import { toLocalDate } from '../model/dates';
+import { parseTypedReminder, reminderTime } from '../model/reminder';
 import type { LocalDate } from '../model/types';
 
 /** The columns written for Import's own format, in this order. */
 const OUT = [
-  'type', 'id', 'parent_id', 'title', 'notes', 'tags', 'start', 'start_date', 'deadline', 'priority',
+  'type', 'id', 'parent_id', 'title', 'notes', 'tags', 'start', 'start_date', 'deadline', 'reminder', 'priority',
   'repeat', 'repeat_every', 'repeat_unit', 'repeat_weekdays', 'repeat_month_day', 'repeat_month', 'repeat_first', 'repeat_ends_on',
 ] as const;
 type OutRow = Partial<Record<(typeof OUT)[number], string>>;
@@ -146,11 +151,17 @@ export function convertTodoist(files: TodoistFile[], ref: LocalDate): TodoistCon
           notes.push(`Todoist deadline: ${deadline}`);
           if (!due) missed = true;
         }
-        if (missed) unreadable++;
 
-        // My Tasks has no reminders yet, so a reminder is kept as text.
-        const reminder = get(cells, 'REMINDER_DATE') || get(cells, 'REMINDER_OFFSET');
-        if (reminder) notes.push(`Todoist reminder: ${reminder}`);
+        const reminder = get(cells, 'REMINDER_DATE');
+        const at = reminder && english(get(cells, 'REMINDER_DATE_LANG')) ? parseTypedReminder(reminder, new Date(`${ref}T12:00`)) : null;
+        if (at) row.reminder = repeat ? reminderTime(at) : at;
+        else if (reminder) {
+          notes.push(`Todoist reminder: ${reminder}`);
+          missed = true;
+        }
+        const offset = get(cells, 'REMINDER_OFFSET');
+        if (offset) notes.push(`Todoist reminder: ${offset}`);
+        if (missed) unreadable++;
 
         row.notes = notes.join('\n\n');
         rows.push(row);

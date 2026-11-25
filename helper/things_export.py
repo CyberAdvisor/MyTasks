@@ -51,6 +51,15 @@ conv. 2026-11-18-A and 2026-11-19):
   (or rt1_instanceCreationStartDate). Copies point to it with
   rt1_repeatingTemplate, as for to-dos.
 - TMChecklistItem: status 3 (or 2) is ticked; ordered by index.
+- A to-do's reminder (checked conv. 2026-11-25-D) is reminderTime, its time
+  of day packed as hour << 26 | minute << 20 (null for none), on the date of
+  its startDate; on a repeating to-do's template, which has no startDate,
+  each copy reminds at that time on its own day.
+
+Reminders: a dated to-do's reminder comes across as its date and time; a
+repeating to-do's (or a to-do in a repeating project's) as the time only,
+as the import format asks; a reminder time with no date can't be a reminder
+in My Tasks, so it is kept in the to-do's notes ("Things reminder: 9:30 AM").
 """
 from __future__ import annotations
 
@@ -127,6 +136,19 @@ def unix_date(t) -> str:
 
 
 _TAG = re.compile(r'<[^>]+>')
+
+
+def reminder_time(v) -> str:
+    """A to-do's reminderTime (hour << 26 | minute << 20) as 24-hour HH:MM, or '' for none."""
+    if v is None:
+        return ''
+    return f'{v >> 26 & 31:02d}:{v >> 20 & 63:02d}'
+
+
+def time_label(hhmm: str) -> str:
+    """'09:30' as '9:30 AM', for a reminder kept in the notes."""
+    h, m = (int(x) for x in hhmm.split(':'))
+    return f'{(h - 1) % 12 + 1}:{m:02d} {"AM" if h < 12 else "PM"}'
 
 
 def plain_notes(v) -> str:
@@ -264,12 +286,26 @@ class Exporter:
         except (ExportError, plistlib.InvalidFileException, IndexError) as e:
             raise ExportError(f'The repeating {kind} “{r["title"]}” couldn’t be read: {e}.') from e
 
+    def reminder_of(self, t, time_only: bool, notes: str) -> dict:
+        """The reminder column for a to-do, or its notes with the reminder time when it has no date."""
+        time = reminder_time(t['reminderTime'])
+        if not time:
+            return {}
+        if time_only:
+            return {'reminder': time}
+        date = packed_date(t['startDate'])
+        if date:
+            return {'reminder': f'{date} {time}'}
+        kept = f'Things reminder: {time_label(time)}'
+        return {'notes': f'{notes}\n\n{kept}' if notes else kept}
+
     def run(self) -> list[dict]:
         for a in self.q('select uuid, title from TMArea order by "index"'):
             self.add(type='area', id=a['uuid'], title=a['title'] or 'Untitled', tags=self.tags_of('TMAreaTag', 'areas', a['uuid']))
         areas = {r[0] for r in self.q('select uuid from TMArea')}
 
         projects = set()
+        repeating = set()  # repeating projects' templates: their to-dos' reminders are times only
         for p in self.q('select * from TMTask where type = 1 and status = 0 and trashed = 0 order by "index"'):
             if p['rt1_repeatingTemplate']:
                 continue  # a copy of a repeating project: My Tasks makes its own
@@ -279,15 +315,16 @@ class Exporter:
                 title=p['title'] or 'Untitled', notes=plain_notes(p['notes']), tags=self.tags_of('TMTaskTag', 'tasks', p['uuid']),
             )
             if p['rt1_recurrenceRule']:
+                repeating.add(p['uuid'])
                 cols.update(self.repeat_of(p, 'project'))
             else:
                 cols.update(self.where(p), deadline=packed_date(p['deadline']))
             self.add(**cols)
 
-        headings = set()
+        headings = {}  # heading -> its project
         for h in self.q('select * from TMTask where type = 2 and status = 0 and trashed = 0 order by "index"'):
             if h['project'] in projects:
-                headings.add(h['uuid'])
+                headings[h['uuid']] = h['project']
                 self.add(type='heading', id=h['uuid'], parent_id=h['project'], title=h['title'] or 'Untitled')
 
         for t in self.q('select * from TMTask where type = 0 and status = 0 and trashed = 0 order by "index"'):
@@ -311,6 +348,7 @@ class Exporter:
                 cols.update(self.repeat_of(t, 'to-do'))
             else:
                 cols.update(self.where(t), deadline=packed_date(t['deadline']))
+            cols.update(self.reminder_of(t, t['rt1_recurrenceRule'] or headings.get(t['heading'], t['project']) in repeating, cols['notes']))
             self.add(**cols)
             for c in self.q('select title, status from TMChecklistItem where task = ? order by "index"', t['uuid']):
                 self.add(type='checklist', parent_id=t['uuid'], title=c['title'] or 'Untitled', checked='yes' if c['status'] in (2, 3) else 'no')

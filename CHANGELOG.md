@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.13.3"></a>
+
+## 1.13.3 — 2026-11-25
+
+### Added
+
+- Importing brings reminders across. The Things 3 script writes a to-do's reminder into the `reminder` column: a dated to-do's date and time, a repeating to-do's (or a to-do in a repeating project's) time only; a reminder time on a to-do with no date is kept in its notes ("Things reminder: 9:30 AM"). A Todoist export's REMINDER_DATE is read as a typed date and time (on a repeating task, its time only); one that can't be read, or in another language, and REMINDER_OFFSET are kept as text in the notes, as before, and counted in the preview with the dates it couldn't read. Todoist doesn't document the column's format, so its reading hasn't been checked against a real file.
+
 <a id="v1.13.2"></a>
 
 ## 1.13.2 — 2026-11-25
