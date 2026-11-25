@@ -20,6 +20,7 @@
   import Popover from './Popover.svelte';
   import WhenPicker from './WhenPicker.svelte';
   import DeadlinePicker from './DeadlinePicker.svelte';
+  import ReminderPicker from './ReminderPicker.svelte';
   import TagPicker from './TagPicker.svelte';
   import PriorityMenu from './PriorityMenu.svelte';
   import ContextMenu from './ContextMenu.svelte';
@@ -27,11 +28,13 @@
   import { ui } from '../lib/state/ui.svelte';
   import ProgressPie from './ProgressPie.svelte';
   import { route } from '../lib/state/route';
-  import { changeDeadline, changeWhen, containerLink, goToContainer, revealTodo } from '../lib/actions';
+  import { changeDeadline, changeReminder, changeWhen, containerLink, goToContainer, revealTodo } from '../lib/actions';
   import { ruleText, upcoming } from '../lib/model/repeat';
   import { projectProgress } from '../lib/model/lists';
   import { settings, snapshot, todayDate, todoById } from '../lib/state/live';
   import { deadlineLabel, formatRelative } from '../lib/model/dates';
+  import { reminderLabel } from '../lib/model/reminder';
+  import { remindersOn } from '../lib/calendar/calendar';
   import { priorityLabel } from '../lib/model/settings';
   import { checklistFor, tagTitles } from '../lib/model/tags';
   import { contextTitle } from '../lib/model/contexts';
@@ -65,6 +68,7 @@
   // Which popover is open.
   let whenOpen = $state(false);
   let deadlineOpen = $state(false);
+  let reminderOpen = $state(false);
   let tagsOpen = $state(false);
   let prioOpen = $state(false);
   let contextOpen = $state(false);
@@ -73,6 +77,8 @@
 
   /** A repeating task's template (FR-4.1): no start date or deadline of its own to set. */
   let template = $derived(todo.repeat !== null);
+  /** A template's task (a repeating task, or one in a repeating project's template) reminds by time only (FR-3.8). */
+  let reminderByTime = $derived(template || (!!todo.projectId && !!$snapshot.projects.find((p) => p.id === todo.projectId)?.repeat));
   /** The template a copy came from, while it still repeats (FR-4.4). */
   let source = $derived.by(() => {
     const t = todo.repeatOf ? $todoById.get(todo.repeatOf) : undefined;
@@ -154,6 +160,7 @@
     ui.cardCommand = null;
     if (command === 'when') whenOpen = true;
     else if (command === 'deadline') deadlineOpen = true;
+    else if (command === 'reminder') reminderOpen = true;
     else if (command === 'tags') tagsOpen = true;
     else void addChecklist();
   });
@@ -218,6 +225,11 @@
     void changeDeadline([todo.id], deadline, moveWhen);
   }
 
+  function chooseReminder(reminder: string | null) {
+    reminderOpen = false;
+    void changeReminder([todo.id], reminder);
+  }
+
   function choosePriority(p: Priority | null) {
     prioOpen = false;
     void repo.setPriority(todo.id, p);
@@ -249,6 +261,9 @@
 {/snippet}
 {#snippet deadlinePanel()}
   <DeadlinePicker deadline={todo.deadline} when={todo.startDate} {ref} onchoose={chooseDeadline} />
+{/snippet}
+{#snippet reminderPanel()}
+  <ReminderPicker reminder={todo.reminder} template={reminderByTime} startDate={todo.startDate} {ref} onchoose={chooseReminder} />
 {/snippet}
 {#snippet tagsPanel()}
   <TagPicker
@@ -362,6 +377,16 @@
           {@render deadlinePanel()}
         </Popover>
       {/if}
+      {#if todo.reminder}
+        <Popover bind:open={reminderOpen} label="Reminder" align="left">
+          {#snippet trigger(toggle)}
+            <button type="button" class="chip reminder" onclick={toggle}>
+              <Icon name="bell" size={12} />{reminderLabel(todo.reminder!, ref)}
+            </button>
+          {/snippet}
+          {@render reminderPanel()}
+        </Popover>
+      {/if}
       {#if todo.priority}
         <Popover bind:open={prioOpen} label="Priority" align="left">
           {#snippet trigger(toggle)}
@@ -418,6 +443,16 @@
             </button>
           {/snippet}
           {@render deadlinePanel()}
+        </Popover>
+      {/if}
+      {#if !todo.reminder && $remindersOn}
+        <Popover bind:open={reminderOpen} label="Reminder">
+          {#snippet trigger(toggle, open)}
+            <button type="button" class="icon-btn" aria-label="Reminder" title="Reminder" aria-expanded={open} onclick={toggle}>
+              <Icon name="bell" size={16} />
+            </button>
+          {/snippet}
+          {@render reminderPanel()}
         </Popover>
       {/if}
       {#if !todo.priority}
@@ -619,6 +654,9 @@
   .chip.due {
     color: var(--danger);
     font-weight: 600;
+  }
+  .chip.reminder {
+    color: var(--accent-text);
   }
   .icon-btn {
     border: 0;

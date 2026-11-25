@@ -67,6 +67,8 @@ export interface CalendarData {
   to: LocalDate;
   calendars: CalendarInfo[];
   events: CalendarEvent[];
+  /** Whether the helper writes this gist's task reminders to Apple Reminders (FR-3.8). */
+  reminders: boolean;
 }
 
 /** The colour used when a calendar's colour is missing or not `#rrggbb`. */
@@ -159,7 +161,7 @@ export function readCalendar(x: unknown): CalendarData | null {
       color: isString(c.color) && /^#[0-9a-f]{6}$/i.test(c.color) ? c.color : NO_COLOR,
     }));
   const events = x.events.map(cleanEvent).filter((e): e is CalendarEvent => e !== null);
-  return { from: x.from, to: x.to, calendars, events };
+  return { from: x.from, to: x.to, calendars, events, reminders: x.reminders === true };
 }
 
 // ---------------------------------------------------------------------------

@@ -107,6 +107,12 @@ export interface Todo extends BaseRecord {
   /** Manual order inside the Today list (separate from container order). */
   todaySortKey: string | null;
   deadline: LocalDate | null;
+  /**
+   * Its reminder (FR-3.8, schema 15): a local date and time ("2026-11-26T09:00"),
+   * or on a repeating task's template a time only ("10:00"), each copy reminding
+   * on its own day; null for none (model/reminder.ts).
+   */
+  reminder: string | null;
   priority: Priority | null;
   prioritySource: PrioritySource | null;
   /** Automatic value held before an automatic P1, restored by FR-14.11. */

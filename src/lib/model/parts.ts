@@ -25,8 +25,8 @@ export const TODO_PARTS: Record<string, readonly string[]> = {
   s: ['status', 'completedAt', 'loggedAt', 'trashedAt'],
   t: ['title'],
   n: ['notes'],
-  /** Dates: when it starts, its deadline, Today's order, its repeat, and a sequential release. */
-  d: ['start', 'startDate', 'todaySortKey', 'deadline', 'repeat', 'repeatOf', 'releasedBy', 'releasedFrom'],
+  /** Dates: when it starts, its deadline and reminder, Today's order, its repeat, and a sequential release. */
+  d: ['start', 'startDate', 'todaySortKey', 'deadline', 'reminder', 'repeat', 'repeatOf', 'releasedBy', 'releasedFrom'],
   p: ['priority', 'prioritySource', 'priorityBeforeAuto'],
   c: ['contextId'],
   g: ['tagIds'],

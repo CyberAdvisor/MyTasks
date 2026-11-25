@@ -11,6 +11,7 @@ import { clearUndo, tx } from './history';
 import { bury } from './bury';
 import { nowIso, uuidv7 } from '../model/ids';
 import { localDay, today } from '../model/dates';
+import { copyReminderOf, templateReminder } from '../model/reminder';
 import { bySortKey, keyAtEnd, keyAtStart, keyBetween, placementKeys } from '../model/order';
 import { datedOutOfDeferred, deadlineWhen, inToday } from '../model/lists';
 import { nextToRelease, othersToReset, projectOrder, releaseChanges, returnChanges, sequentialRule } from '../model/sequential';
@@ -367,6 +368,7 @@ async function makeCopy(template: Todo, rule: RepeatRule, date: LocalDate, byHan
     startDate: copyStart(rule, date),
     todaySortKey: null,
     deadline: rule.deadlineDays !== null ? date : null,
+    reminder: copyReminderOf(template.reminder, date),
     priority: userPriority ? template.priority : null,
     prioritySource: userPriority ? 'user' : null,
     priorityBeforeAuto: null,
@@ -527,6 +529,7 @@ export function setRepeat(id: ID, rule: RepeatRule, next: LocalDate | null): Pro
       startDate: next,
       todaySortKey: null,
       deadline: null,
+      reminder: templateReminder(t.reminder),
       releasedBy: null,
       releasedFrom: null,
       // The template keeps a priority the user chose, for its copies; an automatic one goes.
@@ -555,7 +558,8 @@ export function stopRepeat(id: ID): Promise<void> {
   return tx(async () => {
     const t = await db.todos.get(id);
     if (!t?.repeat) return;
-    await patch<Todo>('todos', id, { repeat: null });
+    // Its reminder's time goes on the date it keeps, as an ordinary task's (FR-3.8).
+    await patch<Todo>('todos', id, { repeat: null, reminder: copyReminderOf(t.reminder, t.startDate) });
     for (const c of await db.todos.filter((x) => x.repeatOf === id && x.deletedAt === null).toArray()) {
       await patch<Todo>('todos', c.id, { repeatOf: null });
     }
@@ -631,6 +635,7 @@ async function makeProjectCopy(template: Project, rule: RepeatRule, date: LocalD
       headingId: t.headingId ? copyId(t.headingId, key) : null,
       status: 'open',
       todaySortKey: null,
+      reminder: copyReminderOf(t.reminder, date),
       priority: userPriority ? t.priority : null,
       prioritySource: userPriority ? 'user' : null,
       priorityBeforeAuto: null,
@@ -721,6 +726,7 @@ export function setProjectRepeat(id: ID, rule: RepeatRule, next: LocalDate | nul
         start: t.start === 'deferred' ? 'deferred' : 'unscheduled',
         startDate: null,
         deadline: null,
+        reminder: templateReminder(t.reminder),
         todaySortKey: null,
         releasedBy: null,
         releasedFrom: null,
@@ -867,6 +873,7 @@ export interface NewTodo extends TodoPlacement {
   /** Fields filled in Quick Entry (FR-8.1). */
   notes?: string;
   deadline?: LocalDate | null;
+  reminder?: string | null;
   tagIds?: ID[];
   /** A priority the user chose; `null` means they chose None. Omit for no choice. */
   priority?: Priority | null;
@@ -914,6 +921,7 @@ export async function createTodo(opts: NewTodo = {}): Promise<ID> {
       startDate,
       todaySortKey: null,
       deadline: opts.deadline ?? null,
+      reminder: opts.reminder ?? null,
       priority: opts.priority ?? null,
       prioritySource: opts.priority === undefined ? null : 'user',
       priorityBeforeAuto: null,
@@ -997,6 +1005,20 @@ export function resetOtherTasks(ids: ID[]): Promise<void> {
       const t = await db.todos.get(id);
       if (t) await returnTask(t);
     }
+  });
+}
+
+/**
+ * Set or clear a task's reminder (FR-3.8). On a repeating task's template, or
+ * a task in a repeating project's template, only its time is kept, so each
+ * copy reminds at that time on its own day.
+ */
+export function setReminder(id: ID, reminder: string | null): Promise<void> {
+  return tx(async () => {
+    const t = await db.todos.get(id);
+    if (!t) return;
+    const inTemplate = t.repeat !== null || (t.projectId !== null && !!(await db.projects.get(t.projectId))?.repeat);
+    await patch<Todo>('todos', id, { reminder: inTemplate ? templateReminder(reminder) : reminder });
   });
 }
 
@@ -1162,6 +1184,7 @@ export function convertTodoToProject(id: ID): Promise<ID | undefined> {
         start: 'unscheduled',
         startDate: null,
         deadline: null,
+        reminder: null,
         todaySortKey: null,
         priority: null,
         prioritySource: null,
@@ -1303,7 +1326,8 @@ async function endRepeat(t: Todo): Promise<Partial<Todo>> {
   for (const c of await db.todos.filter((x) => x.repeatOf === t.id && x.deletedAt === null).toArray()) {
     await patch<Todo>('todos', c.id, { repeatOf: null });
   }
-  return { repeat: null, startDate: null };
+  // A template's reminder is a time only, which an ordinary task can't have.
+  return { repeat: null, startDate: null, reminder: null };
 }
 
 /**

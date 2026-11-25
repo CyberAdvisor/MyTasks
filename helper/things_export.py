@@ -71,7 +71,7 @@ DB_GLOB = 'ThingsData-*/Things Database.thingsdatabase/main.sqlite'
 # The import template's columns, in its order (site/assets/import/mytasks-import-template.csv).
 COLUMNS = [
     'type', 'id', 'parent_id', 'title', 'notes', 'area', 'project', 'heading', 'tags', 'start', 'start_date',
-    'deadline', 'priority', 'context', 'checked', 'status', 'completed_date', 'created_date', 'repeat',
+    'deadline', 'reminder', 'priority', 'context', 'checked', 'status', 'completed_date', 'created_date', 'repeat',
     'repeat_every', 'repeat_unit', 'repeat_weekdays', 'repeat_month_day', 'repeat_month', 'repeat_first',
     'repeat_ends_after', 'repeat_ends_on', 'repeat_deadline', 'repeat_start_early', 'repeat_paused',
 ]

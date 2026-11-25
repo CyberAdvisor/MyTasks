@@ -35,7 +35,7 @@ const COMPLETE_DELAY_MS = 2000;
 const TOAST_MS = 5000;
 
 /** A picker or field the open card should show at once (keyboard commands, Section 7). */
-export type CardCommand = 'when' | 'deadline' | 'tags' | 'checklist';
+export type CardCommand = 'when' | 'deadline' | 'reminder' | 'tags' | 'checklist';
 
 const SIDEBAR_KEY = 'mytasks.sidebarHidden';
 
@@ -165,7 +165,7 @@ class UiState {
     keyboard?: boolean;
     alignEnd?: boolean;
     /** A picker to show in place of the menu: for a keyboard command with several selected (FR-10.1), or Select mode's Start Date (FR-10.2). */
-    panel?: 'when' | 'deadline' | 'tags';
+    panel?: 'when' | 'deadline' | 'reminder' | 'tags';
     /** On a phone's sheet, a submenu to open with: the repeat line on a template's card (FR-4.4). */
     submenu?: TodoSubmenu;
   } | null>(null);

@@ -41,6 +41,7 @@ export type Command =
   | 'cancel'
   | 'when'
   | 'deadline'
+  | 'reminder'
   | 'today'
   | 'unscheduled'
   | 'deferred'
@@ -102,6 +103,7 @@ export const BINDINGS: Binding[] = [
   { command: 'cancel', label: 'Cancel', app: ['Mod+Alt+K'], tab: ['Shift+X'] },
   { command: 'when', label: 'Start Date', app: ['Mod+S'], tab: ['W'] },
   { command: 'deadline', label: 'Deadline', app: ['Mod+Shift+D'], tab: ['D'] },
+  { command: 'reminder', label: 'Reminder', app: ['Mod+Shift+R'], tab: ['R'] },
   { command: 'today', label: 'Today', app: ['Mod+T'], tab: ['T'] },
   { command: 'unscheduled', label: 'Unscheduled', app: ['Mod+R'], tab: ['U'] },
   { command: 'deferred', label: 'Deferred', app: ['Mod+O'], tab: ['F'] },

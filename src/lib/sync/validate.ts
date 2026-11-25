@@ -24,6 +24,7 @@
 import { generateKeyBetween } from 'fractional-indexing';
 import { GIST_COLOURS, PRIORITIES, MOVE_TO_COMPLETED, UNSCHEDULED_LIMITS, isGistName } from '../model/settings';
 import { PROJECT_PARTS, TODO_PARTS } from '../model/parts';
+import { isReminderAt, isReminderTime } from '../model/reminder';
 import type { EntityName, SettingEntry } from '../model/types';
 
 /** A check for one field's value. */
@@ -47,6 +48,8 @@ const timestamp: Rule = (v) => {
 const date: Rule = (v) => typeof v === 'string' && LOCAL_DATE.test(v) && timestamp(`${v}T00:00:00.000Z`);
 
 /** An ordering key fractional-indexing accepts: it can place a key after it. */
+/** A task's reminder: a local date and time, or a template's time only (FR-3.8). */
+const reminder: Rule = (v) => isReminderAt(v) || isReminderTime(v);
 const orderKey: Rule = (v) => {
   if (typeof v !== 'string') return false;
   try {
@@ -146,6 +149,7 @@ const FIELDS: Record<EntityName, Record<string, Rule>> = {
     startDate: orNull(date),
     todaySortKey: orNull(orderKey),
     deadline: orNull(date),
+    reminder: orNull(reminder),
     priority: orNull(priority),
     prioritySource: orNull(oneOf('user', 'auto')),
     priorityBeforeAuto: orNull(priority),

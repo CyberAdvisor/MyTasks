@@ -1,7 +1,7 @@
 /**
  * Tab through an open task card or Quick Entry: the title, the
  * notes and any checklist items, then Start Date, Tags, Checklist, Deadline,
- * Priority and Context (the last two are additions), whether each shows as a
+ * Reminder (when shown), Priority and Context (the last two are additions), whether each shows as a
  * chip or a button, and back to the title. Shift+Tab goes backwards.
  *
  * Reaching a picker opens it, focused on its typing field or current choice
@@ -12,7 +12,7 @@
  */
 
 /** The pickers in order, by their Popover label (or the checklist button). */
-const PICKERS = ['Start Date', 'Tags', 'Checklist', 'Deadline', 'Priority', 'Context'];
+const PICKERS = ['Start Date', 'Tags', 'Checklist', 'Deadline', 'Reminder', 'Priority', 'Context'];
 
 /** Text fields first: title, notes (the box, or the styled note that becomes it), checklist items, in page order. */
 const FIELDS = 'input.title, textarea.title, textarea.notes, .notes-view, input[data-item], [data-item-view]';

@@ -12,6 +12,7 @@
  * mentions that don't exist yet are created. Items keep the file's order,
  * after what is already in each list.
  */
+import { isReminderAt, templateReminder } from '../model/reminder';
 import { keyAtEnd, keyBetween } from '../model/order';
 import { firstDate } from '../model/repeat';
 import { weekday } from '../model/dates';
@@ -261,6 +262,10 @@ class Planner {
     // A repeating project's template keeps no dates or repeats on its tasks: they belong to its copies (FR-4.6).
     if (place.projectId && this.projects.find((x) => x.id === place.projectId)?.repeat && (when.startDate || r.deadline || rule))
       throw new ImportError(r.line, 'A task in a repeating project takes no start date, deadline or repeat: each copy of the project gets its own.');
+    // A repeating task, or one in a repeating project's template, keeps its reminder's time only (FR-3.8).
+    const inTemplate = !!(place.projectId && this.projects.find((x) => x.id === place.projectId)?.repeat);
+    if (r.reminder && !rule && !inTemplate && !isReminderAt(r.reminder))
+      throw new ImportError(r.line, 'A reminder written as a time only is for a repeating task: give it a date, as YYYY-MM-DD HH:MM.');
     const todo: Todo = {
       ...this.base(list, siblings, r.createdDate),
       title: r.title,
@@ -271,6 +276,7 @@ class Planner {
       startDate: when.startDate,
       todaySortKey: null,
       deadline: rule ? null : r.deadline,
+      reminder: rule || inTemplate ? templateReminder(r.reminder) : r.reminder,
       priority: r.priority,
       prioritySource: r.priority ? 'user' : null,
       priorityBeforeAuto: null,

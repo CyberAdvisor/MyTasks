@@ -48,6 +48,7 @@ export function todo(over: Partial<Todo> = {}): Todo {
     startDate: null,
     todaySortKey: null,
     deadline: null,
+    reminder: null,
     priority: null,
     prioritySource: null,
     priorityBeforeAuto: null,

@@ -111,6 +111,7 @@ export function sampleRecords(today: Date) {
       startDate: null,
       todaySortKey: inToday ? (todayKey = generateKeyBetween(todayKey, null)) : null,
       deadline: null,
+      reminder: null,
       priority: null,
       prioritySource: fields.priority ? 'user' : null,
       priorityBeforeAuto: null,

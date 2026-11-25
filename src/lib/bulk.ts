@@ -58,6 +58,9 @@ export function setDeadline(ids: ID[], deadline: LocalDate | null, moveWhen: boo
   });
 }
 
+/** Set or clear the reminder of several tasks at once (FR-3.8): one transaction, one undo step. */
+export const setReminder = (ids: ID[], reminder: string | null) => each(ids, (id) => repo.setReminder(id, reminder));
+
 /** Duplicate several tasks; returns the copies' ids, in the same order. */
 export async function duplicate(ids: ID[]): Promise<ID[]> {
   await repo.ensureRoom(ids.length); // all or none, never part of the selection

@@ -90,6 +90,11 @@ export function addFieldTimes(row: Row): void {
   if (!row.deletedAt) row.ft ??= {};
 }
 
+/** Version 15: tasks can have a reminder (FR-3.8); existing ones have none. */
+export function addReminder(row: Row): void {
+  if (!row.deletedAt) row.reminder ??= null;
+}
+
 /** Synced tables, as named in a list. */
 const ALL_TABLES = ['areas', 'projects', 'headings', 'todos', 'checklistItems', 'tags', 'contexts', 'savedSearches'];
 
@@ -139,6 +144,9 @@ const STEPS: Record<number, (tables: Record<string, Row[]>) => void> = {
   // Version 14 adds the synced setting gistLabel (FR-19.14) and no field, for
   // the same reason as version 10.
   14: () => {},
+  15: (t) => {
+    t.todos.forEach(addReminder);
+  },
 };
 
 /**
