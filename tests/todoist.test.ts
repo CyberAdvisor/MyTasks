@@ -195,7 +195,22 @@ describe('deadlines and reminders', () => {
     expect([repeating.deadline, repeating.notes]).toEqual([null, 'Todoist deadline: Dec 15']);
   });
 
-  it('keeps a reminder as text, as tasks have no reminders yet', () => {
-    expect(convert('task,Call Sam,,4,1,Nov 26,en,,,absolute,,Nov 26 9am,en').notes).toBe('Todoist reminder: Nov 26 9am');
+  // Todoist doesn't document REMINDER_DATE's format, so it is read as a typed date and time.
+  it.each([
+    ['a date and time', 'task,Call Sam,,4,1,Nov 26,en,,,absolute,,Nov 26 9am,en', '2026-11-26T09:00', ''],
+    ['with "at" and a 24-hour time', 'task,Call Sam,,4,1,,,,,absolute,,Dec 1 at 14:30,en', '2026-12-01T14:30', ''],
+    ['an ISO date and time', 'task,Call Sam,,4,1,,,,,absolute,,2026-11-27 08:15,en', '2026-11-27T08:15', ''],
+    ['on a repeating task: the time only', 'task,Water plants,,4,1,every day,en,,,absolute,,Nov 26 7pm,en', '19:00', ''],
+    ['one it can’t read, kept as text', 'task,Call Sam,,4,1,,,,,absolute,,whenever,en', null, 'Todoist reminder: whenever'],
+    ['another language, kept as text', 'task,Call Sam,,4,1,,,,,absolute,,26 nov 9am,de', null, 'Todoist reminder: 26 nov 9am'],
+    ['an offset before the due date, kept as text', 'task,Call Sam,,4,1,Nov 26,en,,,relative,30,,', null, 'Todoist reminder: 30'],
+  ])('reads a reminder: %s', (_, line, reminder, notes) => {
+    const row = convert(line);
+    expect([row.reminder, row.notes]).toEqual([reminder, notes]);
+  });
+
+  it('counts a reminder it can’t read with the unreadable dates', () => {
+    const table = parseCsv(`${header}\ntask,Call Sam,,4,1,,,,,absolute,,whenever,en`);
+    expect(convertTodoist([{ name: 'x.csv', table }], REF).unreadable).toBe(1);
   });
 });

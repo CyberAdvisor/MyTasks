@@ -285,14 +285,14 @@ python3 -m pip install --user cryptography</code></pre>
     <li>Sections become headings. Labels written in a task’s name (“@phone”) become tags.</li>
     <li>Priorities p1 to p3 become P1 to P3; p4, Todoist’s “no priority”, becomes none.</li>
     <li>A task’s description becomes its notes, and each comment is added to them with its date.</li>
-    <li>Dates, deadlines and repeats such as “every friday”, “every other week”, “every 1st”, “every 2nd tue” and “every! 3 days” (counted from completion). A repeat starts at its next date from today.</li>
+    <li>Dates, deadlines, reminders and repeats such as “every friday”, “every other week”, “every 1st”, “every 2nd tue” and “every! 3 days” (counted from completion). A repeat starts at its next date from today.</li>
     <li>A sub-task becomes a task of its own, under the same heading, with “Sub-task of:” and its parent’s name in its notes.</li>
   </ul>
   <h3 id="todoist-limits">Limits</h3>
   <ul>
     <li><strong>English only.</strong> Dates and repeats are read only from a file exported in English. A date My Tasks can’t read, or one in another language, is left off the task and kept as text in its notes (“Todoist date: …”); the preview says how many.</li>
     <li>Times of day are dropped, as tasks have no times.</li>
-    <li>Reminders aren’t brought in; each is kept as text in the task’s notes. A deadline on a repeating task is kept as text too.</li>
+    <li>Reminders are brought in, read as a date and time (on a repeating task, its time only). Todoist doesn’t document how its file writes them, so one My Tasks can’t read, and one set as a time before the due date, is kept as text in the task’s notes (“Todoist reminder: …”). A reminder rings only once the calendar helper on your Mac is set up with a Reminders list (<a href="#calendar">Calendar events</a>). A deadline on a repeating task is kept as text.</li>
     <li>Completed tasks, durations, assignees and section descriptions aren’t in the file or aren’t brought in.</li>
     <li>Todoist doesn’t write a repeat’s next date in the file, so a repeating task starts again from today.</li>
   </ul>

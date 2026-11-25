@@ -38,7 +38,7 @@ create table TMTaskTag (tasks text, tags text);
 create table TMChecklistItem (uuid text, title text, status integer, "index" integer, task text);
 create table TMTask (
   uuid text, type integer, status integer, trashed integer, title text, notes text,
-  start integer, startDate integer, deadline integer, "index" integer,
+  start integer, startDate integer, deadline integer, reminderTime integer, "index" integer,
   area text, project text, heading text,
   rt1_repeatingTemplate text, rt1_recurrenceRule blob, rt1_instanceCreationStartDate integer,
   rt1_instanceCreationPaused integer, rt1_nextInstanceStartDate integer
@@ -55,7 +55,7 @@ class Db:
 
     def task(self, uuid, title, type=0, **kw):
         self.n += 1
-        row = dict(uuid=uuid, type=type, status=0, trashed=0, title=title, notes='', start=1, startDate=None, deadline=None,
+        row = dict(uuid=uuid, type=type, status=0, trashed=0, title=title, notes='', start=1, startDate=None, deadline=None, reminderTime=None,
                    index=self.n, area=None, project=None, heading=None, rt1_repeatingTemplate=None, rt1_recurrenceRule=None,
                    rt1_instanceCreationStartDate=None, rt1_instanceCreationPaused=0, rt1_nextInstanceStartDate=None)
         row.update(kw)
@@ -212,6 +212,31 @@ class Exporting(unittest.TestCase):
         self.assertEqual(by_title(rows, 'Inside it')['parent_id'], 'p1')
         self.assertEqual(by_title(rows, 'Under the heading')['parent_id'], 'h1')
         self.assertFalse(any(r['title'] == 'Inside the copy' for r in rows))
+
+    def test_reminders(self):
+        # As Things stores them (conv. 2026-11-25-D): reminderTime is hour << 26 | minute << 20, on the startDate.
+        def at(h, m):
+            return h << 26 | m << 20
+        d = self.db
+        d.task('t1', 'Dated', start=2, startDate=packed('2026-11-26'), reminderTime=at(9, 30))
+        d.task('t2', 'Today at midnight', start=1, startDate=packed(TODAY), reminderTime=at(0, 0))
+        d.task('t3', 'No date', notes='Keep me', reminderTime=at(14, 5))
+        d.task('t4', 'None set', start=2, startDate=packed('2026-11-26'))
+        d.task('r1', 'Daily', start=2, reminderTime=at(10, 0), rt1_recurrenceRule=rule(fu=16), rt1_nextInstanceStartDate=packed('2026-11-26'))
+        d.task('r1c', 'Daily', start=1, startDate=packed(TODAY), reminderTime=at(10, 0), rt1_repeatingTemplate='r1')
+        d.task('p1', 'Monthly', type=1, start=2, rt1_recurrenceRule=rule(fu=8, of=[{'dy': 0}]), rt1_nextInstanceStartDate=packed('2026-12-01'))
+        d.task('h1', 'Plan', type=2, project='p1')
+        d.task('p1t', 'In the repeating project', project='p1', reminderTime=at(8, 15))
+        d.task('p1h', 'Under its heading', heading='h1', reminderTime=at(17, 45))
+        _, rows = d.run()
+        self.assertEqual(by_title(rows, 'Dated')['reminder'], '2026-11-26 09:30')
+        self.assertEqual(by_title(rows, 'Today at midnight')['reminder'], f'{TODAY} 00:00')
+        n = by_title(rows, 'No date')
+        self.assertEqual((n.get('reminder', ''), n['notes']), ('', 'Keep me\n\nThings reminder: 2:05 PM'), 'no date: kept in the notes')
+        self.assertNotIn('reminder', by_title(rows, 'None set'))
+        self.assertEqual([r['reminder'] for r in rows if r['title'] == 'Daily'], ['10:00'], 'the template: the time only')
+        self.assertEqual(by_title(rows, 'In the repeating project')['reminder'], '08:15')
+        self.assertEqual(by_title(rows, 'Under its heading')['reminder'], '17:45')
 
     def test_notes_in_xml_become_plain_text(self):
         self.assertEqual(te.plain_notes('<note xml:space="preserve"><p>One &amp; two</p><p>Three</p></note>'), 'One & two\nThree')
