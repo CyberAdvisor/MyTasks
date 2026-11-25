@@ -242,16 +242,19 @@ class Repeats(unittest.TestCase):
 class Setup(unittest.TestCase):
     def ask(self, *answers):
         replies = iter(answers)
-        return lambda prompt: next(replies)
+        self.prompts = []
+        return lambda prompt: self.prompts.append(prompt) or next(replies)
 
     def test_choosing_the_list(self):
         fake = FakeReminders()
         with mock.patch('builtins.print'):
             self.assertEqual(rm.choose_list(self.ask(''), js=fake), {'list': LIST, 'title': 'My Tasks'})  # Enter: the one already there
+            self.assertIn('Enter to use your list "My Tasks"', self.prompts[0])
             self.assertEqual(rm.choose_list(self.ask('9', '2'), js=fake), {'list': 'L2', 'title': 'Groceries'})
             self.assertIsNone(rm.choose_list(self.ask('0'), js=fake))
             del fake.lists[LIST]
             choice = rm.choose_list(self.ask(''), js=fake)
+            self.assertIn('a number from the list above, Enter to make a new list named "My Tasks", or 0 for none', self.prompts[0])
         self.assertEqual(rm.make_list(choice, js=fake), {'list': 'L9', 'title': 'My Tasks'})  # made only now
 
     def test_access_messages(self):

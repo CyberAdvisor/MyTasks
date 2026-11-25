@@ -448,15 +448,17 @@ def choose_list(ask=input, js=run_js) -> dict | None:
     uses (or makes) "My Tasks", 0 leaves reminders off (None).
     """
     lists = js({'action': 'lists'})['lists']
+    same = next((entry for entry in lists if entry['title'] == DEFAULT_LIST), None)
+    enter = f'Enter to use your list "{DEFAULT_LIST}"' if same else f'Enter to make a new list named "{DEFAULT_LIST}"'
     print('\nReminders: each task with a reminder can get one in Apple Reminders, in one list for all your gists.')
+    print('Your Reminders lists:')
     for i, entry in enumerate(lists, 1):
         print(f'  {i}. {entry["title"]}')
     while True:
-        answer = ask(f'List for reminders: a number, Enter for "{DEFAULT_LIST}", 0 for none: ').strip()
+        answer = ask(f'List for reminders: a number from the list above, {enter}, or 0 for none: ').strip()
         if answer == '0':
             return None
         if not answer:
-            same = next((entry for entry in lists if entry['title'] == DEFAULT_LIST), None)
             return {'list': same['id'], 'title': DEFAULT_LIST} if same else {'list': None, 'title': DEFAULT_LIST}
         if answer.isdigit() and 1 <= int(answer) <= len(lists):
             chosen = lists[int(answer) - 1]
