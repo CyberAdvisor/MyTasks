@@ -1058,18 +1058,67 @@ export function setTodoStatus(id: ID, status: Todo['status']): Promise<void> {
       if (copy) await closeCopy(copy, status, settings);
       return;
     }
+    if (status !== 'open' && before?.status === 'open') return closeTodo(before, status, nowIso(), settings);
     await patch<Todo>('todos', id, statusFields(status, nowIso(), settings));
-    if (status !== 'open' && before?.status === 'open' && before.repeatOf) await copyDone(before.repeatOf);
     if (status === 'open') {
       // Unchecking takes back the task this one released (FR-17.5).
       const released = await db.todos.filter((t) => t.releasedBy === id && t.status === 'open').toArray();
       for (const t of released) await returnTask(t);
       // Closed to-dos keep their priority (FR-14.12); a reopened one is checked again.
       await applyAutoRules(id);
-    } else if (before?.status === 'open' && before.projectId) {
-      await release(before.projectId, id);
     }
   });
+}
+
+/**
+ * Close an open task at `at`: an after-completion repeat dates its next copy
+ * (FR-4.1), and a sequential project releases its next task (FR-17.2).
+ */
+async function closeTodo(before: Todo, status: 'completed' | 'canceled', at: string, settings: AppSettings): Promise<void> {
+  await patch<Todo>('todos', before.id, statusFields(status, at, settings));
+  if (before.repeatOf) await copyDone(before.repeatOf);
+  if (before.projectId) await release(before.projectId, before.id);
+}
+
+/**
+ * Complete the tasks ticked in Apple Reminders (FR-21.11), each at the time
+ * it was ticked, as one undo step, like checking it off here. A tick with a
+ * day stands for a repeating task's copy for that day, made first when it's
+ * the copy the template makes next. Skipped: a task that isn't open, is in
+ * the Trash or a trashed project, or was deleted; a copy for an earlier day
+ * that was never made, or a later day the template hasn't reached; and a
+ * tick older than the task's last open or close here (its completion part
+ * time), so an Undo, or a reopening on any device, holds. Returns the titles
+ * of the tasks completed.
+ */
+export function completeTicked(ticks: { task: ID; at: string; day?: LocalDate }[]): Promise<string[]> {
+  return tx(async () => {
+    const settings = await loadSettings();
+    const titles: string[] = [];
+    const ordered = [...ticks].sort((a, b) => (a.day ?? '').localeCompare(b.day ?? '') || a.at.localeCompare(b.at));
+    for (const tick of ordered) {
+      const id = tick.day ? await tickedCopy(tick.task, tick.day) : tick.task;
+      const t = id ? await db.todos.get(id) : undefined;
+      if (!t || t.status !== 'open' || t.trashedAt || t.deletedAt || t.repeat) continue;
+      const project = t.projectId ? await db.projects.get(t.projectId) : undefined;
+      if (project && (project.trashedAt || project.deletedAt)) continue;
+      if ((t.ft?.s ?? 0) > Math.floor(Date.parse(tick.at) / 1000)) continue;
+      await closeTodo(t, 'completed', tick.at, settings);
+      titles.push(t.title);
+    }
+    return titles;
+  });
+}
+
+/** The id of `templateId`'s copy for `day`, made now when it's the template's next copy; undefined when there is none. */
+async function tickedCopy(templateId: ID, day: LocalDate): Promise<ID | undefined> {
+  const id = copyId(templateId, day);
+  if (await db.todos.get(id)) return id;
+  const template = await db.todos.get(templateId);
+  const rule = template?.repeat;
+  if (!template || !rule || rule.paused || template.status !== 'open' || template.trashedAt || template.deletedAt) return undefined;
+  if (template.startDate !== day) return undefined;
+  return copyAndMoveOn(template, rule, day, afterCopy(rule, day));
 }
 
 /** Move a to-do to Trash, or restore it (FR-1.5, FR-12.3). */

@@ -32,10 +32,11 @@ export const MAX_FILE_CHARS = 5 * 1024 * 1024;
 export const MIN_PASSPHRASE = 12;
 
 /**
- * Which file an envelope is: the task list (mytasks.json), or the calendar
- * the Mac helper writes (calendar.json, FR-21.2), sealed the same way.
+ * Which file an envelope is: the task list (mytasks.json), or a file the Mac
+ * helper writes, sealed the same way: the calendar (calendar.json, FR-21.2)
+ * or the reminders ticked in Reminders (ticks.json, FR-21.11).
  */
-export type EnvelopeApp = 'mytasks' | 'mytasks-calendar';
+export type EnvelopeApp = 'mytasks' | 'mytasks-calendar' | 'mytasks-ticks';
 
 /** A gist file's contents: plain metadata around the encrypted list or calendar. */
 export interface Envelope {

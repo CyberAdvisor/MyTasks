@@ -1,9 +1,14 @@
 """
-Tests for reminders.py (FR-21.10), with a made-up Reminders list in memory
+Tests for reminders.py (FR-21.10, FR-21.11), with a made-up Reminders list in memory
 in place of EventKit, and calendar_sync.py's fake GitHub; nothing touches a
 real Reminders list, Keychain or gist.
+helper/testdata/ticks-envelope.json is a ticks.json written with a fixed IV:
+test_ticks_fixture checks the helper still writes exactly that file, and
+tests/ticks.test.ts checks the app opens it.
 Run: python3 -m unittest discover helper (the PR check's build job runs them).
 """
+import datetime as dt
+import io
 import json
 import os
 import sys
@@ -13,10 +18,15 @@ from unittest import mock
 sys.path.insert(0, os.path.dirname(__file__))
 import calendar_sync as cs  # noqa: E402
 import reminders as rm  # noqa: E402
-from test_calendar_sync import PASSPHRASE, SALT, TODAY, FakeGitHub, event, raw  # noqa: E402
+from test_calendar_sync import IV, PASSPHRASE, SALT, TODAY, FakeGitHub, event, raw  # noqa: E402
 
 LIST = 'L1'
 SETTINGS = {'list': LIST, 'title': 'My Tasks'}
+TICKS_FIXTURE = os.path.join(os.path.dirname(__file__), 'testdata', 'ticks-envelope.json')
+TEMPLATE = '0193a4b2-7c11-7000-8000-000000000001'  # a template id, and its copy for 2026-11-27 as the app makes it
+COPY = '6f55af28-0313-854e-b4ba-7a14201cb326'  # copyId(TEMPLATE, '2026-11-27'), also checked in tests/ticks.test.ts
+T0, T1, T2, T3 = ('2026-11-25T17:00:00.000Z', '2026-11-25T17:05:00.000Z', '2026-11-25T17:10:00.000Z',
+                  '2026-11-25T17:20:00.000Z')
 
 
 class FakeReminders:
@@ -24,16 +34,30 @@ class FakeReminders:
 
     def __init__(self):
         self.lists = {LIST: 'My Tasks', 'L2': 'Groceries'}
-        self.items = {}  # id: {list, title, notes, due, rule, urgent, completed}
+        self.items = {}  # id: {list, title, notes, due, rule, urgent, completed, at}
         self.made = 0
         self.ops = []  # every change asked for, in order
+        self.clock = T1  # when the helper's own completions happen
 
     def add(self, title, due, rule=None, list_id=LIST):
         """A reminder made outside the helper (or by a run whose pairing was lost)."""
         self.made += 1
         rid = f'R{self.made}'
-        self.items[rid] = {'list': list_id, 'title': title, 'notes': '', 'due': due, 'rule': rule, 'urgent': False, 'completed': False}
+        self.items[rid] = {'list': list_id, 'title': title, 'notes': '', 'due': due, 'rule': rule, 'urgent': False,
+                           'completed': False, 'at': None}
         return rid
+
+    def tick(self, rid, at):
+        """Ticked in Reminders: a one-off is completed; a repeating one moves on a day and leaves a new completed reminder."""
+        r = self.items[rid]
+        if not r['rule']:
+            r.update(completed=True, at=at)
+            return rid
+        done = self.add(r['title'], r['due'])
+        self.items[done].update(completed=True, at=at)
+        day = dt.date.fromisoformat(r['due'][:10]) + dt.timedelta(days=1)
+        r['due'] = day.isoformat() + r['due'][10:]
+        return done
 
     def open(self):
         return {rid: r for rid, r in self.items.items() if r['list'] == LIST and not r['completed']}
@@ -46,8 +70,13 @@ class FakeReminders:
             self.lists['L9'] = request['title']
             return {'status': rm.FULL_ACCESS, 'id': 'L9'}
         if action == 'read':
-            return {'status': rm.FULL_ACCESS, 'open': [
+            answer = {'status': rm.FULL_ACCESS, 'open': [
                 {'id': rid, 'title': r['title'], 'due': r['due'], 'repeats': bool(r['rule'])} for rid, r in self.open().items()]}
+            if request.get('since'):
+                answer['done'] = [{'id': rid, 'title': r['title'], 'due': r['due'], 'at': r['at']}
+                                  for rid, r in self.items.items()
+                                  if r['list'] == LIST and r['completed'] and (r['at'] or '') >= request['since']]
+            return answer
         created, failed = {}, {}
         for op in request['ops']:
             self.ops.append(op)
@@ -62,7 +91,7 @@ class FakeReminders:
             elif op['op'] == 'delete':
                 del self.items[op['id']]
             elif op['op'] == 'complete':
-                r['completed'] = True
+                r.update(completed=True, at=self.clock)
             else:
                 r.update({f: op[f] for f in ('title', 'notes', 'due', 'rule') if f in op})
         return {'status': rm.FULL_ACCESS, 'created': created, 'failed': failed}
@@ -239,6 +268,78 @@ class Repeats(unittest.TestCase):
         self.assertIsNone(spec(unit='fortnight'))
 
 
+class Ticks(unittest.TestCase):
+    """FR-21.11: reminders ticked in Reminders are kept as ticks for their gist's ticks.json."""
+
+    def setUp(self):
+        self.list = FakeReminders()
+        self.state = {}
+
+    def sync(self, *todos, now, gist='g1'):
+        return rm.sync(SETTINGS, {gist: tasks(*todos)}, self.state, js=self.list, now=now)
+
+    def template(self, **kw):
+        return task(TEMPLATE, title='Water plants', reminder='08:00', startDate='2026-11-27', repeat=rule(), **kw)
+
+    def test_the_first_run_sends_nothing_ticked_before_it(self):
+        old = self.list.add('Call Sam', '2026-11-26T09:00')
+        self.list.tick(old, '2026-11-24T10:00:00.000Z')
+        self.sync(task(), now=T0)
+        self.assertEqual(self.state['ticksSince'], T0)
+        self.assertEqual(rm.ticks_for(self.state, 'g1'), [])
+
+    def test_a_one_off_ticked_is_sent_until_its_task_is_closed(self):
+        self.sync(task(), now=T0)
+        self.list.tick('R1', T1)
+        self.sync(task(), now=T2)
+        self.assertEqual(rm.ticks_for(self.state, 'g1'), [{'task': 't1', 'at': T1}])
+        self.assertEqual(rm.waiting(self.state), {'g1': 1})
+        self.assertEqual(self.list.open(), {})  # not made again
+        self.sync(task(), now=T3)
+        self.assertEqual(len(rm.ticks_for(self.state, 'g1')), 1)  # read once, kept while the task is open
+        self.sync(task(status='completed'), now=T3)  # the app applied it
+        self.assertEqual(rm.ticks_for(self.state, 'g1'), [])
+
+    def test_a_tick_is_dropped_when_its_task_is_trashed_or_gone_or_after_30_days(self):
+        for todos, now in (((task(trashedAt=T2),), T3), ((), T3), ((task(),), '2026-12-26T17:00:00.000Z')):
+            with self.subTest(todos=todos, now=now):
+                self.setUp()
+                self.sync(task(), now=T0)
+                self.list.tick('R1', T1)
+                self.sync(task(), now=T2)
+                self.sync(*todos, now=now)
+                self.assertEqual(rm.ticks_for(self.state, 'g1'), [])
+
+    def test_a_repeating_tick_names_the_template_and_its_day_until_that_copy_is_closed(self):
+        self.sync(self.template(), now=T0)
+        self.list.tick('R1', T1)
+        self.sync(self.template(), now=T2)
+        self.assertEqual(rm.ticks_for(self.state, 'g1'), [{'task': TEMPLATE, 'at': T1, 'day': '2026-11-27'}])
+        copy = task(COPY, title='Water plants', reminder='2026-11-27T08:00', repeatOf=TEMPLATE)
+        self.sync(self.template(), copy, now=T3)  # the copy, still open, keeps it
+        self.assertEqual(len(rm.ticks_for(self.state, 'g1')), 1)
+        self.sync(self.template(), dict(copy, status='completed'), now=T3)
+        self.assertEqual(rm.ticks_for(self.state, 'g1'), [])
+
+    def test_a_copys_own_reminder_is_found_by_its_id(self):
+        copy = task('c1', title='Water plants', reminder='2026-11-27T08:00', repeatOf='tp')  # an after-completion copy
+        self.sync(copy, now=T0)
+        self.list.tick('R1', T1)
+        self.sync(copy, now=T2)
+        self.assertEqual(rm.ticks_for(self.state, 'g1'), [{'task': 'c1', 'at': T1}])
+
+    def test_reminders_the_helper_completed_or_didnt_make_are_not_ticks(self):
+        self.sync(task(), now=T0)
+        self.sync(task(status='completed'), now=T1)  # completed in My Tasks: the helper completes the reminder
+        stranger = self.list.add('Buy milk', '2026-11-26T09:00')
+        self.list.tick(stranger, T2)
+        self.sync(task(status='completed'), now=T3)
+        self.assertEqual(self.state['ticks'], {})
+
+    def test_copy_ids_match_the_app(self):
+        self.assertEqual(rm.copy_id(TEMPLATE, '2026-11-27'), COPY)
+
+
 class Setup(unittest.TestCase):
     def ask(self, *answers):
         replies = iter(answers)
@@ -301,6 +402,33 @@ class WithTheCalendar(unittest.TestCase):
         self.sync()
         self.assertNotIn('reminders', self.calendar())  # off: the field hides again
 
+    def ticks(self):
+        env = cs.parse_envelope(self.gh.gists['g1'][cs.TICKS_FILE], cs.TICKS_APP)
+        return json.loads(cs.unseal(self.keys['g1'], env))
+
+    def test_ticks_json_is_written_once_there_is_a_tick_and_again_only_when_they_change(self):
+        self.sync()
+        self.assertNotIn(cs.TICKS_FILE, self.gh.gists['g1'])  # nothing ticked yet: no file
+        self.list.tick('R1', '2999-01-01T00:00:00.000Z')  # after the first run's start
+        self.sync()
+        self.assertEqual(self.ticks(), {'format': 1, 'ticks': [{'task': 't1', 'at': '2999-01-01T00:00:00.000Z'}]})
+        self.assertIsNone(cs.parse_envelope(self.gh.gists['g1'][cs.TICKS_FILE], cs.ENVELOPE_APP))  # never a calendar file
+        written = self.gh.gists['g1'][cs.TICKS_FILE]
+        self.sync()
+        self.assertEqual(self.gh.gists['g1'][cs.TICKS_FILE], written)  # unchanged: not written again
+        with mock.patch.object(cs, 'running_pid', return_value=None):
+            lines = cs.status_lines(self.config, self.state, self.pairing)
+        self.assertTrue(any(line.endswith(', 1 tick waiting for My Tasks') for line in lines))
+
+    def test_ticks_fixture(self):
+        """The shared file: the helper still writes it byte for byte."""
+        payload = {'format': 1, 'ticks': [{'task': 't1', 'at': '2026-11-25T17:05:00.000Z'},
+                                          {'task': TEMPLATE, 'at': '2026-11-25T17:06:00.000Z', 'day': '2026-11-27'}]}
+        env = cs.seal(self.keys['g1'], SALT, json.dumps(payload, separators=(',', ':')), '2026-11-25T17:10:00.000Z',
+                      iv=IV, app=cs.TICKS_APP)
+        with open(TICKS_FIXTURE, encoding='utf-8') as f:
+            self.assertEqual(json.load(f), env)
+
     def test_a_reminders_problem_leaves_the_calendar_alone(self):
         def broken(request):
             raise rm.RemindersError('No Reminders access.')
@@ -316,3 +444,28 @@ class WithTheCalendar(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class EarlyKeys(unittest.TestCase):
+    """Setup throws away keys pressed while it was busy, so a Return typed early can't answer the next question."""
+
+    def test_a_terminal_is_flushed_before_each_question(self):
+        tty = mock.Mock(isatty=lambda: True, fileno=lambda: 7)
+        with mock.patch.object(cs.termios, 'tcflush') as flush:
+            cs.flush_typed(tty)
+        flush.assert_called_once_with(7, cs.termios.TCIFLUSH)
+
+    def test_piped_answers_are_kept(self):
+        with mock.patch.object(cs.termios, 'tcflush') as flush:
+            cs.flush_typed(io.StringIO('1\n'))
+        flush.assert_not_called()
+
+    def test_every_question_goes_through_ask(self):
+        with mock.patch.object(cs, 'flush_typed') as flush, mock.patch('builtins.input', return_value='2'), \
+                mock.patch.object(cs.getpass, 'getpass', return_value='secret'):
+            self.assertEqual(cs.ask('Months ahead: '), '2')
+            self.assertEqual(cs.ask_hidden('Passphrase: '), 'secret')
+        self.assertEqual(flush.call_count, 2)
+        for fn in (cs.choose, cs.pick_calendars):
+            self.assertIs(fn.__defaults__[-1], cs.ask)
+        self.assertIs(cs.open_gists.__defaults__[-1], cs.ask_hidden)

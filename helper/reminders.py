@@ -1,5 +1,6 @@
 """
-Task reminders in Apple Reminders, for the calendar helper (FR-21.10).
+Task reminders in Apple Reminders, for the calendar helper (FR-21.10), and
+ticks in Reminders sent back to complete tasks (FR-21.11).
 
 calendar_sync.py calls `sync` on every reading, with each set-up gist's
 decrypted mytasks.json. Every open task with a reminder gets a reminder in
@@ -25,18 +26,30 @@ helper's folder, under "<gist id>:<task id>". If that file is lost (or a
 second Mac runs the helper), the list's reminders are matched again by title
 and time rather than made twice.
 
+Ticks come back (FR-21.11): each run also reads the reminders completed in
+the list since the last run. A tick on a reminder made for one task (a
+one-off, or a copy's) is found by its id; a tick on a repeating reminder is a
+new completed reminder, matched to the repeating one by title and time, with
+the day it was for. Reminders the helper completed itself are left out. The
+ticks are kept in the state file until their task (or a repeating task's
+copy for that day) is closed, or for 30 days, and calendar_sync.py writes
+each gist's to its ticks.json for the app to apply.
+
 EventKit is reached through JavaScript for Automation (osascript), as the
 calendar is read. REMINDERS_JS answers one request at a time:
 
     {"action": "lists"}                    the reminder lists
     {"action": "create-list", "title": t}  make a list
-    {"action": "read", "list": id}         the list's open reminders
+    {"action": "read", "list": id, "since": iso?}
+                                           the list's open reminders, and with
+                                           "since", those completed since then
     {"action": "apply", "list": id, "ops": [...]}
 
 and prints JSON with the access status.
 """
 from __future__ import annotations
 
+import datetime as dt
 import json
 import re
 import subprocess
@@ -50,6 +63,7 @@ UNTITLED = 'Untitled task'
 AT = re.compile(r'^\d{4}-\d\d-\d\dT\d\d:\d\d$')  # a task's reminder: a local date and time
 TIME = re.compile(r'^\d\d:\d\d$')  # a template's reminder: a time only
 FREQUENCY = {'day': 0, 'week': 1, 'month': 2, 'year': 3}  # EKRecurrenceFrequency
+TICK_DAYS = 30  # a tick waits this long at most for the app to apply it
 
 
 class RemindersError(Exception):
@@ -148,6 +162,22 @@ function findList(store, id) {
   return list(store.calendarsForEntityType(REMINDER)).find((c) => text(c.calendarIdentifier) === id) || null;
 }
 
+// A time as the app writes one (toISOString): UTC, with milliseconds.
+function isoTime(d) { return new Date(Number(d.timeIntervalSince1970) * 1000).toISOString(); }
+
+// The reminders completed in the list since `since` (an ISO time): ticks.
+function completedSince(store, cal, since) {
+  let found = null;
+  const start = $.NSDate.dateWithTimeIntervalSince1970(new Date(since).getTime() / 1000);
+  store.fetchRemindersMatchingPredicateCompletion(
+    store.predicateForCompletedRemindersWithCompletionDateStartingEndingCalendars(start, $(), $([cal])),
+    (rs) => { found = list(rs); });
+  wait(() => found !== null, 30000);
+  if (found === null) throw new Error('Reminders did not answer in time.');
+  return found.filter((r) => !r.completionDate.isNil())
+    .map((r) => ({ id: text(r.calendarItemIdentifier), title: text(r.title), due: dueOf(r), at: isoTime(r.completionDate) }));
+}
+
 function openReminders(store, cal) {
   let found = null;
   store.fetchRemindersMatchingPredicateCompletion(
@@ -202,6 +232,7 @@ function run(argv) {
   if (!cal) { out.missingList = true; return JSON.stringify(out); }
   if (req.action === 'read') {
     out.open = openReminders(store, cal).map(entry);
+    if (req.since) out.done = completedSince(store, cal, req.since);
     return JSON.stringify(out);
   }
   out.created = {};
@@ -395,13 +426,15 @@ def plan(want: dict, completed: set, items: dict, open_list: list) -> tuple[list
     return ops, after
 
 
-def sync(settings: dict, lists: dict, state: dict, js=run_js) -> int:
+def sync(settings: dict, lists: dict, state: dict, js=run_js, now: str | None = None) -> int:
     """
     Bring the Reminders list in line with the gists read this time (`lists`:
-    {gist id: decrypted mytasks.json}). `settings` is the helper's reminders
-    setting ({list, title}); `state` the pairing, kept between runs. How many
-    changes were made.
+    {gist id: decrypted mytasks.json}), and note the reminders ticked since
+    the last run (FR-21.11). `settings` is the helper's reminders setting
+    ({list, title}); `state` the pairing and the ticks, kept between runs;
+    `now` (an ISO time) is for tests. How many changes were made.
     """
+    now = now or utc_now()
     items = state.setdefault('items', {})
     read = set(lists)
     mine = {k: e for k, e in items.items() if k.split(':', 1)[0] in read}
@@ -410,7 +443,13 @@ def sync(settings: dict, lists: dict, state: dict, js=run_js) -> int:
         w, c = wanted(gist_id, payload)
         want.update(w)
         completed |= c
-    open_list = js({'action': 'read', 'list': settings['list']})['open']
+    request = {'action': 'read', 'list': settings['list']}
+    if state.get('ticksSince'):
+        request['since'] = state['ticksSince']
+    answer = js(request)
+    open_list = answer['open']
+    note_ticks(state, answer.get('done') or [], items)
+    state['ticksSince'] = now  # the first run only starts the count: nothing earlier is sent
     ops, after = plan(want, completed, mine, open_list)
     if ops:
         answer = js({'action': 'apply', 'list': settings['list'], 'ops': ops})
@@ -423,9 +462,101 @@ def sync(settings: dict, lists: dict, state: dict, js=run_js) -> int:
                 del after[key]  # not made: tried again next time
             elif failed.get(e['id']) == 'missing':
                 after[key] = dict(e, done=True)
+        own = state.setdefault('ownDone', {})
+        for op in ops:  # completed here, so not a tick when read back
+            if op['op'] == 'complete' and op['id'] not in failed:
+                own[op['id']] = now
     state['items'] = {k: e for k, e in items.items() if k.split(':', 1)[0] not in read}
     state['items'].update(after)
+    prune_ticks(state, lists, now)
     return len(ops)
+
+
+# ---------------------------------------------------------------------------
+# Ticks in Reminders, sent back to complete tasks (FR-21.11).
+
+
+def utc_now() -> str:
+    """Now, as the app writes times (toISOString)."""
+    return dt.datetime.now(dt.timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+
+
+def note_ticks(state: dict, done: list, items: dict) -> None:
+    """
+    Keep a tick for each reminder completed in the list (`done`, as
+    REMINDERS_JS reads them) that belongs to a task, in state['ticks']:
+    {reminder id: {gist, task, at, day?}}. A reminder made for one task is
+    found by its id; a tick on a repeating one is a new reminder, matched to
+    the repeating one by title and time, with the day it was for. Reminders
+    the helper completed itself, and ones it didn't make, are left out.
+    """
+    ticks, own = state.setdefault('ticks', {}), state.get('ownDone') or {}
+    for r in done:
+        if r['id'] in own or r['id'] in ticks:
+            continue
+        key = next((k for k, e in items.items() if e.get('id') == r['id'] and e['kind'] == 'once'), None)
+        day = None
+        if key is None and r.get('due') and len(r['due']) > 10:
+            key = next((k for k, e in items.items() if e['kind'] == 'repeat' and e.get('id') and not e.get('done')
+                        and e['title'] == r['title'] and e['due'][10:] == r['due'][10:]), None)
+            day = r['due'][:10]
+        if key is None:
+            continue
+        gist_id, task_id = key.split(':', 1)
+        ticks[r['id']] = dict({'gist': gist_id, 'task': task_id, 'at': r['at']}, **({'day': day} if day else {}))
+
+
+def prune_ticks(state: dict, lists: dict, now: str) -> None:
+    """
+    Drop ticks older than TICK_DAYS, and those of the gists read this time
+    whose task is closed or gone: for a repeating task, its copy for that day
+    (the copy the app may still have to make, so a missing copy keeps it).
+    Also forget the helper's own completions after TICK_DAYS.
+    """
+    oldest = (dt.datetime.fromisoformat(now.replace('Z', '+00:00')) - dt.timedelta(days=TICK_DAYS)).isoformat()
+    oldest = oldest.replace('+00:00', 'Z')
+    state['ownDone'] = {i: at for i, at in (state.get('ownDone') or {}).items() if at >= oldest}
+    kept = {}
+    for rid, tick in (state.get('ticks') or {}).items():
+        if tick['at'] < oldest:
+            continue
+        payload = lists.get(tick['gist'])
+        if payload is not None:
+            todos, projects = records(payload, 'todos'), records(payload, 'projects')
+            task = todos.get(tick['task'])
+            if task is None or task.get('deletedAt') or task.get('trashedAt'):
+                continue
+            if tick.get('day'):
+                copy = todos.get(copy_id(tick['task'], tick['day']))
+                if copy is not None and not is_open(copy, projects):
+                    continue
+            elif not is_open(task, projects):
+                continue
+        kept[rid] = tick
+    state['ticks'] = kept
+
+
+def ticks_for(state: dict, gist_id: str) -> list:
+    """One gist's ticks as ticks.json holds them: [{task, at, day?}], oldest first."""
+    out = [{k: v for k, v in t.items() if k != 'gist'} for t in (state.get('ticks') or {}).values() if t['gist'] == gist_id]
+    return sorted(out, key=lambda t: (t['at'], t['task']))
+
+
+def fnv(text: str, seed: int) -> int:
+    """32-bit FNV-1a from `seed`, as fnv in src/lib/model/repeat.ts."""
+    h = seed & 0xFFFFFFFF
+    for ch in text:
+        h ^= ord(ch)
+        h = (h * 0x01000193) & 0xFFFFFFFF
+    return h
+
+
+def copy_id(template_id: str, date: str) -> str:
+    """The id of the copy a repeating task makes for `date`: copyId in src/lib/model/repeat.ts."""
+    key = f'{template_id}|{date}'
+    h = ''.join(f'{fnv(key, seed):08x}' for seed in (0x811C9DC5, 0x01000193, 0x9E3779B9, 0x85EBCA6B))
+    variant = format((int(h[16], 16) & 0x3) | 0x8, 'x')
+    return f'{h[0:8]}-{h[8:12]}-8{h[13:16]}-{variant}{h[17:20]}-{h[20:32]}'
 
 
 def counts(state: dict) -> dict:
@@ -435,6 +566,14 @@ def counts(state: dict) -> dict:
         if not e.get('done'):
             gist_id = key.split(':', 1)[0]
             out[gist_id] = out.get(gist_id, 0) + 1
+    return out
+
+
+def waiting(state: dict) -> dict:
+    """How many ticks each gist has waiting for the app: {gist id: n}."""
+    out = {}
+    for t in (state.get('ticks') or {}).values():
+        out[t['gist']] = out.get(t['gist'], 0) + 1
     return out
 
 

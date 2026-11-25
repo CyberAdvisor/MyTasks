@@ -163,7 +163,8 @@ async function localWithoutOldTombstones(): Promise<Payload> {
  * sync: decrypt, check, merge.
  *
  * The gist's calendar file (FR-21.2), read in the same request, is handed
- * to `onCalendar` before the tasks are; it never fails the sync.
+ * to `onCalendar` before the tasks are, and its ticks file (FR-21.11) to
+ * `onTicks` after them; neither fails the sync.
  *
  * (GitHub's version tag, sent with If-None-Match, would also skip the
  * download, but WebKit fails the "not modified" answer as a CORS error;
@@ -173,13 +174,23 @@ export async function syncOnce(
   config: DeviceConfig,
   onCalendar: (file: string | null) => Promise<void> = async () => {},
   onLost: (lost: LostChange[]) => void = () => {},
+  onTicks: (file: string | null) => Promise<void> = async () => {},
 ): Promise<SyncMark> {
   // Away too long: records deleted elsewhere may have lost their tombstones,
   // so merging could bring them back. Wait for Replace With Gist.
   if (isAway(config.lastSyncedAt, nowIso())) throw new SyncError('away');
-  const mark = config.lastSync;
-  const { tasks: text, calendar } = await readGistFiles(config.token, config.gistId);
+  const { tasks: text, calendar, ticks } = await readGistFiles(config.token, config.gistId);
   if (text !== null) await onCalendar(calendar);
+  const mark = await syncTasks(config, text, onLost);
+  // Ticks in Reminders (FR-21.11) are applied after the merge, so a task
+  // reopened on another device since the tick is seen as reopened.
+  await onTicks(ticks);
+  return mark;
+}
+
+/** The tasks part of a sync: merge the gist's list (`text`) with this device's, and push when needed. */
+async function syncTasks(config: DeviceConfig, text: string | null, onLost: (lost: LostChange[]) => void): Promise<SyncMark> {
+  const mark = config.lastSync;
   const env = ownEnvelope(config, text);
   const chars = text?.length ?? 0;
   const readAt = nowIso();

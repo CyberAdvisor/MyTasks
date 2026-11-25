@@ -34,6 +34,7 @@ import { clearUndo } from '../db/history';
 import { exclusive } from './lock';
 import { onReturn } from '../pwa/onReturn';
 import { receiveCalendar, showSavedCalendar } from '../calendar/calendar';
+import { receiveTicks } from '../reminders/ticks';
 import type { LostChange } from './lost';
 
 /** Delay between a local change and the sync that pushes it. */
@@ -238,7 +239,16 @@ export class SyncEngine {
         // The settings are read when the sync starts, so a sync queued behind
         // Change Passphrase, in this window or another, uses the new key.
         await this.exclusive((config) =>
-          this.attempt(() => syncOnce(config, (file) => receiveCalendar(config, file), (lost) => this.noteLost(lost)), quiet),
+          this.attempt(
+            () =>
+              syncOnce(
+                config,
+                (file) => receiveCalendar(config, file),
+                (lost) => this.noteLost(lost),
+                (file) => receiveTicks(config, file),
+              ),
+            quiet,
+          ),
         );
       } while (this.again && this.config && !this.stopped);
     })().finally(() => (this.running = null));

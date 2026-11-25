@@ -230,3 +230,6 @@ export function isValidSetting(x: unknown): x is SettingEntry {
     (!Object.hasOwn(s, 'modifiedAt') || timestamp(s.modifiedAt) === true)
   );
 }
+
+/** The field checks other files reuse: the Reminders ticks file (FR-21.11). */
+export { id as isId, timestamp as isTimestamp, date as isLocalDate };

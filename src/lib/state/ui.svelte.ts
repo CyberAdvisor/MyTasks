@@ -12,6 +12,7 @@ import { combineWhere, whereItWent, type WhereItWent } from '../model/whereItWen
 import { go, type Route } from './route';
 import { get } from 'svelte/store';
 import { untrack } from 'svelte';
+import { onTicked } from '../reminders/ticks';
 import { inInbox } from '../model/lists';
 import { fullSnapshot } from './live';
 import { holdInInbox, inboxShown, openHold } from './held';
@@ -261,6 +262,14 @@ class UiState {
   }
 
   /**
+   * Offer Undo in the toast on every device, after a change that came from
+   * outside the app: tasks completed by ticks in Reminders (FR-21.11).
+   */
+  offerUndoEverywhere(message: string): void {
+    this.showToast({ message, undo: true });
+  }
+
+  /**
    * Say where a task went when it left the Inbox, on every device, with Show
    * to open that list (when there is one place to show); touch devices also
    * offer Undo (FR-1.10).
@@ -472,6 +481,9 @@ class UiState {
 }
 
 export const ui = new UiState();
+
+// Tasks completed by ticks in Apple Reminders say so, with Undo (FR-21.11).
+onTicked((message) => ui.offerUndoEverywhere(message));
 onTodosChanged((before) => void ui.announceWhere(before));
 
 /** A touch screen, where Undo needs a button (no Cmd/Ctrl+Z). */
