@@ -48,7 +48,7 @@ A better task manager that is **free**, **private** and **secure**. My Tasks giv
 | Change many tasks at once | ✅ | ✅ | ✅ | ✅ |
 | Import from other apps | ✅ Via CSV from popular apps ([Import](https://mytasks.fyi/import/#apps)) | Reminders and Todoist; OmniFocus Pro by script on a Mac | A CSV file, one project at a time | Pasted TaskPaper text, or an OmniOutliner file |
 | Calendar events with your tasks | ✅ The Mac’s calendars, through a helper on the Mac | ✅ | ✅ Google or Outlook | ✅ |
-| Reminders and notifications | Coming: reminders in Apple Reminders, through the helper on a Mac (Mac only for now) | ✅ | ✅ | ✅ |
+| Reminders and notifications | Limited: reminders through Apple Reminders, with the helper on a Mac (Mac only for now) ([Guide](https://mytasks.fyi/guide/#reminders)) | ✅ | ✅ Custom reminders on paid plans | ✅ |
 | Board (Kanban) view | — | — | ✅ | — |
 | Sharing with others | Limited: people who trust each other can share one gist, with the cautions on the [Limitations](https://mytasks.fyi/limitations/#sharing) page | — | ✅ | — |
 | Markdown in notes | ✅ | ✅ | ✅ | — |
