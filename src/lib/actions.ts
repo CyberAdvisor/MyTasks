@@ -348,6 +348,11 @@ export function changeDeadline(ids: ID[], deadline: LocalDate | null, moveWhen: 
   return deadline ? ui.guardTemplate(ids, change) : change(ids);
 }
 
+/** Set or clear the reminder of one or several tasks (FR-3.8). */
+export function changeReminder(ids: ID[], reminder: string | null): Promise<void> {
+  return bulk.setReminder(ids, reminder);
+}
+
 /** Complete, cancel or reopen tasks at once (bulk.setStatus); closing asks first on a template's task. */
 export function changeStatus(ids: ID[], status: Todo['status']): Promise<void> {
   const change = (x: ID[]) => bulk.setStatus(x, status);

@@ -18,6 +18,7 @@ import { rowLimit } from './state/rowLimit.svelte';
 import { settings, snapshot, todayDate } from './state/live';
 import { go, route } from './state/route';
 import { ui, type CardCommand } from './state/ui.svelte';
+import { remindersOn } from './calendar/calendar';
 import type { Command } from './shortcuts';
 
 const GO: Partial<Record<Command, BuiltInList>> = {
@@ -33,6 +34,7 @@ const GO: Partial<Record<Command, BuiltInList>> = {
 const CARD: Partial<Record<Command, CardCommand>> = {
   when: 'when',
   deadline: 'deadline',
+  reminder: 'reminder',
   tags: 'tags',
   checklist: 'checklist',
 };
@@ -108,7 +110,7 @@ function extendSelection(delta: -1 | 1): boolean {
 function runOnSeveral(command: Command, ids: ID[], ref: LocalDate): boolean {
   const todos = ids.map((id) => get(snapshot).todos.find((t) => t.id === id)!);
   const card = CARD[command];
-  if (card === 'when' || card === 'deadline' || card === 'tags') {
+  if (card === 'when' || card === 'deadline' || card === 'reminder' || card === 'tags') {
     const el = rows().find((r) => r.dataset.rowId === ui.selectedId) ?? rows().find((r) => r.dataset.rowId === ids[0]);
     if (!el) return false;
     const r = el.getBoundingClientRect();
@@ -248,6 +250,8 @@ export function runCommand(command: Command): boolean {
     }
   }
 
+  // Reminders exist only once the Mac helper writes them for this gist (FR-3.8).
+  if (command === 'reminder' && !get(remindersOn)) return false;
   if (!ui.expandedId && ui.multiple) {
     const ids = selectedIds().filter((id) => get(snapshot).todos.some((t) => t.id === id && isListed(t)));
     if (ids.length > 1) return runOnSeveral(command, ids, ref);

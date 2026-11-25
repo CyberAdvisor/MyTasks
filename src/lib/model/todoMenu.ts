@@ -14,6 +14,7 @@ export type TodoMenuAction =
   | 'complete'
   | 'tags'
   | 'deadline'
+  | 'reminder'
   | 'info'
   | 'duplicate'
   | 'convert'
@@ -50,6 +51,8 @@ interface TodoMenuContext {
   waiting: boolean;
   /** Whether other tasks of its sequential project are in Today (FR-17.6). */
   resetOthers?: boolean;
+  /** Whether the Mac helper writes this gist's reminders, so Reminder… is offered (FR-3.8). */
+  reminders?: boolean;
 }
 
 const action = (a: TodoMenuAction, label: string, disabled = false): TodoMenuItem =>
@@ -61,7 +64,8 @@ const SEP: TodoMenuItem = { kind: 'separator' };
  * Start Date… or Deadline…, since its rule sets them, nor Convert to
  * Project… (the repeat would be lost; review C4), and adds a Repeat
  * submenu after Complete, whose choices complete or skip its next copy early
- * (FR-4.4); any other open task offers Repeat… (FR-4.1).
+ * (FR-4.4); any other open task offers Repeat… (FR-4.1). Reminder… follows
+ * Deadline… while reminders are on (FR-3.8), on a template too (a time only).
  */
 export function todoMenuItems(todo: Pick<Todo, 'projectId' | 'areaId'> & Partial<Pick<Todo, 'repeat'>>, ctx: TodoMenuContext): TodoMenuItem[] {
   if (ctx.mode === 'trash') return [action('put-back', 'Put Back'), SEP, action('delete-forever', 'Delete Immediately…')];
@@ -71,6 +75,7 @@ export function todoMenuItems(todo: Pick<Todo, 'projectId' | 'areaId'> & Partial
     action('move', 'Move…'),
     action('tags', 'Tags…'),
     ...(template ? [] : [action('deadline', 'Deadline…')]),
+    ...(ctx.reminders && ctx.mode === 'open' ? [action('reminder', 'Reminder…')] : []),
     { kind: 'submenu', submenu: 'priority', label: 'Priority' },
     { kind: 'submenu', submenu: 'context', label: 'Context' },
     { kind: 'submenu', submenu: 'complete', label: 'Complete' },
@@ -97,13 +102,14 @@ export function todoMenuItems(todo: Pick<Todo, 'projectId' | 'areaId'> & Partial
  * Info, Convert to Project, Show in… and Reset Other Tasks… are left out.
  * Remove From Project (or Area) shows when every task is in one.
  */
-export function severalMenuItems(todos: Pick<Todo, 'projectId' | 'areaId'>[], ctx: Pick<TodoMenuContext, 'waiting'>): TodoMenuItem[] {
+export function severalMenuItems(todos: Pick<Todo, 'projectId' | 'areaId'>[], ctx: Pick<TodoMenuContext, 'waiting' | 'reminders'>): TodoMenuItem[] {
   const n = todos.length;
   const items: TodoMenuItem[] = [
     action('when', 'Start Date…'),
     action('move', 'Move…'),
     action('tags', 'Tags…'),
     action('deadline', 'Deadline…'),
+    ...(ctx.reminders ? [action('reminder', 'Reminder…')] : []),
     { kind: 'submenu', submenu: 'priority', label: 'Priority' },
     { kind: 'submenu', submenu: 'context', label: 'Context' },
     { kind: 'submenu', submenu: 'complete', label: 'Complete' },
@@ -122,13 +128,14 @@ export function severalMenuItems(todos: Pick<Todo, 'projectId' | 'areaId'>[], ct
  * the floating bar has no room for. Mark as Completed reopens instead when
  * every selected task is already done.
  */
-export function selectModeMenuItems(statuses: Todo['status'][]): TodoMenuItem[] {
+export function selectModeMenuItems(statuses: Todo['status'][], reminders = false): TodoMenuItem[] {
   const allDone = statuses.length > 0 && statuses.every((s) => s !== 'open');
   return [
     { kind: 'submenu', submenu: 'priority', label: 'Priority' },
     { kind: 'submenu', submenu: 'context', label: 'Context' },
     action('tags', 'Tags…'),
     action('deadline', 'Deadline…'),
+    ...(reminders ? [action('reminder', 'Reminder…')] : []),
     SEP,
     action('complete', allDone ? 'Mark as Open' : 'Mark as Completed'),
     action('duplicate', 'Duplicate'),

@@ -5,6 +5,7 @@
  * import, naming the row as a spreadsheet numbers it (the header is row 1),
  * so the file can be fixed.
  */
+import { isReminderAt, isReminderTime } from '../model/reminder';
 import type { LocalDate, Priority, RepeatDay, RepeatRule, RepeatUnit, Status } from '../model/types';
 
 export type RowType = 'area' | 'project' | 'heading' | 'task' | 'checklist';
@@ -27,6 +28,8 @@ export interface ImportRow {
   start: RowStart | null;
   startDate: LocalDate | null;
   deadline: LocalDate | null;
+  /** "2026-11-26T09:00", or a time only ("10:00") for a repeating task (FR-3.8). */
+  reminder: string | null;
   priority: Priority | null;
   context: string | null;
   checked: boolean;
@@ -64,6 +67,7 @@ const COLUMNS: Record<string, readonly RowType[]> = {
   start: ['project', 'task'],
   start_date: ['project', 'task'],
   deadline: ['project', 'task'],
+  reminder: ['task'],
   priority: ['task'],
   context: ['task'],
   checked: ['checklist'],
@@ -195,6 +199,7 @@ function readRow(line: number, cell: (name: string) => string): ImportRow {
     start,
     startDate,
     deadline: date('deadline'),
+    reminder: readReminder(cell('reminder'), fail),
     priority: p ? (Number(p) as Priority) : null,
     context: name('context'),
     checked: yesNo('checked'),
@@ -205,6 +210,13 @@ function readRow(line: number, cell: (name: string) => string): ImportRow {
     repeatFirst: repeat?.first ?? null,
     taskAbove: null,
   };
+}
+
+/** "2026-11-26 09:00" (or with a T) → "2026-11-26T09:00"; "10:00" stays a time only; empty → null. */
+function readReminder(v: string, fail: (p: string) => never): string | null {
+  if (!v) return null;
+  const r = v.trim().replace(/^(\d{4}-\d{2}-\d{2})[ T]/, '$1T');
+  return isReminderAt(r) || isReminderTime(r) ? r : fail(`reminder “${v}” isn’t written as YYYY-MM-DD HH:MM, or HH:MM for a repeating task.`);
 }
 
 /** `Errand; Errand/Shop` → [["Errand"], ["Errand", "Shop"]]. */

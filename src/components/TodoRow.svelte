@@ -23,6 +23,7 @@
   import { ui } from '../lib/state/ui.svelte';
   import { settings, snapshot, todoById } from '../lib/state/live';
   import { deadlineLabel } from '../lib/model/dates';
+  import { reminderLabel } from '../lib/model/reminder';
   import { whenMark, type BuiltInList } from '../lib/model/lists';
   import { priorityLabel } from '../lib/model/settings';
   import { checklistProgress, tagTitles } from '../lib/model/tags';
@@ -221,6 +222,7 @@
         {#if prioName}<span class="phone prio-icon" style:color="var(--p{todo.priority})"><Icon name="priority-circle" size={14} label={`Priority: ${prioName}`} /></span>{/if}
         {#if todo.repeatOf}<Icon name="repeat" size={11} color="var(--text-3)" label="Copy of a repeating task" />{/if}
         {#if todo.notes}<Icon name="note" size={11} color="var(--text-3)" label="Has notes" />{/if}
+        {#if todo.reminder && todo.status === 'open'}<Icon name="bell" size={11} color="var(--text-3)" label={`Reminder: ${reminderLabel(todo.reminder, ref)}`} />{/if}
         {#if checklist.total}
           <span class="progress" title="Checklist">
             <Icon name="checklist" size={11} /><span class="count">{checklist.done}/{checklist.total}</span>

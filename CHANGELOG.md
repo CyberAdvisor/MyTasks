@@ -4,6 +4,19 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.13.0"></a>
+
+## 1.13.0 — 2026-11-25
+
+### Added
+
+- A task can have a reminder: a date and time, set with the bell in the task's card, Reminder… in the task menu (for several selected tasks too), or Cmd+Shift+R (R in a browser tab). Its picker reads typed dates and times ("tomorrow 9am", "fri 2:30pm", "in 2 hours"), and offers Later Today, Tomorrow and On the start date, a calendar and a time. A repeating task keeps only the time, and each copy reminds at that time on its own day. The row shows a small bell. The reminder field shows once the calendar helper on a Mac turns this gist's reminders into Apple Reminders, which comes in the next update.
+- Import's CSV format has a `reminder` column: `2026-11-26 09:00`, or the time only for a repeating task.
+
+### Changed
+
+- Tasks and the gist move to schema 15. Every device needs this version before it can sync again; an older one asks to be updated.
+
 <a id="v1.12.0"></a>
 
 ## 1.12.0 — 2026-11-25

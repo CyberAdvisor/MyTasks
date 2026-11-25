@@ -344,7 +344,7 @@ describe('schema 9', () => {
     // Through every later step too: schema 13 adds part times (FR-19.10).
     const list = upgradeList(old, SCHEMA_VERSION);
     expect(isValidRecord('todos', task)).toBe(false);
-    expect(list.tables.todos[0]).toEqual({ ...task, repeat: null, repeatOf: null, ft: {} });
+    expect(list.tables.todos[0]).toEqual({ ...task, repeat: null, repeatOf: null, reminder: null, ft: {} });
     expect(list.tables.todos[1]).toEqual(gone);
     expect(isValidRecord('todos', list.tables.todos[0])).toBe(true);
   });
@@ -372,13 +372,13 @@ describe('schema 9', () => {
 
     const upgraded = new MyTasksDB(name);
     await upgraded.open();
-    expect(await upgraded.todos.get('t')).toEqual({ ...task, repeat: null, repeatOf: null, ft: {} });
+    expect(await upgraded.todos.get('t')).toEqual({ ...task, repeat: null, repeatOf: null, reminder: null, ft: {} });
     upgraded.close();
     await Dexie.delete(name);
   });
 
   it('refuses a rule with a bad field', () => {
-    const good = { ...task, repeat: rule(), repeatOf: null, ft: {} };
+    const good = { ...task, repeat: rule(), repeatOf: null, reminder: null, ft: {} };
     expect(isValidRecord('todos', good)).toBe(true);
     expect(isValidRecord('todos', { ...good, repeat: { ...rule(), interval: 0 } })).toBe(false);
     expect(isValidRecord('todos', { ...good, repeat: { ...rule(), weekdays: [7] } })).toBe(false);

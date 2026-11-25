@@ -8,7 +8,7 @@
  * launch and offline (`showSavedCalendar`). Nothing here can fail a sync:
  * a file that can't be opened shows no events and a problem in Settings.
  */
-import { readable, writable, type Readable } from 'svelte/store';
+import { derived, readable, writable, type Readable } from 'svelte/store';
 import { DecryptError, parseEnvelope, unseal } from '../sync/crypto';
 import { loadCalendarFile, saveCalendarFile, type DeviceConfig } from '../sync/device';
 import { readCalendar, type CalendarData } from './events';
@@ -37,6 +37,13 @@ const state = writable<CalendarState>(NONE);
 
 /** This device's calendar events, as last read from the gist. */
 export const calendar: Readable<CalendarState> = { subscribe: state.subscribe };
+
+/**
+ * Whether the helper on the Mac turns this gist's reminders into Apple
+ * Reminders (FR-3.8), as its calendar file says; the Reminder field shows
+ * only then.
+ */
+export const remindersOn: Readable<boolean> = derived(state, (s) => s.data?.reminders === true);
 
 /** The IV of the file now shown, so an unchanged file isn't decrypted again. */
 let shownIv: string | null = null;

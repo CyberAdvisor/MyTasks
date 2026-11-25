@@ -8,7 +8,7 @@
  */
 import Dexie, { type Table } from 'dexie';
 import { FIRST_DB, activeDbName } from '../gists/active';
-import { addCollapsed, addContext, addFieldTimes, addGivenContext, addReleased, addRepeat, addSortByDate, markMoved, stripDeleted } from './migrations';
+import { addCollapsed, addContext, addFieldTimes, addGivenContext, addReleased, addReminder, addRepeat, addSortByDate, markMoved, stripDeleted } from './migrations';
 import type {
   Area,
   ChangeLogEntry,
@@ -23,7 +23,7 @@ import type {
 } from '../model/types';
 
 /** The current schema version; synced lists record it (FR-19.4). */
-export const SCHEMA_VERSION = 14;
+export const SCHEMA_VERSION = 15;
 
 export class MyTasksDB extends Dexie {
   areas!: Table<Area, string>;
@@ -114,6 +114,10 @@ export class MyTasksDB extends Dexie {
     });
     // Version 14: the synced setting gistLabel, the gist's name and colour (FR-19.14); no record changes.
     this.version(14).stores({});
+    // Version 15: tasks can have a reminder (FR-3.8). Existing tasks have none.
+    this.version(15).stores({}).upgrade(async (tx) => {
+      await tx.table('todos').toCollection().modify(addReminder);
+    });
   }
 }
 

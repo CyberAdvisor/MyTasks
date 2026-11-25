@@ -27,12 +27,13 @@
   import ChoiceDialog from './ChoiceDialog.svelte';
   import ContextMenu from './ContextMenu.svelte';
   import DeadlinePicker from './DeadlinePicker.svelte';
+  import ReminderPicker from './ReminderPicker.svelte';
   import Icon from './Icon.svelte';
   import PriorityMenu from './PriorityMenu.svelte';
   import TagPicker from './TagPicker.svelte';
   import WhenPicker from './WhenPicker.svelte';
   import * as repo from '../lib/db/repo';
-  import { changeDeadline, changeStatus, changeWhen, containerLink, convertTodo, deleteTodoForever, goToContainer, moveWaiting, revealTodo, trashTodo, trashTodos } from '../lib/actions';
+  import { changeDeadline, changeReminder, changeStatus, changeWhen, containerLink, convertTodo, deleteTodoForever, goToContainer, moveWaiting, revealTodo, trashTodo, trashTodos } from '../lib/actions';
   import * as bulk from '../lib/bulk';
   import { selectedIds } from '../lib/commands';
   import { formatTimestamp } from '../lib/model/dates';
@@ -42,9 +43,10 @@
   import { settings, snapshot, todayDate, todoById } from '../lib/state/live';
   import { route, viewRefOf } from '../lib/state/route';
   import { ui } from '../lib/state/ui.svelte';
+  import { remindersOn } from '../lib/calendar/calendar';
   import { MARGIN, clamp, closeOnOutside, focusItem, step } from '../lib/menuNav';
 
-  type Panel = 'menu' | 'when' | 'deadline' | 'tags' | 'info';
+  type Panel = 'menu' | 'when' | 'deadline' | 'reminder' | 'tags' | 'info';
 
   let panel = $state<Panel>('menu');
   let sub = $state<TodoSubmenu | null>(null);
@@ -87,15 +89,16 @@
   let waiting = $derived(view ? waitingInView($snapshot, view, $todayDate) : { todos: [], projects: [] });
   let items = $derived(
     many && ui.selecting
-      ? selectModeMenuItems(several.map((t) => t.status))
+      ? selectModeMenuItems(several.map((t) => t.status), $remindersOn)
       : many
-      ? severalMenuItems(several, { waiting: waiting.todos.length + waiting.projects.length > 0 })
+      ? severalMenuItems(several, { waiting: waiting.todos.length + waiting.projects.length > 0, reminders: $remindersOn })
       : todo && menu
       ? todoMenuItems(todo, {
           mode: menu.mode,
           link: link?.kind ?? null,
           waiting: waiting.todos.length + waiting.projects.length > 0,
           resetOthers: toReset.length > 0,
+          reminders: $remindersOn,
         })
       : [],
   );
@@ -210,7 +213,7 @@
     const t = todo!;
     // Read before closing: closing the menu clears what it was opened for.
     const others = toReset;
-    if (action === 'when' || action === 'deadline' || action === 'tags' || action === 'info') {
+    if (action === 'when' || action === 'deadline' || action === 'reminder' || action === 'tags' || action === 'info') {
       panel = action;
       sub = null;
       // The chosen item is gone: keep keyboard focus in the panel, so Escape still closes it.
@@ -459,6 +462,26 @@
         ref={$todayDate}
         onchoose={(deadline, moveWhen) => {
           void changeDeadline([todo!.id], deadline, moveWhen);
+          close();
+        }}
+      />
+    {:else if panel === 'reminder' && many}
+      <ReminderPicker
+        reminder={bulk.shared(several, (x) => x.reminder) ?? null}
+        ref={$todayDate}
+        onchoose={(reminder) => {
+          void changeReminder(ids(), reminder);
+          close();
+        }}
+      />
+    {:else if panel === 'reminder'}
+      <ReminderPicker
+        reminder={todo.reminder}
+        template={!!todo.repeat || (!!todo.projectId && !!$snapshot.projects.find((p) => p.id === todo!.projectId)?.repeat)}
+        startDate={todo.startDate}
+        ref={$todayDate}
+        onchoose={(reminder) => {
+          void changeReminder([todo!.id], reminder);
           close();
         }}
       />

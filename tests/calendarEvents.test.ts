@@ -50,14 +50,16 @@ function event(over: Partial<CalendarEvent> = {}): CalendarEvent {
 }
 
 function data(events: CalendarEvent[]): CalendarData {
-  return { from: DAY, to: '2026-12-02', calendars: [{ id: 'work', title: 'Work', color: '#1badf8' }], events };
+  return { from: DAY, to: '2026-12-02', calendars: [{ id: 'work', title: 'Work', color: '#1badf8' }], events, reminders: false };
 }
 
 describe('checking calendar.json (FR-21.2)', () => {
   const file = (over: object = {}) => ({ format: 1, from: DAY, to: '2026-12-02', calendars: [], events: [], ...over });
 
   it('accepts format 1 and refuses anything else', () => {
-    expect(readCalendar(file())).toEqual({ from: DAY, to: '2026-12-02', calendars: [], events: [] });
+    expect(readCalendar(file())).toEqual({ from: DAY, to: '2026-12-02', calendars: [], events: [], reminders: false });
+    expect(readCalendar(file({ reminders: true }))?.reminders).toBe(true);
+    expect(readCalendar(file({ reminders: 'yes' }))?.reminders).toBe(false);
     expect(readCalendar(file({ format: 2 }))).toBeNull();
     expect(readCalendar(file({ events: 'x' }))).toBeNull();
     expect(readCalendar(null)).toBeNull();
@@ -311,7 +313,7 @@ describe('Show Calendar Events, a synced setting (schema 10)', () => {
     const upgraded = new MyTasksDB(name);
     await upgraded.open();
     expect(upgraded.verno).toBe(SCHEMA_VERSION);
-    expect(await upgraded.todos.get('t')).toEqual({ id: 't', title: 'Kept', ft: {} });
+    expect(await upgraded.todos.get('t')).toEqual({ id: 't', title: 'Kept', reminder: null, ft: {} });
     const settings = readSettings(await upgraded.settings.toArray());
     expect(settings).toMatchObject({ todayGrouping: 'project', showCalendarEvents: true });
     upgraded.close();
