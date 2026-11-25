@@ -1,6 +1,7 @@
 /**
- * Reminders (FR-3.8): the Reminder field shows only once the Mac helper's
- * calendar file says it writes reminders; then a reminder is set from the
+ * Reminders (FR-3.8): the Reminder field, and Settings' "Reminders: on" line,
+ * show only once the Mac helper's calendar file says it writes reminders
+ * (FR-21.10); then a reminder is set from the
  * task menu by typing, shows on the row and as the card's chip, is cleared
  * from the chip, and is set again with the keyboard command and a preset.
  */
@@ -27,12 +28,18 @@ test('A reminder is set, shown, cleared and set again once the helper writes rem
   await expect(page.getByRole('menuitem', { name: 'Deadline…' })).toBeVisible();
   await expect(page.getByRole('menuitem', { name: 'Reminder…' })).toHaveCount(0);
   await page.keyboard.press('Escape');
+  const remindersLine = page.getByText('Reminders: on.');
+  await page.getByRole('link', { name: 'Settings' }).click();
+  await expect(page.getByRole('heading', { name: 'Calendar Events' })).toBeVisible();
+  await expect(remindersLine).toHaveCount(0);
 
-  // The helper's calendar file says it writes this gist's reminders.
+  // The helper's calendar file says it writes this gist's reminders, and Settings says so.
   await synced(page);
   const today = toLocalDate(new Date());
   await addCalendar(gh, { format: 1, from: today, to: today, calendars: [], events: [], reminders: true });
   await page.reload();
+  await page.getByRole('link', { name: 'Settings' }).click();
+  await expect(remindersLine).toBeVisible();
   await openList(page, 'Unscheduled');
 
   // Typed in the menu's picker.

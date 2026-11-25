@@ -7,7 +7,7 @@ and writes them, encrypted like your tasks, to a second file in each of
 your gists, calendar.json. My Tasks reads that file on every device; it
 never changes the calendars.
 
-    python3 calendar_sync.py setup             # once: token, each gist's passphrase and calendars, months
+    python3 calendar_sync.py setup             # once: token, each gist's passphrase and calendars, months, Reminders list
     python3 calendar_sync.py start --every 15  # read every 15 minutes (5 to 60), in the background
     python3 calendar_sync.py stop
     python3 calendar_sync.py status            # running or not, last write, any error
@@ -56,6 +56,13 @@ alerts ([{"before": minutes}] or [{"at": timestamp}]), availability (busy,
 free, tentative or unavailable) and travelMinutes. Canceled events are left
 out. If a gist's passphrase is changed in the app (a new salt), the helper
 stops writing to that gist until setup is run again; the others carry on.
+
+Reminders (FR-21.10): when setup was given a Reminders list, each reading
+also turns the open tasks with a reminder in every set-up gist into
+reminders in that list (reminders.py, downloaded beside this file), and
+calendar.json says so with "reminders": true, which shows the Reminder field
+in My Tasks. A problem with Reminders is reported in status; the calendar
+events carry on.
 """
 from __future__ import annotations
 
@@ -73,6 +80,11 @@ import time
 import urllib.error
 import urllib.request
 
+try:
+    import reminders  # beside this file (FR-21.10)
+except ImportError:  # an older download, with only this file
+    reminders = None
+
 SERVICE = 'My Tasks calendar helper'
 TOKEN_ACCOUNT = 'github-token'
 LEGACY_PASSPHRASE_ACCOUNT = 'passphrase'  # the one passphrase kept before several gists
@@ -80,6 +92,7 @@ LEGACY_PASSPHRASE_ACCOUNT = 'passphrase'  # the one passphrase kept before sever
 SUPPORT_DIR = os.path.expanduser('~/Library/Application Support/My Tasks')
 CONFIG_FILE = 'calendar-helper.json'
 STATE_FILE = 'calendar-helper-state.json'
+REMINDERS_STATE_FILE = 'reminders-state.json'  # which reminder is which task's (reminders.py)
 PID_FILE = 'calendar-helper.pid'
 LOG_FILE = 'calendar-helper.log'
 
@@ -106,6 +119,8 @@ CALENDAR_TIMEOUT = 90  # seconds: up to 60 waiting for an answer to macOS's prom
 CANCELED = 3  # EKEventStatusCanceled
 
 INSTALL_CRYPTOGRAPHY = 'python3 -m pip install --user cryptography'
+NO_REMINDERS_FILE = ('reminders.py is missing from the helper\'s folder. Download the helper again '
+                     '(the Guide\'s setup steps) to keep reminders working.')
 
 
 class HelperError(Exception):
@@ -549,19 +564,27 @@ def config_months(config: dict) -> int:
     return months if isinstance(months, int) and MIN_MONTHS <= months <= MAX_MONTHS else MIN_MONTHS
 
 
-def build_payload(raw: dict, chosen: list, last: dt.date, today: dt.date) -> dict:
-    """calendar.json's contents, from `today` to `last`: the chosen calendars' events, canceled ones left out, in start order."""
+def build_payload(raw: dict, chosen: list, last: dt.date, today: dt.date, with_reminders: bool = False) -> dict:
+    """
+    calendar.json's contents, from `today` to `last`: the chosen calendars'
+    events, canceled ones left out, in start order; with `with_reminders`,
+    "reminders": true, the mark that shows the Reminder field in the app
+    (FR-3.8).
+    """
     chosen_set = set(chosen)
     calendars = [{'id': c['id'], 'title': c['title'], 'color': c['color']} for c in raw['calendars'] if c['id'] in chosen_set]
     events = [e for e in raw['events'] if e['calendar'] in chosen_set and e.get('status') != CANCELED]
     events.sort(key=lambda e: (e['start'], not e['allDay'], e['title'], e['id']))
-    return {
+    payload = {
         'format': 1,
         'from': today.isoformat(),
         'to': last.isoformat(),
         'calendars': calendars,
         'events': [event_entry(e) for e in events],
     }
+    if with_reminders:
+        payload['reminders'] = True
+    return payload
 
 
 def digest(payload: dict) -> str:
@@ -619,7 +642,19 @@ def load_config() -> dict:
 # One reading, and the loop.
 
 
-def sync_once(config: dict, keys: dict, gh: GitHub, state: dict, read=read_calendar, today=None) -> int:
+def task_list(key: bytes, envelope: dict) -> dict:
+    """A gist's decrypted mytasks.json."""
+    try:
+        payload = json.loads(unseal(key, envelope))
+    except ValueError:
+        raise HelperError('The gist\'s tasks could not be read.') from None
+    if not isinstance(payload, dict):
+        raise HelperError('The gist\'s tasks could not be read.')
+    return payload
+
+
+def sync_once(config: dict, keys: dict, gh: GitHub, state: dict, read=read_calendar, today=None,
+              reminder_state=None, remind=None) -> int:
     """
     Read the calendars once and write calendar.json to each set-up gist whose
     events changed: the events of its own calendars (FR-21.9), with its own
@@ -627,6 +662,12 @@ def sync_once(config: dict, keys: dict, gh: GitHub, state: dict, read=read_calen
     whose passphrase changed is stopped; one with no passphrase is skipped
     and gets the setup marker if it has no calendar.json. Each gist's result
     is in state['gists'][id]. How many gists it wrote to.
+
+    With a Reminders list in the settings (FR-21.10), every set-up gist's
+    tasks are read too and the list brought in line with them
+    (reminders.sync, with `remind` in place of EventKit in tests); the
+    pairing is kept in `reminder_state`, and a problem in
+    state['remindersError'].
     """
     today = today or dt.date.today()
     last = last_day(today, config_months(config))
@@ -635,6 +676,8 @@ def sync_once(config: dict, keys: dict, gh: GitHub, state: dict, read=read_calen
     listing = gh.task_gists()
     listed = {g['id'] for g in listing}
     gists = state.setdefault('gists', {})
+    with_reminders = bool(config.get('reminders'))
+    lists = {}  # gist id: its decrypted tasks, for reminders
     wrote = 0
     for g in config['gists']:
         gs = gists.setdefault(g['id'], {})
@@ -645,21 +688,29 @@ def sync_once(config: dict, keys: dict, gh: GitHub, state: dict, read=read_calen
         if g['id'] not in listed:
             gs['error'] = NOT_FOUND
             continue
-        payload = build_payload(raw, g['calendars'], last, today)
+        payload = build_payload(raw, g['calendars'], last, today, with_reminders)
         h = digest(payload)
-        if h == gs.get('hash'):
+        if h == gs.get('hash') and not with_reminders:
             gs['error'] = None
             continue
         try:
-            if tasks_envelope(gh, g['id'])['kdf']['salt'] != g['salt']:
+            envelope = tasks_envelope(gh, g['id'])
+            if envelope['kdf']['salt'] != g['salt']:
                 gs.update(stopped=True, error=CHANGED_IN_APP)
                 continue
-            envelope = seal(keys[g['id']], g['salt'], json.dumps(payload, separators=(',', ':')), now_iso())
-            gh.write(g['id'], CALENDAR_FILE, json.dumps(envelope))
-            gs.update(hash=h, lastWrite=state['lastCheck'], events=len(payload['events']), error=None)
-            wrote += 1
+            if with_reminders:
+                lists[g['id']] = task_list(keys[g['id']], envelope)
+            if h != gs.get('hash'):
+                sealed = seal(keys[g['id']], g['salt'], json.dumps(payload, separators=(',', ':')), now_iso())
+                gh.write(g['id'], CALENDAR_FILE, json.dumps(sealed))
+                gs.update(hash=h, lastWrite=state['lastCheck'], events=len(payload['events']))
+                wrote += 1
+            gs['error'] = None
         except HelperError as e:
             gs['error'] = str(e)
+    if with_reminders:
+        reminder_state = reminder_state if reminder_state is not None else {}
+        state['remindersError'] = sync_reminders(config['reminders'], lists, reminder_state, remind)
     known = {g['id'] for g in config['gists']}
     for g in listing:
         if g['id'] in known:
@@ -678,6 +729,18 @@ def sync_once(config: dict, keys: dict, gh: GitHub, state: dict, read=read_calen
     return wrote
 
 
+def sync_reminders(settings: dict, lists: dict, reminder_state: dict, remind=None):
+    """One pass of reminders.sync; the problem to report, or None."""
+    if reminders is None:
+        return NO_REMINDERS_FILE
+    try:
+        reminders.sync(settings, lists, reminder_state, **({'js': remind} if remind else {}))
+    except reminders.RemindersError as e:
+        return str(e)
+    reminder_state['lastSync'] = now_iso()
+    return None
+
+
 def all_stopped(config: dict, state: dict) -> bool:
     """Whether every set-up gist's passphrase was changed, leaving nothing to write to."""
     gists = state.get('gists') or {}
@@ -691,6 +754,7 @@ def run_loop(every: int) -> int:
     keys = {g['id']: derive_key(passphrases[g['id']], g['salt']) for g in config['gists']}
     gh = GitHub(token)
     state = load_json(STATE_FILE) or {}
+    reminder_state = load_json(REMINDERS_STATE_FILE) or {}
     state.update(pid=os.getpid(), every=every, startedAt=now_iso(), error=None)
     with open(path(PID_FILE), 'w') as f:
         f.write(str(os.getpid()))
@@ -698,12 +762,16 @@ def run_loop(every: int) -> int:
     try:
         while True:
             try:
-                sync_once(config, keys, gh, state)
+                sync_once(config, keys, gh, state, reminder_state=reminder_state)
                 state['error'] = None
             except HelperError as e:
                 state['error'] = str(e)
                 print(f'{now_iso()} {e}', flush=True)
+            if state.get('remindersError'):
+                print(f'{now_iso()} Reminders: {state["remindersError"]}', flush=True)
             save_json(STATE_FILE, state)
+            if config.get('reminders'):
+                save_json(REMINDERS_STATE_FILE, reminder_state)
             if all_stopped(config, state):
                 print(f'{now_iso()} {CHANGED_IN_APP}', flush=True)
                 return 1
@@ -771,11 +839,22 @@ def cmd_stop() -> int:
     return 0
 
 
-def status_lines(config: dict, state: dict) -> list:
+def plural(n: int, word: str) -> str:
+    return f'{n} {word}' + ('' if n == 1 else 's')
+
+
+def status_lines(config: dict, state: dict, reminder_state=None) -> list:
     """What `status` prints: running or not, the settings, and a line for each gist."""
     lines = [f'Running, every {state.get("every")} minutes.' if running_pid() else 'Not running.']
     months = config_months(config)
     lines.append(f'Reading this month and {months} {"month" if months == 1 else "months"} ahead.')
+    settings = config.get('reminders')
+    if settings:
+        line = f'Reminders: in the list "{settings["title"]}", last change {(reminder_state or {}).get("lastSync") or "never"}.'
+        lines.append(line + (f' {state["remindersError"]}' if state.get('remindersError') else ''))
+    else:
+        lines.append('Reminders: off. Run setup again to choose a Reminders list.')
+    in_list = reminders.counts(reminder_state or {}) if settings and reminders else {}
     lines.append(f'Last check: {state.get("lastCheck") or "never"}')
     gists = state.get('gists') or {}
     known = [g['id'] for g in config['gists']]
@@ -785,8 +864,10 @@ def status_lines(config: dict, state: dict) -> list:
         label = f'{name} (gist {gist_id[:8]}…)' if name else f'Gist {gist_id[:8]}…'
         if gist_id in known:
             count = len(next(g for g in config['gists'] if g['id'] == gist_id).get('calendars', []))
-            line = (f'{label}: {count} {"calendar" if count == 1 else "calendars"}, '
+            line = (f'{label}: {plural(count, "calendar")}, '
                     f'last write {gs.get("lastWrite") or "never"} ({gs.get("events", 0)} events)')
+            if settings:
+                line += f', {plural(in_list.get(gist_id, 0), "reminder")}'
             lines.append(line + (f'. {gs["error"]}' if gs.get('error') else ''))
         else:
             lines.append(f'{label}: {gs.get("error") or SKIPPED}')
@@ -800,7 +881,7 @@ def cmd_status() -> int:
     if not config:
         print('Not set up. Run: python3 calendar_sync.py setup')
         return 0
-    print('\n'.join(status_lines(upgrade_config(config), load_json(STATE_FILE) or {})))
+    print('\n'.join(status_lines(upgrade_config(config), load_json(STATE_FILE) or {}, load_json(REMINDERS_STATE_FILE))))
     return 0
 
 
@@ -912,15 +993,30 @@ def cmd_setup() -> int:
     for g in opened:
         g['calendars'] = pick_calendars(g['name'], raw['calendars'])
     months = (choose(f'Months ahead, {MIN_MONTHS} to {MAX_MONTHS} (Enter for {DEFAULT_MONTHS}): ', MAX_MONTHS, False) or [DEFAULT_MONTHS])[0]
+    if reminders is None:
+        raise HelperError(NO_REMINDERS_FILE)
+    try:
+        choice = reminders.choose_list()
+        if choice:
+            choice = reminders.make_list(choice)
+    except reminders.RemindersError as e:
+        raise HelperError(str(e)) from None
     keychain_set(TOKEN_ACCOUNT, gh.token)
     for g in opened:
         keychain_set(passphrase_account(g['id']), g['passphrase'])
     keychain_delete(LEGACY_PASSPHRASE_ACCOUNT)
     config_gists = [{k: g[k] for k in ('id', 'salt', 'name', 'calendars')} for g in opened]
-    save_json(CONFIG_FILE, {'gists': config_gists, 'months': months})
+    before = (load_json(CONFIG_FILE) or {}).get('reminders') or {}
+    config = {'gists': config_gists, 'months': months}
+    if choice:
+        config['reminders'] = choice
+    save_json(CONFIG_FILE, config)
     save_json(STATE_FILE, {})  # the next start writes calendar.json at once
+    if not choice or choice['list'] != before.get('list'):
+        save_json(REMINDERS_STATE_FILE, {})  # a new list starts with no pairing
     print(f'\nSaved: this month and {months} months ahead, for '
           + ', '.join(f'{g["name"]} ({len(g["calendars"])} calendars)' for g in opened) + '.')
+    print(f'Reminders: in the list "{choice["title"]}".' if choice else 'Reminders: off.')
     if len(opened) < len(gists):
         print(f'Skipped: {len(gists) - len(opened)} gists. Run setup again to include them.')
     print('Start it with:')
@@ -933,7 +1029,7 @@ def cmd_setup() -> int:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description='Calendar events for My Tasks: writes calendar.json to your gist.')
     sub = parser.add_subparsers(dest='command', required=True)
-    sub.add_parser('setup', help='token, passphrase, calendars and months ahead')
+    sub.add_parser('setup', help='token, passphrases, calendars, months ahead and the Reminders list')
     for name, text in (('start', 'read in the background, every N minutes'), ('run', argparse.SUPPRESS)):
         p = sub.add_parser(name, help=text)
         p.add_argument('--every', type=every_minutes, default=DEFAULT_EVERY, metavar='MINUTES',
