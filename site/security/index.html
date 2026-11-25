@@ -30,7 +30,7 @@
 
 <main class="page">
   <h1>Security</h1>
-  <p class="updated">Last updated November 19, 2026</p>
+  <p class="updated">Last updated November 25, 2026</p>
   <p>How My Tasks protects your tasks, and what it can't protect against. The code is open source, so you can <a href="https://github.com/CyberAdvisor/MyTasks">check it yourself</a>.</p>
 
   <h2>Encryption</h2>
@@ -56,6 +56,7 @@
     <li>The helper is an optional script you run on your Mac to bring your calendar events into My Tasks (<a href="/guide/#calendar">Guide</a>). It keeps your GitHub token and passphrase in your Mac's login Keychain, not in a file.</li>
     <li>It encrypts your events the same way as your tasks, with the key from your passphrase and your gist's salt, and connects only to GitHub's gist API. It writes only its own file in the gist, never your tasks.</li>
     <li>If you change your passphrase in the app, the helper stops writing until you run its setup again with the new one.</li>
+    <li>With a Reminders list chosen, the helper decrypts your tasks on your Mac to make their reminders in that list. It never writes your tasks file, and it changes only the reminders it made, and only their title, notes, date and repeat. Your reminders are then kept in the account that holds that list, usually iCloud (see <a href="/privacy/">Privacy</a>).</li>
     <li>In the app, events are display only: every event is checked before it's shown, notes and other text are plain text, and only web links can be opened.</li>
   </ul>
 

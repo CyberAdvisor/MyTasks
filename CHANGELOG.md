@@ -4,6 +4,15 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.13.1"></a>
+
+## 1.13.1 — 2026-11-25
+
+### Added
+
+- The calendar helper on a Mac turns tasks' reminders into Apple Reminders, in one list for all gists chosen at setup (a list of yours, or one named My Tasks, made for it; 0 leaves reminders off). Each open task with a reminder gets one, with its project's name in the notes; a repeating task gets one repeating reminder, and an after-completion repeat or a repeating project one for each copy. Changing a task's title or reminder changes it; completing the task completes it; canceling, trashing or deleting it, or clearing its reminder, removes it. Anything else set in Reminders, such as Urgent, is left alone, and a reminder ticked or deleted there isn't made again. The helper says so in each gist's calendar file, so the Reminder field appears in the app, and Settings › Calendar Events says "Reminders: on". The helper's `status` shows the list and each gist's number of reminders.
+- The helper now has two files, `calendar_sync.py` and `reminders.py`; the Guide's setup lines download both, and update a helper already installed.
+
 <a id="v1.13.0"></a>
 
 ## 1.13.0 — 2026-11-25

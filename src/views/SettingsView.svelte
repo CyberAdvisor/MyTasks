@@ -68,7 +68,7 @@
   } from '../lib/backup';
   import { saveFile } from '../lib/saveFile';
   import { fileSizeText } from '../lib/model/overview';
-  import { calendar } from '../lib/calendar/calendar';
+  import { calendar, remindersOn } from '../lib/calendar/calendar';
   import { formatTimestamp } from '../lib/model/dates';
 
   const THEME_OPTIONS: { value: Theme; label: string }[] = [
@@ -386,6 +386,11 @@
     </p>
   {:else}
     <p class="help">No calendar events yet.</p>
+  {/if}
+  {#if $remindersOn}
+    <p class="help">
+      Reminders: on. The calendar helper on your Mac adds your tasks’ reminders to Apple Reminders.
+    </p>
   {/if}
   <p class="help">
     Events come from the calendars on your Mac, through the calendar helper, encrypted in your gist like your tasks.
