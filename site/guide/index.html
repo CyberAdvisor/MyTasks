@@ -42,6 +42,7 @@
       <li><a href="#sharing">Sharing with someone you trust</a></li>
       <li><a href="#everyday">Everyday use</a></li>
       <li><a href="#repeating">Repeating tasks and projects</a></li>
+      <li><a href="#reminders">Reminders</a></li>
       <li><a href="#calendar">Calendar events</a></li>
       <li><a href="#backup">Back up and restore</a></li>
       <li><a href="#todoist">Importing from Todoist</a></li>
@@ -236,6 +237,23 @@
   <h3 id="repeat-import">Importing them</h3>
   <p>Import… brings in repeating tasks and repeating projects from a CSV file, through its <code>repeat</code> columns, and the script for Things 3 writes them for you, starting each one at the copy still open in Things (such as today’s), so that copy comes across too. A repeating project comes in as its template, always as a new project, and if its first date is today or earlier, today’s copy is made as it comes in. A task inside it can’t have a start date, deadline or repeat of its own. The columns and an example are on <a href="/import/">Import from other apps</a>.</p>
 
+  <h2 id="reminders">Reminders</h2>
+  <p>A task can have a reminder: a date and time at which you’re alerted. My Tasks can’t send alerts itself, so the reminders ring through Apple Reminders: the calendar helper on your Mac adds each one to a Reminders list, and Apple Reminders alerts you on your iPhone, iPad, Mac and Apple Watch. It’s Mac only for now: it needs a Mac running the helper. The Reminder field shows on tasks once the helper is set up with a Reminders list (<a href="#calendar">Calendar events</a>).</p>
+  <h3 id="reminders-set">Setting one</h3>
+  <ul>
+    <li>Click the bell on an open task, choose <strong>Reminder…</strong> in its menu, or press <kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>R</kbd> (<kbd>R</kbd> in a browser tab). With several tasks selected, the reminder goes on all of them.</li>
+    <li>Type a date and time, such as “tomorrow 9am”, “fri 2:30pm”, “jan 12 14:00”, “9pm” (today) or “in 30 minutes”, and press Return; a date alone means 9:00 AM. Or choose <strong>Later Today</strong>, <strong>Tomorrow</strong> or <strong>On the start date</strong>, or pick a day in the calendar and set the time.</li>
+    <li>The task’s card shows the reminder as a blue chip with a bell, and its row a small bell. <strong>Clear Reminder</strong> removes it.</li>
+    <li>On a repeating task you set only a time, and each copy reminds at that time on its own day.</li>
+  </ul>
+  <h3 id="reminders-ring">When it rings</h3>
+  <ul>
+    <li>A new or changed reminder reaches Apple Reminders at the helper’s next reading, so up to its interval later (5 to 60 minutes), and only while your Mac is awake. A reminder set for a few minutes from now can be late.</li>
+    <li>To have a reminder ring as an alarm, mark it <strong>Urgent</strong> in Reminders. My Tasks leaves it as you set it.</li>
+    <li>Ticking the reminder in Reminders completes its task in My Tasks (<a href="#calendar">Calendar events</a> has the details).</li>
+    <li>Reminders come across when you import from Todoist or from Things 3 (<a href="/import/">Import from other apps</a>).</li>
+  </ul>
+
   <h2 id="calendar">Calendar events</h2>
   <p>My Tasks can show the events from your Mac’s calendars in Today and in Scheduled, on all your devices. A small helper on your Mac reads the calendars you choose and puts the events in your gist, encrypted with your passphrase like your tasks. Events are read-only: click or tap one to see its time, place, link, attendees and notes. Without the helper, no events show.</p>
   <p>You need your Mac, the GitHub token and passphrase you use for My Tasks, and about ten minutes.</p>
@@ -321,6 +339,7 @@ python3 -m pip install --user cryptography</code></pre>
     <tr><td>Cancel</td><td><kbd>Cmd</kbd> <kbd>Opt</kbd> <kbd>K</kbd></td><td><kbd>Shift</kbd> <kbd>X</kbd></td></tr>
     <tr><td>Start Date</td><td><kbd>Cmd</kbd> <kbd>S</kbd></td><td><kbd>W</kbd></td></tr>
     <tr><td>Deadline</td><td><kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>D</kbd></td><td><kbd>D</kbd></td></tr>
+    <tr><td>Reminder (once the helper is set up)</td><td><kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>R</kbd></td><td><kbd>R</kbd></td></tr>
     <tr><td>Move</td><td><kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>M</kbd></td><td><kbd>M</kbd></td></tr>
     <tr><td>Tags</td><td><kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>T</kbd></td><td><kbd>#</kbd></td></tr>
     <tr><td>Checklist</td><td><kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>C</kbd></td><td><kbd>C</kbd></td></tr>
