@@ -44,6 +44,7 @@
       <li><a href="#repeating">Repeating tasks and projects</a></li>
       <li><a href="#calendar">Calendar events</a></li>
       <li><a href="#backup">Back up and restore</a></li>
+      <li><a href="#todoist">Importing from Todoist</a></li>
       <li><a href="#task-limit">How many tasks</a></li>
       <li><a href="#keyboard">Keyboard shortcuts</a></li>
       <li><a href="#troubleshooting">Troubleshooting</a></li>
@@ -265,6 +266,34 @@ python3 -m pip install --user cryptography</code></pre>
   <p><strong>Import…</strong> in Settings › Import From Other Apps adds tasks from a CSV file, such as one from another app, to what you have. It shows what the file holds first, and one Undo takes it all back. The file’s columns, a template and a sample are on <a href="/import/">Import from other apps</a>.</p>
   <h3 id="archive">Archive</h3>
   <p>Settings › <strong>Archive</strong> keeps your gist small. It saves completed and canceled tasks and projects finished more than a number of days ago (90 unless you change it) to a new CSV file, then removes them from My Tasks on every device. A completed project goes with its headings and tasks, and checklists go with their tasks; repeating tasks stay. It asks first, and if the file isn’t saved nothing is removed. Removing is final, like Empty Trash, so keep the file: Import… can bring items back from it.</p>
+
+  <h2 id="todoist">Importing from Todoist</h2>
+  <p>Import… reads Todoist’s own export file, one project per file, so you can move your projects across without any other tools. It works on any device that can pick a file.</p>
+  <h3 id="todoist-steps">Moving a project across</h3>
+  <ol>
+    <li>In Todoist on the web or the desktop app, open the project, click its <strong>⋯</strong> menu, and choose <strong>Import &amp; export › Export to CSV</strong>.</li>
+    <li>Untick <strong>Use relative dates</strong>, so dates are written as dates (“Nov 26”) and not as “+1 day”, then click <strong>Export</strong>. Do this for each project you want.</li>
+    <li>In My Tasks, open <strong>Settings › Import From Other Apps › Import…</strong> and choose the file, or several of them at once.</li>
+    <li>The preview says it read a Todoist export, names the project each file makes, and says how many tasks it holds. Click <strong>Import</strong>. One Undo takes it all back.</li>
+    <li>Check the project against Todoist. If anything came across wrong, <a href="https://github.com/CyberAdvisor/MyTasks/issues">report it as an issue on GitHub</a>, with the line from the file if you can.</li>
+  </ol>
+  <h3 id="todoist-what">What comes across</h3>
+  <ul>
+    <li>Each file becomes a project named after the file, with no area: drag it onto an area afterwards. The project’s description becomes its notes. A project with the same name as one you have is added to.</li>
+    <li>Sections become headings. Labels written in a task’s name (“@phone”) become tags.</li>
+    <li>Priorities p1 to p3 become P1 to P3; p4, Todoist’s “no priority”, becomes none.</li>
+    <li>A task’s description becomes its notes, and each comment is added to them with its date.</li>
+    <li>Dates, deadlines and repeats such as “every friday”, “every other week”, “every 1st”, “every 2nd tue” and “every! 3 days” (counted from completion). A repeat starts at its next date from today.</li>
+    <li>A sub-task becomes a task of its own, under the same heading, with “Sub-task of:” and its parent’s name in its notes.</li>
+  </ul>
+  <h3 id="todoist-limits">Limits</h3>
+  <ul>
+    <li><strong>English only.</strong> Dates and repeats are read only from a file exported in English. A date My Tasks can’t read, or one in another language, is left off the task and kept as text in its notes (“Todoist date: …”); the preview says how many.</li>
+    <li>Times of day are dropped, as tasks have no times.</li>
+    <li>Reminders aren’t brought in; each is kept as text in the task’s notes. A deadline on a repeating task is kept as text too.</li>
+    <li>Completed tasks, durations, assignees and section descriptions aren’t in the file or aren’t brought in.</li>
+    <li>Todoist doesn’t write a repeat’s next date in the file, so a repeating task starts again from today.</li>
+  </ul>
 
   <h2 id="task-limit">How many tasks</h2>
   <p>Each gist holds up to <strong>5,000 tasks</strong>, counting completed tasks and the Trash, in a file of up to <strong>5 MB</strong>, whichever comes first. Tasks with long notes or checklists can fill the 5 MB before 5,000 tasks. From 4,500 tasks or 4.5 MB, the bottom of the sidebar says how near you are. At 5,000 tasks, adding a task says there's no room, and keeps what you typed. Past 5 MB, the gist can't be updated: the sidebar says <em>Sync error — too large</em>, and your changes wait on the device until you make room.</p>
