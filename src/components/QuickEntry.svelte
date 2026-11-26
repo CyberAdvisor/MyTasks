@@ -1,7 +1,8 @@
 <!--
   Quick Entry (FR-8.1): a floating card for writing a new to-do with every
-  field: title, notes, checklist, tags, When, deadline, priority, context and where it
-  goes (the Inbox unless opened from another view, FR-10.5).
+  field: title, notes, checklist, then the fields bar shared with the card
+  (FieldBar: tags, When, deadline, priority, context), led by where it goes
+  (the Inbox unless opened from another view, FR-10.5).
   Nothing is stored until Save (Enter in the title, or Cmd/Ctrl+Enter);
   Cancel or Escape discards the draft.
 -->
@@ -9,23 +10,15 @@
   import Icon from './Icon.svelte';
   import { cycleTab } from '../lib/focusCycle';
   import Popover from './Popover.svelte';
-  import WhenPicker from './WhenPicker.svelte';
-  import DeadlinePicker from './DeadlinePicker.svelte';
-  import TagPicker from './TagPicker.svelte';
-  import PriorityMenu from './PriorityMenu.svelte';
-  import ContextMenu from './ContextMenu.svelte';
+  import FieldBar from './FieldBar.svelte';
   import Checklist from './Checklist.svelte';
   import DestinationList from './DestinationList.svelte';
   import { ui } from '../lib/state/ui.svelte';
-  import { settings, snapshot, todayDate } from '../lib/state/live';
+  import { snapshot, todayDate } from '../lib/state/live';
   import { saveDraft } from '../lib/actions';
-  import { deadlineLabel, formatRelative } from '../lib/model/dates';
-  import { priorityLabel } from '../lib/model/settings';
-  import { tagTitles } from '../lib/model/tags';
-  import { contextTitle } from '../lib/model/contexts';
   import type { TodoDraft } from '../lib/state/draft.svelte';
-  import type { TodoPlacement, WhenChoice } from '../lib/db/repo';
-  import type { ID, LocalDate, Priority } from '../lib/model/types';
+  import type { TodoPlacement } from '../lib/db/repo';
+  import type { ID, LocalDate } from '../lib/model/types';
 
   let { draft }: { draft: TodoDraft } = $props();
 
@@ -40,20 +33,10 @@
   let titleInput: HTMLInputElement;
 
   let whereOpen = $state(false);
-  let whenOpen = $state(false);
-  let deadlineOpen = $state(false);
-  let tagsOpen = $state(false);
-  let prioOpen = $state(false);
-  let contextOpen = $state(false);
   let checklistFocus = $state<ID | null>(null);
 
   let ref = $derived($todayDate);
   let hasWhen = $derived(draft.deferred || draft.startDate !== null);
-  let whenLabel = $derived(
-    draft.deferred ? 'Deferred' : draft.startDate === null ? '' : draft.startDate <= ref ? 'Today' : formatRelative(draft.startDate, ref),
-  );
-  let tagNames = $derived(tagTitles(draft.tagIds, $snapshot));
-  let contextName = $derived(contextTitle(draft.contextId, $snapshot));
   let where = $derived(placementLabel(draft.placement));
 
   $effect(() => {
@@ -112,47 +95,16 @@
     draft.placement = to;
   }
 
-  function chooseWhen(choice: WhenChoice) {
-    whenOpen = false;
-    draft.setWhen(choice, ref);
-  }
-
+  /** A deadline, and the start date moved to it when the picker offered that (FR-3.6). */
   function chooseDeadline(deadline: LocalDate | null, moveWhen: boolean) {
-    deadlineOpen = false;
     draft.deadline = deadline;
     if (moveWhen && deadline) draft.setWhen({ kind: 'date', date: deadline }, ref);
-  }
-
-  function choosePriority(p: Priority | null) {
-    prioOpen = false;
-    draft.priority = p;
-  }
-
-  function chooseContext(contextId: ID | null) {
-    contextOpen = false;
-    draft.contextId = contextId;
   }
 
   async function addChecklist() {
     [checklistFocus] = await draft.checklist.add([''], null);
   }
 </script>
-
-{#snippet whenPanel()}
-  <WhenPicker startDate={draft.startDate} deferred={draft.deferred} deadline={draft.deadline} {ref} onchoose={chooseWhen} />
-{/snippet}
-{#snippet deadlinePanel()}
-  <DeadlinePicker deadline={draft.deadline} when={draft.startDate} {ref} onchoose={chooseDeadline} />
-{/snippet}
-{#snippet tagsPanel()}
-  <TagPicker tagIds={draft.tagIds} ontoggle={(tagId, on) => draft.toggleTag(tagId, on)} ondone={() => (tagsOpen = false)} />
-{/snippet}
-{#snippet prioPanel()}
-  <PriorityMenu priority={draft.priority ?? null} onchoose={choosePriority} />
-{/snippet}
-{#snippet contextPanel()}
-  <ContextMenu contextId={draft.contextId} onchoose={chooseContext} />
-{/snippet}
 
 <dialog
   bind:this={dialog}
@@ -179,21 +131,28 @@
 
   <Checklist items={draft.checklist.items} ops={draft.checklist} bind:focusId={checklistFocus} />
 
-  {#if tagNames.length}
-    <div class="tags">
-      <Popover bind:open={tagsOpen} label="Tags" align="left">
-        {#snippet trigger(toggle)}
-          <button type="button" class="tag-list" aria-label="Edit tags" onclick={toggle}>
-            {#each tagNames as name, i (i)}<span class="tag-pill">{name}</span>{/each}
-          </button>
-        {/snippet}
-        {@render tagsPanel()}
-      </Popover>
-    </div>
-  {/if}
-
-  <div class="bar">
-    <div class="left">
+  <FieldBar
+    fields={{
+      startDate: draft.startDate,
+      deferred: draft.deferred,
+      deadline: draft.deadline,
+      reminder: null,
+      priority: draft.priority ?? null,
+      contextId: draft.contextId,
+      tagIds: draft.tagIds,
+      hasChecklist: draft.checklist.items.length > 0,
+    }}
+    {ref}
+    reminderField={false}
+    onwhen={(choice) => draft.setWhen(choice, ref)}
+    ondeadline={chooseDeadline}
+    onreminder={() => {}}
+    onpriority={(p) => (draft.priority = p)}
+    oncontext={(contextId) => (draft.contextId = contextId)}
+    ontoggletag={(tagId, on) => draft.toggleTag(tagId, on)}
+    onchecklist={addChecklist}
+  >
+    {#snippet leading()}
       <Popover bind:open={whereOpen} label="Where" align="left">
         {#snippet trigger(toggle, open)}
           <button type="button" class="chip" aria-label="Where: {where}" aria-expanded={open} onclick={toggle}>
@@ -202,106 +161,8 @@
         {/snippet}
         <div class="where"><DestinationList onchoose={chooseWhere} /></div>
       </Popover>
-      {#if hasWhen}
-        <Popover bind:open={whenOpen} label="Start Date" align="left">
-          {#snippet trigger(toggle)}
-            <button type="button" class="chip" onclick={toggle}>
-              <Icon name={draft.deferred ? 'archive' : draft.startDate && draft.startDate <= ref ? 'star' : 'calendar'} size={12} />{whenLabel}
-            </button>
-          {/snippet}
-          {@render whenPanel()}
-        </Popover>
-      {/if}
-      {#if draft.deadline}
-        <Popover bind:open={deadlineOpen} label="Deadline" align="left">
-          {#snippet trigger(toggle)}
-            <button type="button" class="chip" class:due={draft.deadline! <= ref} onclick={toggle}>
-              <Icon name="flag" size={12} />Deadline: {deadlineLabel(draft.deadline!, ref)}
-            </button>
-          {/snippet}
-          {@render deadlinePanel()}
-        </Popover>
-      {/if}
-      {#if draft.priority}
-        <Popover bind:open={prioOpen} label="Priority" align="left">
-          {#snippet trigger(toggle)}
-            <button type="button" class="chip" aria-label="Priority: {priorityLabel(draft.priority!, $settings)}" onclick={toggle}>
-              <span class="prio prio-{draft.priority}">{priorityLabel(draft.priority!, $settings)}</span>
-            </button>
-          {/snippet}
-          {@render prioPanel()}
-        </Popover>
-      {/if}
-      {#if contextName}
-        <Popover bind:open={contextOpen} label="Context" align="left">
-          {#snippet trigger(toggle)}
-            <button type="button" class="chip" aria-label="Context: {contextName}" onclick={toggle}>
-              <Icon name="context" size={12} />{contextName}
-            </button>
-          {/snippet}
-          {@render contextPanel()}
-        </Popover>
-      {/if}
-    </div>
-
-    <div class="right">
-      {#if !hasWhen}
-        <Popover bind:open={whenOpen} label="Start Date">
-          {#snippet trigger(toggle, open)}
-            <button type="button" class="icon-btn" aria-label="Start Date" title="Start Date" aria-expanded={open} onclick={toggle}>
-              <Icon name="calendar" size={16} />
-            </button>
-          {/snippet}
-          {@render whenPanel()}
-        </Popover>
-      {/if}
-      {#if !tagNames.length}
-        <Popover bind:open={tagsOpen} label="Tags">
-          {#snippet trigger(toggle, open)}
-            <button type="button" class="icon-btn" aria-label="Tags" title="Tags" aria-expanded={open} onclick={toggle}>
-              <Icon name="tag" size={16} />
-            </button>
-          {/snippet}
-          {@render tagsPanel()}
-        </Popover>
-      {/if}
-      {#if !draft.checklist.items.length}
-        <button type="button" class="icon-btn" aria-label="Add checklist" title="Checklist" onclick={addChecklist}>
-          <Icon name="checklist" size={16} />
-        </button>
-      {/if}
-      {#if !draft.deadline}
-        <Popover bind:open={deadlineOpen} label="Deadline">
-          {#snippet trigger(toggle, open)}
-            <button type="button" class="icon-btn" aria-label="Deadline" title="Deadline" aria-expanded={open} onclick={toggle}>
-              <Icon name="flag" size={16} />
-            </button>
-          {/snippet}
-          {@render deadlinePanel()}
-        </Popover>
-      {/if}
-      {#if !draft.priority}
-        <Popover bind:open={prioOpen} label="Priority">
-          {#snippet trigger(toggle, open)}
-            <button type="button" class="icon-btn" aria-label="Priority" title="Priority" aria-expanded={open} onclick={toggle}>
-              <Icon name="priority" size={16} />
-            </button>
-          {/snippet}
-          {@render prioPanel()}
-        </Popover>
-      {/if}
-      {#if !contextName}
-        <Popover bind:open={contextOpen} label="Context">
-          {#snippet trigger(toggle, open)}
-            <button type="button" class="icon-btn" aria-label="Context" title="Context" aria-expanded={open} onclick={toggle}>
-              <Icon name="context" size={16} />
-            </button>
-          {/snippet}
-          {@render contextPanel()}
-        </Popover>
-      {/if}
-    </div>
-  </div>
+    {/snippet}
+  </FieldBar>
 
   <div class="actions">
     <button type="button" class="btn-plain" onclick={cancel}>Cancel</button>
@@ -357,49 +218,6 @@
     color: var(--text-2);
     line-height: 1.45;
     background: transparent;
-  }
-  .tags {
-    margin-left: 28px;
-  }
-  .tag-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    border: 0;
-    background: transparent;
-    padding: 0;
-  }
-  .bar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-left: 28px;
-    padding-top: 6px;
-    border-top: 1px solid var(--rule);
-  }
-  .left,
-  .right {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px;
-  }
-  .chip.due {
-    color: var(--danger);
-    font-weight: 600;
-  }
-  .icon-btn {
-    border: 0;
-    background: transparent;
-    padding: 8px;
-    border-radius: var(--radius);
-    display: inline-flex;
-    color: var(--text-3);
-  }
-  .icon-btn:hover {
-    background: var(--hover-bg);
   }
   .where {
     width: 260px;

@@ -30,6 +30,18 @@ async function tabs(page: Page, n: number, key = 'Tab'): Promise<string[]> {
   return seen;
 }
 
+/** The stops from the title, in the card and in Quick Entry alike (they share the field bar). */
+const CARD_STOPS = [
+  'Notes',
+  'Start Date: Type a date',
+  'Tags: Find or create a tag',
+  'Add checklist',
+  'Deadline: Type a date',
+  'Priority: None',
+  'Context: Manage Contexts…', // no contexts yet, so no None
+  'Title',
+];
+
 test('Tab opens each picker in order, and a choice keeps the task in place until the card closes', async ({
   context,
   page,
@@ -44,16 +56,7 @@ test('Tab opens each picker in order, and a choice keeps the task in place until
   // The stops, each picker opening on its field or current choice, then round.
   await page.getByText('Book flights', { exact: true }).dblclick();
   await page.getByLabel('Title', { exact: true }).focus();
-  expect(await tabs(page, 8)).toEqual([
-    'Notes',
-    'Start Date: Type a date',
-    'Tags: Find or create a tag',
-    'Add checklist',
-    'Deadline: Type a date',
-    'Priority: None',
-    'Context: Manage Contexts…', // no contexts yet, so no None
-    'Title',
-  ]);
+  expect(await tabs(page, 8)).toEqual(CARD_STOPS);
   // Shift+Tab goes back, and only one picker is ever open.
   expect(await tabs(page, 1, 'Shift+Tab')).toEqual(['Context: Manage Contexts…']);
   await expect(page.locator('[data-popover-panel]')).toHaveCount(1);
@@ -90,12 +93,9 @@ test('Tab opens each picker in order, and a choice keeps the task in place until
   await expect(page.getByRole('status').filter({ hasText: '1 task moved out of the Inbox' })).toBeVisible();
   await expect(row('Pack bags')).toBeVisible();
 
-  // Quick Entry has the same stops; Cancel and Save aren't among them.
+  // Quick Entry has the same stops, in the same order; Cancel, Save and Where aren't among them.
   await page.getByRole('toolbar', { name: 'Actions' }).getByRole('button', { name: 'New Task' }).click();
-  const quick = await tabs(page, 8);
-  expect(quick.at(-1)).toBe('Title');
-  expect(quick).not.toContain('Save');
-  expect(quick).not.toContain('Cancel');
+  expect(await tabs(page, 8)).toEqual(CARD_STOPS);
 
   expect(errors).toEqual([]);
 });

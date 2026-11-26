@@ -1,7 +1,7 @@
 <!--
-  Expanded to-do card (FR-1.2): title, notes, checklist, tags, When,
-  deadline, priority and context (FR-18.3). Set fields show as chips on the left of the bottom
-  bar; buttons for the empty ones sit on the right.
+  Expanded to-do card (FR-1.2): title, notes, checklist, then the fields
+  (tags, When, deadline, reminder, priority and context) in the bar shared
+  with Quick Entry (FieldBar), with Move and ⋯ at its end.
   Below the card, a blue link names the to-do's project or
   area, with Go to Project and Change Project (the Move dialog).
   Edits save as you type, debounced 300 ms; there is no Save button.
@@ -18,12 +18,7 @@
   import { cycleTab } from '../lib/focusCycle';
   import NotesField from './NotesField.svelte';
   import Popover from './Popover.svelte';
-  import WhenPicker from './WhenPicker.svelte';
-  import DeadlinePicker from './DeadlinePicker.svelte';
-  import ReminderPicker from './ReminderPicker.svelte';
-  import TagPicker from './TagPicker.svelte';
-  import PriorityMenu from './PriorityMenu.svelte';
-  import ContextMenu from './ContextMenu.svelte';
+  import FieldBar from './FieldBar.svelte';
   import Checklist from './Checklist.svelte';
   import { ui } from '../lib/state/ui.svelte';
   import ProgressPie from './ProgressPie.svelte';
@@ -31,16 +26,13 @@
   import { changeDeadline, changeReminder, changeWhen, containerLink, goToContainer, revealTodo } from '../lib/actions';
   import { ruleText, upcoming } from '../lib/model/repeat';
   import { projectProgress } from '../lib/model/lists';
-  import { settings, snapshot, todayDate, todoById } from '../lib/state/live';
-  import { deadlineLabel, formatRelative } from '../lib/model/dates';
-  import { reminderLabel } from '../lib/model/reminder';
+  import { snapshot, todayDate, todoById } from '../lib/state/live';
+  import { formatRelative } from '../lib/model/dates';
   import { remindersOn } from '../lib/calendar/calendar';
-  import { priorityLabel } from '../lib/model/settings';
-  import { checklistFor, tagTitles } from '../lib/model/tags';
-  import { contextTitle } from '../lib/model/contexts';
+  import { checklistFor } from '../lib/model/tags';
   import { storedChecklist } from '../lib/state/checklist.svelte';
   import * as repo from '../lib/db/repo';
-  import type { ID, LocalDate, Priority, Todo } from '../lib/model/types';
+  import type { ID, LocalDate, Todo } from '../lib/model/types';
 
   let { todo: listed, ref }: { todo: Todo; ref: LocalDate } = $props();
   /** The task as saved, so its chips change at once while the lists hold it in place. */
@@ -70,8 +62,6 @@
   let deadlineOpen = $state(false);
   let reminderOpen = $state(false);
   let tagsOpen = $state(false);
-  let prioOpen = $state(false);
-  let contextOpen = $state(false);
   /** Checklist item to focus once it renders. */
   let checklistFocus = $state<ID | null>(null);
 
@@ -84,7 +74,6 @@
     const t = todo.repeatOf ? $todoById.get(todo.repeatOf) : undefined;
     return t?.repeat && !t.trashedAt ? t : null;
   });
-  let hasWhen = $derived(!template && (todo.start === 'deferred' || todo.startDate !== null));
 
   /**
    * The template's repeat line: Edit Rule…, or on a phone the Repeat menu
@@ -95,17 +84,6 @@
       ui.rowMenu = { id: todo.id, mode: 'open', x: e.clientX, y: e.clientY, submenu: 'repeat' };
     } else ui.repeating = { kind: 'todo', id: todo.id };
   }
-  let whenLabel = $derived(
-    todo.start === 'deferred'
-      ? 'Deferred'
-      : todo.startDate === null
-        ? ''
-        : todo.startDate <= ref
-          ? 'Today'
-          : formatRelative(todo.startDate, ref),
-  );
-  let tagNames = $derived(tagTitles(todo.tagIds, $snapshot));
-  let contextName = $derived(contextTitle(todo.contextId, $snapshot));
   // The link under the card to the to-do's project or area (FR-1.2).
   let link = $derived(containerLink(todo, $route));
   let linkName = $derived(
@@ -215,31 +193,6 @@
     }
   }
 
-  function chooseWhen(choice: repo.WhenChoice) {
-    whenOpen = false;
-    void changeWhen([todo.id], choice);
-  }
-
-  function chooseDeadline(deadline: LocalDate | null, moveWhen: boolean) {
-    deadlineOpen = false;
-    void changeDeadline([todo.id], deadline, moveWhen);
-  }
-
-  function chooseReminder(reminder: string | null) {
-    reminderOpen = false;
-    void changeReminder([todo.id], reminder);
-  }
-
-  function choosePriority(p: Priority | null) {
-    prioOpen = false;
-    void repo.setPriority(todo.id, p);
-  }
-
-  function chooseContext(contextId: ID | null) {
-    contextOpen = false;
-    void repo.setContext(todo.id, contextId);
-  }
-
   async function addChecklist() {
     [checklistFocus] = await checklistOps.add([''], null);
   }
@@ -255,29 +208,6 @@
     ui.rowMenu = { id: todo.id, mode: 'open', x: r.right, y: r.bottom + 4, alignEnd: true };
   }
 </script>
-
-{#snippet whenPanel()}
-  <WhenPicker startDate={todo.startDate} deferred={todo.start === 'deferred'} deadline={todo.deadline} {ref} onchoose={chooseWhen} />
-{/snippet}
-{#snippet deadlinePanel()}
-  <DeadlinePicker deadline={todo.deadline} when={todo.startDate} {ref} onchoose={chooseDeadline} />
-{/snippet}
-{#snippet reminderPanel()}
-  <ReminderPicker reminder={todo.reminder} template={reminderByTime} startDate={todo.startDate} {ref} onchoose={chooseReminder} />
-{/snippet}
-{#snippet tagsPanel()}
-  <TagPicker
-    tagIds={todo.tagIds}
-    ontoggle={(tagId, on) => repo.toggleTag('todos', todo.id, tagId, on)}
-    ondone={() => (tagsOpen = false)}
-  />
-{/snippet}
-{#snippet prioPanel()}
-  <PriorityMenu priority={todo.priority} onchoose={choosePriority} />
-{/snippet}
-{#snippet contextPanel()}
-  <ContextMenu contextId={todo.contextId} onchoose={chooseContext} />
-{/snippet}
 
 <div bind:this={card}>
 <div class="card" role="group" aria-label="Edit task">
@@ -319,163 +249,57 @@
 
   <Checklist items={checklistItems} ops={checklistOps} bind:focusId={checklistFocus} />
 
-  {#snippet tagChips()}
-    {#each tagNames as name, i (i)}<span class="tag-pill">{name}</span>{/each}
-  {/snippet}
-  {#if tagNames.length}
-    <div class="tags">
-      <Popover bind:open={tagsOpen} label="Tags" align="left">
-        {#snippet trigger(toggle)}
-          <button type="button" class="tag-list" aria-label="Edit tags" onclick={toggle}>{@render tagChips()}</button>
-        {/snippet}
-        {@render tagsPanel()}
-      </Popover>
-    </div>
-  {/if}
-
-  {#if todo.repeat}
-    {@const dates = upcoming(todo.repeat, todo.startDate, 4)}
-    <button type="button" class="repeat" onclick={openRepeat} aria-label="Edit repeat rule">
-      <Icon name="repeat" size={14} color="var(--accent)" />
-      <span>
-        <span class="repeat-rule">{ruleText(todo.repeat)}{todo.repeat.paused ? ' (paused)' : ''}</span>
-        {#if dates.length && !todo.repeat.paused}
-          <span class="repeat-dates">{(todo.repeat.mode === 'fixed' ? dates : dates.slice(0, 1)).map((d) => formatRelative(d, ref)).join(', ')}{todo.repeat.mode === 'fixed' ? ', …' : ''}</span>
-        {/if}
-      </span>
-    </button>
-  {:else if source}
-    <div class="repeat copy">
-      <Icon name="repeat" size={14} color="var(--text-3)" />
-      <span>
-        <span class="repeat-rule">This is a copy of a repeating task</span>
-        <span class="repeat-dates">{ruleText(source.repeat!)}</span>
-      </span>
-      <button type="button" class="btn-plain show" onclick={() => { flush(); revealTodo(source!, $route, $todayDate); }}>Show Repeating Task</button>
-    </div>
-  {/if}
-
-  <div class="bar">
-    <div class="left">
-      {#if hasWhen}
-        <Popover bind:open={whenOpen} label="Start Date" align="left">
-          {#snippet trigger(toggle)}
-            <button type="button" class="chip" onclick={toggle}>
-              <Icon name={todo.start === 'deferred' ? 'archive' : todo.startDate && todo.startDate <= ref ? 'star' : 'calendar'} size={12} />{whenLabel}
-            </button>
-          {/snippet}
-          {@render whenPanel()}
-        </Popover>
-      {/if}
-      {#if todo.deadline}
-        <Popover bind:open={deadlineOpen} label="Deadline" align="left">
-          {#snippet trigger(toggle)}
-            <button type="button" class="chip" class:due={todo.deadline! <= ref} onclick={toggle}>
-              <Icon name="flag" size={12} />Deadline: {deadlineLabel(todo.deadline!, ref)}
-            </button>
-          {/snippet}
-          {@render deadlinePanel()}
-        </Popover>
-      {/if}
-      {#if todo.reminder}
-        <Popover bind:open={reminderOpen} label="Reminder" align="left">
-          {#snippet trigger(toggle)}
-            <button type="button" class="chip reminder" onclick={toggle}>
-              <Icon name="bell" size={12} />{reminderLabel(todo.reminder!, ref)}
-            </button>
-          {/snippet}
-          {@render reminderPanel()}
-        </Popover>
-      {/if}
-      {#if todo.priority}
-        <Popover bind:open={prioOpen} label="Priority" align="left">
-          {#snippet trigger(toggle)}
-            <button type="button" class="chip" aria-label="Priority: {priorityLabel(todo.priority!, $settings)}" onclick={toggle}>
-              <span class="prio prio-{todo.priority}">{priorityLabel(todo.priority!, $settings)}</span>
-            </button>
-          {/snippet}
-          {@render prioPanel()}
-        </Popover>
-      {/if}
-      {#if contextName}
-        <Popover bind:open={contextOpen} label="Context" align="left">
-          {#snippet trigger(toggle)}
-            <button type="button" class="chip" aria-label="Context: {contextName}" onclick={toggle}>
-              <Icon name="context" size={12} />{contextName}
-            </button>
-          {/snippet}
-          {@render contextPanel()}
-        </Popover>
-      {/if}
-    </div>
-
-    <div class="right">
-      {#if !hasWhen && !template}
-        <Popover bind:open={whenOpen} label="Start Date">
-          {#snippet trigger(toggle, open)}
-            <button type="button" class="icon-btn" aria-label="Start Date" title="Start Date" aria-expanded={open} onclick={toggle}>
-              <Icon name="calendar" size={16} />
-            </button>
-          {/snippet}
-          {@render whenPanel()}
-        </Popover>
-      {/if}
-      {#if !tagNames.length}
-        <Popover bind:open={tagsOpen} label="Tags">
-          {#snippet trigger(toggle, open)}
-            <button type="button" class="icon-btn" aria-label="Tags" title="Tags" aria-expanded={open} onclick={toggle}>
-              <Icon name="tag" size={16} />
-            </button>
-          {/snippet}
-          {@render tagsPanel()}
-        </Popover>
-      {/if}
-      {#if !checklistItems.length}
-        <button type="button" class="icon-btn" aria-label="Add checklist" title="Checklist" onclick={addChecklist}>
-          <Icon name="checklist" size={16} />
+  <FieldBar
+    fields={{
+      startDate: todo.startDate,
+      deferred: todo.start === 'deferred',
+      deadline: todo.deadline,
+      reminder: todo.reminder,
+      priority: todo.priority,
+      contextId: todo.contextId,
+      tagIds: todo.tagIds,
+      hasChecklist: checklistItems.length > 0,
+    }}
+    {ref}
+    {template}
+    {reminderByTime}
+    reminderField={$remindersOn}
+    onwhen={(choice) => void changeWhen([todo.id], choice)}
+    ondeadline={(deadline, moveWhen) => void changeDeadline([todo.id], deadline, moveWhen)}
+    onreminder={(reminder) => void changeReminder([todo.id], reminder)}
+    onpriority={(p) => void repo.setPriority(todo.id, p)}
+    oncontext={(contextId) => void repo.setContext(todo.id, contextId)}
+    ontoggletag={(tagId, on) => repo.toggleTag('todos', todo.id, tagId, on)}
+    onchecklist={addChecklist}
+    bind:whenOpen
+    bind:deadlineOpen
+    bind:reminderOpen
+    bind:tagsOpen
+  >
+    {#snippet between()}
+      {#if todo.repeat}
+        {@const dates = upcoming(todo.repeat, todo.startDate, 4)}
+        <button type="button" class="repeat" onclick={openRepeat} aria-label="Edit repeat rule">
+          <Icon name="repeat" size={14} color="var(--accent)" />
+          <span>
+            <span class="repeat-rule">{ruleText(todo.repeat)}{todo.repeat.paused ? ' (paused)' : ''}</span>
+            {#if dates.length && !todo.repeat.paused}
+              <span class="repeat-dates">{(todo.repeat.mode === 'fixed' ? dates : dates.slice(0, 1)).map((d) => formatRelative(d, ref)).join(', ')}{todo.repeat.mode === 'fixed' ? ', …' : ''}</span>
+            {/if}
+          </span>
         </button>
+      {:else if source}
+        <div class="repeat copy">
+          <Icon name="repeat" size={14} color="var(--text-3)" />
+          <span>
+            <span class="repeat-rule">This is a copy of a repeating task</span>
+            <span class="repeat-dates">{ruleText(source.repeat!)}</span>
+          </span>
+          <button type="button" class="btn-plain show" onclick={() => { flush(); revealTodo(source!, $route, $todayDate); }}>Show Repeating Task</button>
+        </div>
       {/if}
-      {#if !todo.deadline && !template}
-        <Popover bind:open={deadlineOpen} label="Deadline">
-          {#snippet trigger(toggle, open)}
-            <button type="button" class="icon-btn" aria-label="Deadline" title="Deadline" aria-expanded={open} onclick={toggle}>
-              <Icon name="flag" size={16} />
-            </button>
-          {/snippet}
-          {@render deadlinePanel()}
-        </Popover>
-      {/if}
-      {#if !todo.reminder && $remindersOn}
-        <Popover bind:open={reminderOpen} label="Reminder">
-          {#snippet trigger(toggle, open)}
-            <button type="button" class="icon-btn" aria-label="Reminder" title="Reminder" aria-expanded={open} onclick={toggle}>
-              <Icon name="bell" size={16} />
-            </button>
-          {/snippet}
-          {@render reminderPanel()}
-        </Popover>
-      {/if}
-      {#if !todo.priority}
-        <Popover bind:open={prioOpen} label="Priority">
-          {#snippet trigger(toggle, open)}
-            <button type="button" class="icon-btn" aria-label="Priority" title="Priority" aria-expanded={open} onclick={toggle}>
-              <Icon name="priority" size={16} />
-            </button>
-          {/snippet}
-          {@render prioPanel()}
-        </Popover>
-      {/if}
-      {#if !contextName}
-        <Popover bind:open={contextOpen} label="Context">
-          {#snippet trigger(toggle, open)}
-            <button type="button" class="icon-btn" aria-label="Context" title="Context" aria-expanded={open} onclick={toggle}>
-              <Icon name="context" size={16} />
-            </button>
-          {/snippet}
-          {@render contextPanel()}
-        </Popover>
-      {/if}
-
+    {/snippet}
+    {#snippet trailing()}
       <button type="button" class="icon-btn" aria-label="Move" title="Move" onclick={() => (ui.movingIds = [todo.id])}>
         <Icon name="move" size={16} />
       </button>
@@ -491,8 +315,8 @@
       >
         <Icon name="more" size={16} />
       </button>
-    </div>
-  </div>
+    {/snippet}
+  </FieldBar>
 </div>
 
 {#if link}
@@ -591,34 +415,6 @@
   .notes-wrap {
     margin-left: 28px;
   }
-  .tags {
-    margin-left: 28px;
-  }
-  .tag-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    border: 0;
-    background: transparent;
-    padding: 0;
-  }
-  .bar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-left: 28px;
-    padding-top: 6px;
-    border-top: 1px solid var(--rule);
-  }
-  .left,
-  .right {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px;
-  }
   /* The repeat line (FR-4.3, FR-4.4): a template's rule and next dates, or a copy's note. */
   .repeat {
     display: flex;
@@ -649,13 +445,6 @@
     flex-wrap: wrap;
   }
   .show {
-    color: var(--accent-text);
-  }
-  .chip.due {
-    color: var(--danger);
-    font-weight: 600;
-  }
-  .chip.reminder {
     color: var(--accent-text);
   }
   .icon-btn {
