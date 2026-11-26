@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.13.6"></a>
+
+## 1.13.6 — 2026-11-26
+
+### Added
+
+- Quick Entry has the Reminder field too, after Deadline, once the calendar helper writes reminders for the gist: the reminder is set before the task is saved, and saved with it. In a repeating project's template it asks for a time only, as the card does; a time only can't be kept on a task outside a template, so it's dropped.
+
 <a id="v1.13.5"></a>
 
 ## 1.13.5 — 2026-11-26

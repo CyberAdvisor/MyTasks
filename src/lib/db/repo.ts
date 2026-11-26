@@ -11,7 +11,7 @@ import { clearUndo, tx } from './history';
 import { bury } from './bury';
 import { nowIso, uuidv7 } from '../model/ids';
 import { localDay, today } from '../model/dates';
-import { copyReminderOf, templateReminder } from '../model/reminder';
+import { copyReminderOf, newTaskReminder, templateReminder } from '../model/reminder';
 import { bySortKey, keyAtEnd, keyAtStart, keyBetween, placementKeys } from '../model/order';
 import { datedOutOfDeferred, deadlineWhen, inToday } from '../model/lists';
 import { nextToRelease, othersToReset, projectOrder, releaseChanges, returnChanges, sequentialRule } from '../model/sequential';
@@ -921,7 +921,7 @@ export async function createTodo(opts: NewTodo = {}): Promise<ID> {
       startDate,
       todaySortKey: null,
       deadline: opts.deadline ?? null,
-      reminder: opts.reminder ?? null,
+      reminder: newTaskReminder(opts.reminder ?? null, !!project?.repeat),
       priority: opts.priority ?? null,
       prioritySource: opts.priority === undefined ? null : 'user',
       priorityBeforeAuto: null,

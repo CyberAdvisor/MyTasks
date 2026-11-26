@@ -4,6 +4,7 @@
  * (FR-21.10); then a reminder is set from the
  * task menu by typing, shows on the row and as the card's chip, is cleared
  * from the chip, and is set again with the keyboard command and a preset.
+ * Quick Entry has the field too, saved with the new task (FR-8.1).
  * A reminder ticked in Reminders completes its task, with Undo (FR-21.11).
  */
 import { expect, test, type Page } from '@playwright/test';
@@ -63,6 +64,43 @@ test('A reminder is set, shown, cleared and set again once the helper writes rem
   await page.keyboard.press('r');
   await page.getByRole('button', { name: /^Tomorrow/ }).click();
   await expect(card(page).getByRole('button', { name: 'Tomorrow, 9:00 AM' })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('Quick Entry sets a reminder once the helper writes reminders, saved with the new task', async ({ context, page }) => {
+  const gh = await fakeGitHub(context);
+  const errors = watchErrors(page);
+  await connect(page);
+  await openList(page, 'Unscheduled');
+  const quick = page.getByRole('dialog', { name: 'Quick Entry' });
+  const newTask = page.getByRole('toolbar', { name: 'Actions' }).getByRole('button', { name: 'New Task' });
+
+  // Without the helper's mark, Quick Entry has no Reminder field.
+  await newTask.click();
+  await expect(quick.getByRole('button', { name: 'Deadline' })).toBeVisible();
+  await expect(quick.getByRole('button', { name: 'Reminder' })).toHaveCount(0);
+  await quick.getByRole('button', { name: 'Cancel' }).click();
+
+  await synced(page);
+  const today = toLocalDate(new Date());
+  await addCalendar(gh, { format: 1, from: today, to: today, calendars: [], events: [], reminders: true });
+  await page.reload();
+  await synced(page);
+
+  // Tab reaches its Reminder after Deadline (Notes, Start Date, Tags, Checklist, Deadline, Reminder)
+  // and opens the picker; the choice is a chip, then saved with the task.
+  await newTask.click();
+  await page.keyboard.type('Water the plants');
+  for (let i = 0; i < 6; i++) {
+    await page.keyboard.press('Tab');
+    await page.waitForTimeout(50); // a picker focuses its field on the next frame
+  }
+  await expect(page.getByLabel('Type a date and time')).toBeFocused();
+  await page.getByLabel('Type a date and time').fill('tomorrow 9am');
+  await page.getByLabel('Type a date and time').press('Enter');
+  await expect(quick.getByRole('button', { name: 'Tomorrow, 9:00 AM' })).toBeVisible();
+  await quick.getByRole('button', { name: 'Save' }).click();
+  await expect(page.locator('li.row', { hasText: 'Water the plants' }).getByLabel('Reminder: Tomorrow, 9:00 AM')).toBeVisible();
   expect(errors).toEqual([]);
 });
 
