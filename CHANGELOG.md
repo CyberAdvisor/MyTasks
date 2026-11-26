@@ -4,6 +4,18 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.13.4"></a>
+
+## 1.13.4 — 2026-11-26
+
+### Changed
+
+- Settings › Calendar Events shows its options only once the calendar helper on a Mac has written to the gist. Until then it says that calendar events and reminders need the helper on a Mac, with a link to its setup; for a gist the helper isn't set up for yet, it says only to run the helper's setup again.
+
+### Added
+
+- Settings › Sync shows when the calendar helper last wrote to the gist (its calendar events or its ticks from Reminders), beside Last synced.
+
 <a id="v1.13.3"></a>
 
 ## 1.13.3 — 2026-11-25

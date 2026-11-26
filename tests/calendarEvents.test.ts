@@ -2,7 +2,8 @@
  * Calendar events (FR-21.2 to FR-21.4, Milestone 13): checking calendar.json,
  * which day each event is on, the wording of the list and details, the
  * calendar file through a sync (one request, kept on the device, cleared by
- * Disconnect), and the synced setting with its schema version (10).
+ * Disconnect), what Settings shows about the helper, and the synced
+ * setting with its schema version (10).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { get } from 'svelte/store';
@@ -29,7 +30,7 @@ import {
   type CalendarData,
   type CalendarEvent,
 } from '../src/lib/calendar/events';
-import { calendar, receiveCalendar, showSavedCalendar } from '../src/lib/calendar/calendar';
+import { calendar, helperState, latestTime, receiveCalendar, showSavedCalendar } from '../src/lib/calendar/calendar';
 import { deriveKey, seal } from '../src/lib/sync/crypto';
 import { SyncError, checkList, syncOnce } from '../src/lib/sync/cycle';
 import { clearConfig, loadCalendarFile, type DeviceConfig } from '../src/lib/sync/device';
@@ -274,6 +275,27 @@ describe('the calendar file through a sync (FR-21.2)', () => {
     await sync.disconnect();
     await db.open();
     expect(await loadCalendarFile()).toBeNull();
+  });
+});
+
+describe('what Settings shows about the helper', () => {
+  const T = '2026-11-19T18:39:16.567Z';
+
+  it('has three states: no file, the setup marker, and a file the helper wrote', () => {
+    expect(helperState({ data: null, updatedAt: null, problem: null })).toBe('none');
+    expect(helperState({ data: null, updatedAt: null, problem: 'setup' })).toBe('setup');
+    expect(helperState({ data: data([]), updatedAt: T, problem: null })).toBe('ready');
+    // A file it can't open still means the helper is set up: the options and the problem show.
+    expect(helperState({ data: null, updatedAt: T, problem: 'passphrase' })).toBe('ready');
+    expect(helperState({ data: null, updatedAt: null, problem: 'unreadable' })).toBe('ready');
+  });
+
+  it('takes the later of the calendar and ticks files\' times', () => {
+    expect(latestTime(null, null)).toBeNull();
+    expect(latestTime(T, null)).toBe(T);
+    expect(latestTime(null, T)).toBe(T);
+    expect(latestTime(T, '2026-11-20T08:00:00.000Z')).toBe('2026-11-20T08:00:00.000Z');
+    expect(latestTime('2026-11-20T08:00:00.000Z', T)).toBe('2026-11-20T08:00:00.000Z');
   });
 });
 

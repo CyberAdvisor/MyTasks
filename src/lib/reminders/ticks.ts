@@ -13,6 +13,7 @@
  * already applied finds its task closed and is skipped; the helper drops a
  * tick once its task is closed, or after 30 days. The app never writes it.
  */
+import { writable, type Readable } from 'svelte/store';
 import { completeTicked } from '../db/repo';
 import { parseEnvelope, unseal } from '../sync/crypto';
 import { isId, isLocalDate, isTimestamp } from '../sync/validate';
@@ -53,15 +54,29 @@ export function onTicked(fn: (message: string) => void): () => void {
   return () => listeners.delete(fn);
 }
 
+const writtenAt = writable<string | null>(null);
+
+/**
+ * When the helper last wrote this gist's ticks.json (its envelope's time,
+ * readable without decrypting), or null when the gist has none or no sync
+ * has read it yet. Settings › Sync shows the later of this and the calendar
+ * file's time as the helper's last update.
+ */
+export const ticksWrittenAt: Readable<string | null> = { subscribe: writtenAt.subscribe };
+
 /**
  * After a sync read the gist: complete the tasks ticked in Reminders, from
  * the gist's ticks.json (null when it has none). Never fails the sync: a file
  * that can't be opened is left alone.
  */
 export async function receiveTicks(keys: { key: CryptoKey }, file: string | null): Promise<void> {
-  if (file === null) return;
+  if (file === null) {
+    writtenAt.set(null);
+    return;
+  }
   try {
     const env = parseEnvelope(file, 'mytasks-ticks');
+    writtenAt.set(env && isTimestamp(env.updatedAt) ? env.updatedAt : null);
     if (!env) return;
     const ticks = readTicks(JSON.parse(await unseal(keys.key, env)));
     if (!ticks.length) return;

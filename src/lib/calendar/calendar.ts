@@ -45,6 +45,34 @@ export const calendar: Readable<CalendarState> = { subscribe: state.subscribe };
  */
 export const remindersOn: Readable<boolean> = derived(state, (s) => s.data?.reminders === true);
 
+/**
+ * What Settings shows about the helper (Settings › Calendar Events):
+ * - `none`: no calendar file in this gist (or none known yet: before the
+ *   first sync, or offline with no copy kept), so the helper isn't set up
+ *   and only a pointer to the Guide's setup shows
+ * - `setup`: the helper's marker, so it's installed but not set up for this
+ *   gist (FR-21.8)
+ * - `ready`: a file the helper wrote, readable or not; the options show
+ */
+export type HelperState = 'none' | 'setup' | 'ready';
+
+/** The helper's state for a calendar state. */
+export function helperState(s: CalendarState): HelperState {
+  if (s.problem === 'setup') return 'setup';
+  return s.data || s.problem || s.updatedAt ? 'ready' : 'none';
+}
+
+/**
+ * The later of two times the helper wrote this gist (calendar.json's and
+ * ticks.json's), or null when neither is known. Both are ISO timestamps as
+ * toISOString writes them, so they compare as text.
+ */
+export function latestTime(a: string | null, b: string | null): string | null {
+  if (a === null) return b;
+  if (b === null) return a;
+  return a > b ? a : b;
+}
+
 /** The IV of the file now shown, so an unchanged file isn't decrypted again. */
 let shownIv: string | null = null;
 
