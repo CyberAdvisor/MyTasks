@@ -4,7 +4,8 @@
   bottom bar, with set fields as chips on the left (Start Date, Deadline,
   Reminder, Priority, Context) and buttons for the empty ones on the right
   (Start Date, Tags, Checklist, Deadline, Reminder, Priority, Context). Each
-  opens its picker; the owner saves the choice.
+  opens its picker, titled with the field's name and pointing at its button,
+  which is highlighted while it's open; the owner saves the choice.
 
   - `fields`: the values shown.
   - `template`: a repeating task's template, which has no start date or
@@ -145,9 +146,9 @@
 
 {#if tagNames.length}
   <div class="tags">
-    <Popover bind:open={tagsOpen} label="Tags" align="left">
-      {#snippet trigger(toggle)}
-        <button type="button" class="tag-list" aria-label="Edit tags" onclick={toggle}>
+    <Popover titled bind:open={tagsOpen} label="Tags" align="left">
+      {#snippet trigger(toggle, open)}
+        <button type="button" class="tag-list" aria-label="Edit tags" aria-expanded={open} onclick={toggle}>
           {#each tagNames as name, i (i)}<span class="tag-pill">{name}</span>{/each}
         </button>
       {/snippet}
@@ -162,9 +163,9 @@
   <div class="left">
     {@render leading?.()}
     {#if hasWhen}
-      <Popover bind:open={whenOpen} label="Start Date" align="left">
-        {#snippet trigger(toggle)}
-          <button type="button" class="chip" onclick={toggle}>
+      <Popover titled bind:open={whenOpen} label="Start Date" align="left">
+        {#snippet trigger(toggle, open)}
+          <button type="button" class="chip" aria-expanded={open} onclick={toggle}>
             <Icon name={fields.deferred ? 'archive' : fields.startDate && fields.startDate <= ref ? 'star' : 'calendar'} size={12} />{whenLabel}
           </button>
         {/snippet}
@@ -172,9 +173,9 @@
       </Popover>
     {/if}
     {#if fields.deadline}
-      <Popover bind:open={deadlineOpen} label="Deadline" align="left">
-        {#snippet trigger(toggle)}
-          <button type="button" class="chip" class:due={fields.deadline! <= ref} onclick={toggle}>
+      <Popover titled bind:open={deadlineOpen} label="Deadline" align="left">
+        {#snippet trigger(toggle, open)}
+          <button type="button" class="chip" aria-expanded={open} class:due={fields.deadline! <= ref} onclick={toggle}>
             <Icon name="flag" size={12} />Deadline: {deadlineLabel(fields.deadline!, ref)}
           </button>
         {/snippet}
@@ -182,9 +183,9 @@
       </Popover>
     {/if}
     {#if fields.reminder}
-      <Popover bind:open={reminderOpen} label="Reminder" align="left">
-        {#snippet trigger(toggle)}
-          <button type="button" class="chip reminder" onclick={toggle}>
+      <Popover titled bind:open={reminderOpen} label="Reminder" align="left">
+        {#snippet trigger(toggle, open)}
+          <button type="button" class="chip reminder" aria-expanded={open} onclick={toggle}>
             <Icon name="bell" size={12} />{reminderLabel(fields.reminder!, ref)}
           </button>
         {/snippet}
@@ -192,9 +193,9 @@
       </Popover>
     {/if}
     {#if fields.priority}
-      <Popover bind:open={prioOpen} label="Priority" align="left">
-        {#snippet trigger(toggle)}
-          <button type="button" class="chip" aria-label="Priority: {priorityLabel(fields.priority!, $settings)}" onclick={toggle}>
+      <Popover titled bind:open={prioOpen} label="Priority" align="left">
+        {#snippet trigger(toggle, open)}
+          <button type="button" class="chip" aria-expanded={open} aria-label="Priority: {priorityLabel(fields.priority!, $settings)}" onclick={toggle}>
             <span class="prio prio-{fields.priority}">{priorityLabel(fields.priority!, $settings)}</span>
           </button>
         {/snippet}
@@ -202,9 +203,9 @@
       </Popover>
     {/if}
     {#if contextName}
-      <Popover bind:open={contextOpen} label="Context" align="left">
-        {#snippet trigger(toggle)}
-          <button type="button" class="chip" aria-label="Context: {contextName}" onclick={toggle}>
+      <Popover titled bind:open={contextOpen} label="Context" align="left">
+        {#snippet trigger(toggle, open)}
+          <button type="button" class="chip" aria-expanded={open} aria-label="Context: {contextName}" onclick={toggle}>
             <Icon name="context" size={12} />{contextName}
           </button>
         {/snippet}
@@ -215,7 +216,7 @@
 
   <div class="right">
     {#if !hasWhen && !template}
-      <Popover bind:open={whenOpen} label="Start Date">
+      <Popover titled bind:open={whenOpen} label="Start Date">
         {#snippet trigger(toggle, open)}
           <button type="button" class="icon-btn" aria-label="Start Date" title="Start Date" aria-expanded={open} onclick={toggle}>
             <Icon name="calendar" size={16} />
@@ -225,7 +226,7 @@
       </Popover>
     {/if}
     {#if !tagNames.length}
-      <Popover bind:open={tagsOpen} label="Tags">
+      <Popover titled bind:open={tagsOpen} label="Tags">
         {#snippet trigger(toggle, open)}
           <button type="button" class="icon-btn" aria-label="Tags" title="Tags" aria-expanded={open} onclick={toggle}>
             <Icon name="tag" size={16} />
@@ -240,7 +241,7 @@
       </button>
     {/if}
     {#if !fields.deadline && !template}
-      <Popover bind:open={deadlineOpen} label="Deadline">
+      <Popover titled bind:open={deadlineOpen} label="Deadline">
         {#snippet trigger(toggle, open)}
           <button type="button" class="icon-btn" aria-label="Deadline" title="Deadline" aria-expanded={open} onclick={toggle}>
             <Icon name="flag" size={16} />
@@ -250,7 +251,7 @@
       </Popover>
     {/if}
     {#if !fields.reminder && reminderField}
-      <Popover bind:open={reminderOpen} label="Reminder">
+      <Popover titled bind:open={reminderOpen} label="Reminder">
         {#snippet trigger(toggle, open)}
           <button type="button" class="icon-btn" aria-label="Reminder" title="Reminder" aria-expanded={open} onclick={toggle}>
             <Icon name="bell" size={16} />
@@ -260,7 +261,7 @@
       </Popover>
     {/if}
     {#if !fields.priority}
-      <Popover bind:open={prioOpen} label="Priority">
+      <Popover titled bind:open={prioOpen} label="Priority">
         {#snippet trigger(toggle, open)}
           <button type="button" class="icon-btn" aria-label="Priority" title="Priority" aria-expanded={open} onclick={toggle}>
             <Icon name="priority" size={16} />
@@ -270,7 +271,7 @@
       </Popover>
     {/if}
     {#if !contextName}
-      <Popover bind:open={contextOpen} label="Context">
+      <Popover titled bind:open={contextOpen} label="Context">
         {#snippet trigger(toggle, open)}
           <button type="button" class="icon-btn" aria-label="Context" title="Context" aria-expanded={open} onclick={toggle}>
             <Icon name="context" size={16} />
@@ -329,5 +330,16 @@
   }
   .icon-btn:hover {
     background: var(--hover-bg);
+  }
+  /* The button whose picker is open, so it's clear which field is being set. */
+  .icon-btn[aria-expanded='true'],
+  .chip[aria-expanded='true'],
+  .tag-list[aria-expanded='true'] {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    color: var(--accent-text);
+    box-shadow: inset 0 0 0 1.5px var(--accent);
+  }
+  .tag-list {
+    border-radius: var(--radius);
   }
 </style>

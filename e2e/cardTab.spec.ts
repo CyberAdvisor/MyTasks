@@ -99,3 +99,28 @@ test('Tab opens each picker in order, and a choice keeps the task in place until
 
   expect(errors).toEqual([]);
 });
+
+test("a field picker is titled with the field's name and points at its button, which is highlighted", async ({ context, page }) => {
+  await fakeGitHub(context);
+  const errors = watchErrors(page);
+  await connect(page);
+  await openList(page, 'Unscheduled');
+  await addTask(page, 'Book flights');
+  await page.getByText('Book flights', { exact: true }).dblclick();
+  const card = page.getByRole('group', { name: 'Edit task' });
+  for (const field of ['Start Date', 'Deadline', 'Priority']) {
+    const button = card.getByRole('button', { name: field, exact: true });
+    await button.click();
+    const panel = page.getByRole('dialog', { name: field });
+    await expect(panel.locator('.sheet-title')).toBeVisible();
+    await expect(panel.locator('.sheet-title')).toHaveText(field);
+    await expect(button).toHaveAttribute('aria-expanded', 'true');
+    await expect(button).not.toHaveCSS('box-shadow', 'none');
+    // The arrow's tip sits under the middle of the button.
+    const [b, a] = [await button.boundingBox(), await panel.locator('.arrow').boundingBox()];
+    expect(Math.abs(a!.x + a!.width / 2 - (b!.x + b!.width / 2))).toBeLessThan(4);
+    await page.keyboard.press('Escape');
+    await expect(button).toHaveAttribute('aria-expanded', 'false');
+  }
+  expect(errors).toEqual([]);
+});
