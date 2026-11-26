@@ -13,7 +13,8 @@ import { addDays, today } from '../src/lib/model/dates';
 import { copyId } from '../src/lib/model/repeat';
 import type { RepeatRule } from '../src/lib/model/types';
 import { KDF_ITERATIONS, deriveKey, parseEnvelope, seal, unseal } from '../src/lib/sync/crypto';
-import { onTicked, readTicks, receiveTicks, tickedMessage } from '../src/lib/reminders/ticks';
+import { onTicked, readTicks, receiveTicks, tickedMessage, ticksWrittenAt } from '../src/lib/reminders/ticks';
+import { get } from 'svelte/store';
 
 /** The template id in the fixture, and its copy for 2026-11-27 (also checked in helper/test_reminders.py). */
 const TEMPLATE = '0193a4b2-7c11-7000-8000-000000000001';
@@ -134,9 +135,11 @@ describe('completing ticked tasks', () => {
     const said: string[] = [];
     const stop = onTicked((m) => said.push(m));
     await receiveTicks({ key }, JSON.stringify({ ...env, app: 'mytasks-ticks' }));
+    expect(get(ticksWrittenAt)).toBe(env.updatedAt); // when the helper wrote it, for Settings › Sync
     await receiveTicks({ key }, JSON.stringify({ ...env, app: 'mytasks-ticks' })); // read again at the next sync: nothing to do
     await receiveTicks({ key }, JSON.stringify(env)); // not a ticks file
     await receiveTicks({ key }, null);
+    expect(get(ticksWrittenAt)).toBeNull(); // the gist has none
     stop();
     expect(said).toEqual(['Completed in Reminders: Call Sam']);
     expect((await row(id)).status).toBe('completed');

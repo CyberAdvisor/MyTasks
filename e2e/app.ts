@@ -134,8 +134,8 @@ export function addCalendar(gh: FakeGitHub, calendar: object, updated = new Date
 }
 
 /** Put ticks.json in the faked gist, as the Mac helper writes it for reminders ticked in Reminders (FR-21.11). */
-export function addTicks(gh: FakeGitHub, ticks: { task: string; at: string; day?: string }[]): Promise<void> {
-  return addHelperFile(gh, 'ticks.json', 'mytasks-ticks', { format: 1, ticks }, new Date());
+export function addTicks(gh: FakeGitHub, ticks: { task: string; at: string; day?: string }[], updated = new Date()): Promise<void> {
+  return addHelperFile(gh, 'ticks.json', 'mytasks-ticks', { format: 1, ticks }, updated);
 }
 
 /** The id of the task titled `title` in the faked gist's task list, once a sync has uploaded it. */

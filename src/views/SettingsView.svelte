@@ -4,8 +4,10 @@
     device with Rename… or Switch, then Add Gist…), then the active gist's
     connection, its problems and their fixes, Sync Now, Change Token, Change
     Passphrase, Disconnect.
-  - Calendar Events (FR-21.3): show or hide the Mac helper's events, when
-    the helper last wrote them or why they can't be read, and the guide.
+  - Calendar Events (FR-21.3): once the Mac helper has written this gist's
+    calendar file, show or hide its events, when it last wrote them or why
+    they can't be read; with the helper's setup marker, only that it must be
+    set up for this gist; with no file, only a pointer to the Guide's setup.
   - Backup (FR-12.8): Save Backup downloads a file of all synced data;
     Restore from Backup… checks a file, confirms, then replaces everything.
   - Archive (FR-12.11): old completed items to a CSV file, then removed
@@ -68,7 +70,8 @@
   } from '../lib/backup';
   import { saveFile } from '../lib/saveFile';
   import { fileSizeText } from '../lib/model/overview';
-  import { calendar, remindersOn } from '../lib/calendar/calendar';
+  import { calendar, helperState, latestTime, remindersOn } from '../lib/calendar/calendar';
+  import { ticksWrittenAt } from '../lib/reminders/ticks';
   import { formatTimestamp } from '../lib/model/dates';
 
   const THEME_OPTIONS: { value: Theme; label: string }[] = [
@@ -110,6 +113,10 @@
   let renaming = $state(false);
   /** Several gists on this device: Disconnect then removes only the open one (FR-19.16). */
   let severalGists = $derived(deviceGists.list.length > 1);
+  /** Whether the Mac helper has written this gist's calendar file (Calendar Events' three states). */
+  let helper = $derived(helperState($calendar));
+  /** When the helper last wrote this gist (calendar.json or ticks.json), once it has written its calendar file. */
+  let helperUpdatedAt = $derived(helper === 'ready' ? latestTime($calendar.updatedAt, $ticksWrittenAt) : null);
 
   /** Switch to another gist, then start again on it (FR-19.11). */
   function switchGist(db: string) {
@@ -316,7 +323,7 @@
   {/if}
   {#if sync.config}
     <p class="help">
-      Gist {sync.config.gistId.slice(0, 8)}…{#if sync.config.lastSyncedAt}&nbsp;· Last synced {whenSynced(sync.config.lastSyncedAt)}{/if}
+      Gist {sync.config.gistId.slice(0, 8)}…{#if sync.config.lastSyncedAt}&nbsp;· Last synced {whenSynced(sync.config.lastSyncedAt)}{/if}{#if helperUpdatedAt}&nbsp;· Calendar helper last updated {whenSynced(helperUpdatedAt)}{/if}
     </p>
   {/if}
   {#if sync.config && counts}
@@ -354,48 +361,55 @@
 
 <section aria-labelledby="calendar-heading">
   <h2 id="calendar-heading">Calendar Events</h2>
-  <label class="switch-row">
-    <input
-      type="checkbox"
-      role="switch"
-      checked={$settings.showCalendarEvents}
-      onchange={(e) => repo.setSetting('showCalendarEvents', e.currentTarget.checked)}
-    />
-    <span>Show calendar events in Today and Scheduled</span>
-  </label>
-  {#if $calendar.problem === 'passphrase'}
-    <p class="sync-problem" role="alert">
-      <Icon name="alert" size={15} color="var(--danger)" /> The calendar events were written with a different passphrase.
-      On your Mac, run the calendar helper’s setup again.
+  {#if helper === 'none'}
+    <p class="help">
+      Calendar events and reminders need the My Tasks helper on a Mac.
+      <SiteLink page="guide" hash="calendar">How to set it up</SiteLink>
     </p>
-  {:else if $calendar.problem === 'setup'}
+  {:else if helper === 'setup'}
     <p class="sync-problem" role="alert">
       <Icon name="alert" size={15} color="var(--danger)" /> Calendar events aren’t set up for this gist. On your Mac, run
       the calendar helper’s setup again.
     </p>
-  {:else if $calendar.problem === 'unreadable'}
-    <p class="sync-problem" role="alert">
-      <Icon name="alert" size={15} color="var(--danger)" /> The calendar events in your gist couldn’t be read. Update the
-      calendar helper on your Mac.
-    </p>
-  {:else if $calendar.data && $calendar.updatedAt}
-    <p class="help">
-      Last updated {formatTimestamp($calendar.updatedAt)} · {$calendar.data.events.length}
-      {$calendar.data.events.length === 1 ? 'event' : 'events'} from {$calendar.data.calendars.length}
-      {$calendar.data.calendars.length === 1 ? 'calendar' : 'calendars'}
-    </p>
   {:else}
-    <p class="help">No calendar events yet.</p>
-  {/if}
-  {#if $remindersOn}
+    <label class="switch-row">
+      <input
+        type="checkbox"
+        role="switch"
+        checked={$settings.showCalendarEvents}
+        onchange={(e) => repo.setSetting('showCalendarEvents', e.currentTarget.checked)}
+      />
+      <span>Show calendar events in Today and Scheduled</span>
+    </label>
+    {#if $calendar.problem === 'passphrase'}
+      <p class="sync-problem" role="alert">
+        <Icon name="alert" size={15} color="var(--danger)" /> The calendar events were written with a different passphrase.
+        On your Mac, run the calendar helper’s setup again.
+      </p>
+    {:else if $calendar.problem === 'unreadable'}
+      <p class="sync-problem" role="alert">
+        <Icon name="alert" size={15} color="var(--danger)" /> The calendar events in your gist couldn’t be read. Update the
+        calendar helper on your Mac.
+      </p>
+    {:else if $calendar.data && $calendar.updatedAt}
+      <p class="help">
+        Last updated {formatTimestamp($calendar.updatedAt)} · {$calendar.data.events.length}
+        {$calendar.data.events.length === 1 ? 'event' : 'events'} from {$calendar.data.calendars.length}
+        {$calendar.data.calendars.length === 1 ? 'calendar' : 'calendars'}
+      </p>
+    {:else}
+      <p class="help">No calendar events yet.</p>
+    {/if}
+    {#if $remindersOn}
+      <p class="help">
+        Reminders: on. The calendar helper on your Mac adds your tasks’ reminders to Apple Reminders.
+      </p>
+    {/if}
     <p class="help">
-      Reminders: on. The calendar helper on your Mac adds your tasks’ reminders to Apple Reminders.
+      Events come from the calendars on your Mac, through the calendar helper, encrypted in your gist like your tasks.
+      They are read-only here. <SiteLink page="guide" hash="calendar">Set up the calendar helper</SiteLink>
     </p>
   {/if}
-  <p class="help">
-    Events come from the calendars on your Mac, through the calendar helper, encrypted in your gist like your tasks.
-    They are read-only here. <SiteLink page="guide" hash="calendar">Set up the calendar helper</SiteLink>
-  </p>
 </section>
 
 <section aria-labelledby="backup-heading">

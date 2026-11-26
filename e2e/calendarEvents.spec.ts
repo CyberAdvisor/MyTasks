@@ -7,9 +7,10 @@
  * fixed at noon, so the day's events are the same whenever the test runs.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { addCalendar, connect, openList, restoreSample, synced, titleGaps, watchErrors } from './app';
+import { addCalendar, addTicks, connect, openList, restoreSample, synced, titleGaps, watchErrors } from './app';
 import { fakeGitHub, type FakeGitHub } from './fakeGitHub';
 import { addDays, addMonths, formatShort, toLocalDate } from '../src/lib/model/dates';
+import { whenSynced } from '../src/lib/sync/messages';
 
 /** Noon today, local time: the test's fixed "now". */
 const NOON = new Date();
@@ -149,6 +150,41 @@ test('a gist the helper has no passphrase for says to run its setup again (FR-21
   await synced(page);
   await page.evaluate(() => (location.hash = '#/settings'));
   await expect(page.getByRole('alert').filter({ hasText: /Calendar events aren.t set up for this gist/ })).toBeVisible();
+  // Only that message: no options, no pointer to the setup, no time in Sync.
+  await expect(page.getByRole('switch', { name: 'Show calendar events in Today and Scheduled' })).toHaveCount(0);
+  await expect(page.getByText('Calendar events and reminders need the My Tasks helper on a Mac.')).toHaveCount(0);
+  await expect(page.getByText(/Calendar helper last updated/)).toHaveCount(0);
+});
+
+test('Settings shows how to set up the helper until it writes this gist, then the options and when it last wrote', async ({ page, context }) => {
+  const gh = await fakeGitHub(context);
+  const errors = watchErrors(page);
+  await connect(page);
+  await synced(page);
+  const show = page.getByRole('switch', { name: 'Show calendar events in Today and Scheduled' });
+  const lastWrite = page.getByText(/Calendar helper last updated/);
+
+  // No calendar file: only the pointer to the helper's setup.
+  await page.evaluate(() => (location.hash = '#/settings'));
+  await expect(page.getByText('Calendar events and reminders need the My Tasks helper on a Mac.')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'How to set it up' })).toHaveAttribute('href', 'https://mytasks.fyi/guide/#calendar');
+  await expect(show).toHaveCount(0);
+  await expect(lastWrite).toHaveCount(0);
+
+  // The helper wrote its calendar file, then a tick later: the options show, and Sync gives the later time.
+  const today = toLocalDate(new Date());
+  const calendarAt = new Date(2026, 0, 15, 9, 30);
+  const ticksAt = new Date(2026, 0, 16, 14, 5);
+  await addCalendar(gh, { format: 1, from: today, to: today, calendars: [], events: [] }, calendarAt);
+  await page.reload();
+  await synced(page);
+  await expect(show).toBeVisible();
+  await expect(page.getByText('Calendar events and reminders need the My Tasks helper on a Mac.')).toHaveCount(0);
+  await expect(lastWrite).toContainText(`Calendar helper last updated ${whenSynced(calendarAt.toISOString())}`);
+  await addTicks(gh, [], ticksAt);
+  await page.getByText(/^Synced /).click();
+  await expect(lastWrite).toContainText(`Calendar helper last updated ${whenSynced(ticksAt.toISOString())}`);
+  expect(errors).toEqual([]);
 });
 
 test('the events stay on the device for the next launch, offline included', async ({ page, context }) => {
