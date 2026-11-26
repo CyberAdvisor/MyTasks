@@ -79,7 +79,7 @@ describe('Quick Entry draft', async () => {
     expect(draftStartFor({ kind: 'list', list: 'inbox' }, '2026-11-09', 'a')).toEqual({});
   });
 
-  it('keeps When, tags, priority and checklist until saved', async () => {
+  it('keeps When, tags, priority, reminder and checklist until saved', async () => {
     const d = new TodoDraft();
     d.title = '  Pack ';
     d.setWhen({ kind: 'deferred' }, '2026-11-09');
@@ -107,6 +107,9 @@ describe('Quick Entry draft', async () => {
     expect('priority' in d.toNewTodo()).toBe(false);
     d.priority = null;
     expect(d.toNewTodo().priority).toBeNull();
+    expect(d.toNewTodo().reminder).toBeNull();
+    d.reminder = '2026-11-10T09:00';
+    expect(d.toNewTodo().reminder).toBe('2026-11-10T09:00');
   });
 
   it('saves a draft into a project as one task', async () => {

@@ -24,6 +24,8 @@ export class TodoDraft {
   startDate = $state<LocalDate | null>(null);
   deferred = $state(false);
   deadline = $state<LocalDate | null>(null);
+  /** A date and time, or a time only while placed in a repeating project's template (FR-3.8). */
+  reminder = $state<string | null>(null);
   /** The user's priority choice; `undefined` until they choose (None is `null`). */
   priority = $state<Priority | null | undefined>(undefined);
   tagIds = $state<ID[]>([]);
@@ -57,6 +59,7 @@ export class TodoDraft {
       startDate: this.startDate,
       deferred: this.deferred,
       deadline: this.deadline,
+      reminder: this.reminder,
       tagIds: [...this.tagIds],
       contextId: this.contextId,
       checklist: this.checklist.toSave(),

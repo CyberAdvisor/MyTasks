@@ -11,7 +11,7 @@ import { upgradeList } from '../src/lib/db/migrations';
 import { addDays, today } from '../src/lib/model/dates';
 import {
   copyReminderOf, formatTime, isReminderAt, isReminderTime, parseTime, parseTypedReminder,
-  reminderLabel, reminderPresets, templateReminder,
+  newTaskReminder, reminderLabel, reminderPresets, templateReminder,
 } from '../src/lib/model/reminder';
 import { isValidRecord } from '../src/lib/sync/validate';
 import { readRows } from '../src/lib/import/rows';
@@ -139,6 +139,20 @@ describe('reminders on tasks', () => {
     await repo.setRepeat(pills, rule(), addDays(today(), 2));
     await repo.stopRepeat(pills);
     expect((await db.todos.get(pills))!.reminder).toBe(`${addDays(today(), 2)}T10:00`);
+  });
+
+  it('a new task keeps a date and time; in a repeating project\'s template, the time only (Quick Entry, FR-8.1)', async () => {
+    expect(newTaskReminder('2026-11-26T09:00', false)).toBe('2026-11-26T09:00');
+    expect(newTaskReminder('2026-11-26T09:00', true)).toBe('09:00');
+    expect(newTaskReminder('09:00', true)).toBe('09:00');
+    expect(newTaskReminder('09:00', false)).toBeNull(); // no day to ring on
+    expect(newTaskReminder(null, true)).toBeNull();
+    const projectId = await repo.createProject({ title: 'Week' });
+    await repo.setProjectRepeat(projectId, rule({ unit: 'week' }), addDays(today(), 3));
+    const inTemplate = await repo.createTodo({ title: 'Plan', projectId, reminder: '2026-11-26T08:00' });
+    expect((await db.todos.get(inTemplate))!.reminder).toBe('08:00');
+    const loose = await repo.createTodo({ title: 'Call', reminder: '08:00' });
+    expect((await db.todos.get(loose))!.reminder).toBeNull();
   });
 
   it("a repeating project's tasks keep a time, and its copies' tasks a date", async () => {

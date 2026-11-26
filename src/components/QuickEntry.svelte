@@ -1,7 +1,8 @@
 <!--
   Quick Entry (FR-8.1): a floating card for writing a new to-do with every
   field: title, notes, checklist, then the fields bar shared with the card
-  (FieldBar: tags, When, deadline, priority, context), led by where it goes
+  (FieldBar: tags, When, deadline, reminder while reminders are on, priority,
+  context), led by where it goes
   (the Inbox unless opened from another view, FR-10.5).
   Nothing is stored until Save (Enter in the title, or Cmd/Ctrl+Enter);
   Cancel or Escape discards the draft.
@@ -16,6 +17,8 @@
   import { ui } from '../lib/state/ui.svelte';
   import { snapshot, todayDate } from '../lib/state/live';
   import { saveDraft } from '../lib/actions';
+  import { remindersOn } from '../lib/calendar/calendar';
+  import { newTaskReminder } from '../lib/model/reminder';
   import type { TodoDraft } from '../lib/state/draft.svelte';
   import type { TodoPlacement } from '../lib/db/repo';
   import type { ID, LocalDate } from '../lib/model/types';
@@ -38,6 +41,10 @@
   let ref = $derived($todayDate);
   let hasWhen = $derived(draft.deferred || draft.startDate !== null);
   let where = $derived(placementLabel(draft.placement));
+  /** Placed in a repeating project's template, the reminder is a time on each copy's day (FR-3.8). */
+  let reminderByTime = $derived(!!draft.placement.projectId && !!$snapshot.projects.find((p) => p.id === draft.placement.projectId)?.repeat);
+  /** The reminder as it will be saved where the draft is placed now. */
+  let reminderShown = $derived(newTaskReminder(draft.reminder, reminderByTime));
 
   $effect(() => {
     dialog.showModal();
@@ -136,17 +143,18 @@
       startDate: draft.startDate,
       deferred: draft.deferred,
       deadline: draft.deadline,
-      reminder: null,
+      reminder: reminderShown,
       priority: draft.priority ?? null,
       contextId: draft.contextId,
       tagIds: draft.tagIds,
       hasChecklist: draft.checklist.items.length > 0,
     }}
     {ref}
-    reminderField={false}
+    {reminderByTime}
+    reminderField={$remindersOn}
     onwhen={(choice) => draft.setWhen(choice, ref)}
     ondeadline={chooseDeadline}
-    onreminder={() => {}}
+    onreminder={(reminder) => (draft.reminder = reminder)}
     onpriority={(p) => (draft.priority = p)}
     oncontext={(contextId) => (draft.contextId = contextId)}
     ontoggletag={(tagId, on) => draft.toggleTag(tagId, on)}

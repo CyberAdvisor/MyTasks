@@ -64,6 +64,16 @@ export function templateReminder(r: string | null): ReminderTime | null {
   return r ? reminderTime(r) : null;
 }
 
+/**
+ * The reminder a new task keeps (FR-3.8, FR-8.1): in a repeating project's
+ * template, the time only; elsewhere a date and time, so a time only (from a
+ * draft first placed in a template) is dropped, having no day to ring on.
+ */
+export function newTaskReminder(r: string | null, inTemplate: boolean): string | null {
+  if (inTemplate) return templateReminder(r);
+  return r && isReminderTime(r) ? null : r;
+}
+
 /** The reminder a repeat's copy dated `date` gets from its template's reminder: that time on that day. */
 export function copyReminderOf(r: string | null, date: LocalDate | null): ReminderAt | null {
   return r && date ? reminderAt(date, reminderTime(r)) : null;
