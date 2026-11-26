@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.13.5"></a>
+
+## 1.13.5 — 2026-11-26
+
+### Changed
+
+- No visible change: the open card and Quick Entry now draw their fields (tags, Start Date, Deadline, Reminder, Priority, Context and Checklist) with one shared component, so they stay alike.
+
 <a id="v1.13.4"></a>
 
 ## 1.13.4 — 2026-11-26
