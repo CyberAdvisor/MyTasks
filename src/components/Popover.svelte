@@ -14,6 +14,10 @@
   it when tapped (Section 6, Popovers; since v1.1.13). Pinned under its
   button, a panel could run off the screen: in the new-task dialog the empty
   fields' buttons sit on the left.
+
+  With `titled` (a task's field pickers, FieldBar), the panel is titled with
+  `label` on every device, and elsewhere has a small arrow pointing at the
+  middle of its button, so it's clear which field is being set.
 -->
 <script lang="ts">
   import { tick, type Snippet } from 'svelte';
@@ -25,6 +29,7 @@
     above = false,
     block = false,
     sheetTitle = true,
+    titled = false,
     trigger,
     children,
   }: {
@@ -39,12 +44,18 @@
     block?: boolean;
     /** On phones, title the sheet with `label`; off when the panel shows its own title. */
     sheetTitle?: boolean;
+    /** Title the panel with `label` on every device, with an arrow to its button (FieldBar's pickers). */
+    titled?: boolean;
     /** The trigger; call `toggle` to open or close the panel. */
     trigger: Snippet<[toggle: () => void, open: boolean]>;
     children: Snippet;
   } = $props();
 
   let wrap: HTMLDivElement;
+  /** The trigger's width (the wrap holds only it; the panel is absolutely placed), for the arrow. */
+  let triggerWidth = $state(0);
+  /** The arrow's distance from the panel's edge nearest the trigger, so it points at the trigger's middle. */
+  let arrowAt = $derived(Math.max(8, triggerWidth / 2 - 6));
 
   const toggle = () => (open = !open);
 
@@ -169,13 +180,14 @@
   });
 </script>
 
-<div class="wrap" class:block bind:this={wrap} data-popover={label}>
+<div class="wrap" class:block bind:this={wrap} bind:clientWidth={triggerWidth} data-popover={label}>
   {@render trigger(toggle, open)}
   {#if open}
     <!-- Phones only (hidden by CSS elsewhere); a tap on it closes the sheet. -->
     <div class="backdrop" aria-hidden="true" onclick={() => (open = false)}></div>
-    <div class="panel" class:left={align === 'left'} class:above role="dialog" aria-label={label} data-popover-panel>
-      {#if sheetTitle}<div class="sheet-title" aria-hidden="true">{label}</div>{/if}
+    <div class="panel" class:left={align === 'left'} class:above class:titled role="dialog" aria-label={label} data-popover-panel>
+      {#if titled}<span class="arrow" aria-hidden="true" style="{align === 'left' ? 'left' : 'right'}: {arrowAt}px"></span>{/if}
+      {#if sheetTitle || titled}<div class="sheet-title" aria-hidden="true">{label}</div>{/if}
       <div class="body">{@render children()}</div>
     </div>
   {/if}
@@ -209,8 +221,28 @@
     left: 0;
   }
   .backdrop,
-  .sheet-title {
+  .sheet-title,
+  .arrow {
     display: none;
+  }
+  /* A field picker (FieldBar): its title, and an arrow up to its button. */
+  .panel.titled .sheet-title {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 8px 7px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .panel.titled .arrow {
+    display: block;
+    position: absolute;
+    top: -6px;
+    width: 12px;
+    height: 12px;
+    background: var(--surface);
+    transform: rotate(45deg);
+    box-shadow: -1px -1px 1px rgba(0, 0, 0, 0.06);
   }
 
   /* Phones: a sheet along the bottom of the screen (Section 6, Popovers). */
@@ -236,11 +268,18 @@
       padding: 10px 16px calc(16px + env(safe-area-inset-bottom));
       z-index: var(--z-sheet);
     }
-    .sheet-title {
+    .sheet-title,
+    .panel.titled .sheet-title {
       display: block;
+      font-size: inherit;
       font-weight: 600;
       text-align: center;
+      padding: 0;
+      border: 0;
       margin-bottom: 8px;
+    }
+    .panel.titled .arrow {
+      display: none;
     }
     /* One centred column, so menus don't stretch across a wide phone, with
        pickers of a set width (the calendar, Tags) in its middle. */

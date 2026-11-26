@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.13.7"></a>
+
+## 1.13.7 — 2026-11-26
+
+### Changed
+
+- In a task's card and in Quick Entry, each field's picker is now titled with the field's name (Start Date, Deadline, Reminder, Tags, Priority, Context) on every device, not only on phones; on the Mac, iPad and other wider screens a small arrow points at the button that opened it, and that button is highlighted while the picker is open.
+
 <a id="v1.13.6"></a>
 
 ## 1.13.6 — 2026-11-26
