@@ -5,8 +5,8 @@
   Below the card, a blue link names the to-do's project or
   area, with Go to Project and Change Project (the Move dialog).
   Edits save as you type, debounced 300 ms; there is no Save button.
-  Escape, Return in the title or on a field's button, or a click outside
-  closes it. With Settings › Task Titles on, the words just typed in the
+  Escape, Cmd/Ctrl+Return from any field, Return in the title or on a
+  field's button, or a click outside saves what was typed and closes it. With Settings › Task Titles on, the words just typed in the
   title that it will read are highlighted, with what they set underneath
   (FR-1.12).
   A repeating task's template (FR-4.3, FR-4.4) shows its rule and next dates
@@ -218,11 +218,15 @@
     return () => document.removeEventListener('pointerdown', onDown, true);
   });
 
-  // Escape closes the card, even after a menu choice has moved focus out of it.
-  // Open popovers stop the key first; keys inside dialogs are left to them.
+  // Escape, or Cmd/Ctrl+Return from any field (FR-1.2), saves and closes the
+  // card, even after a menu choice has moved focus out of it. Open popovers
+  // stop Escape first; keys inside dialogs are left to them.
   $effect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || (e.target as Element).closest?.('dialog')) return;
+      if ((e.target as Element).closest?.('dialog')) return;
+      const saveKey = e.key === 'Enter' && (e.metaKey || e.ctrlKey);
+      if (e.key !== 'Escape' && !saveKey) return;
+      if (saveKey) e.preventDefault();
       close();
     };
     document.addEventListener('keydown', onKey);
@@ -248,8 +252,9 @@
     return () => watch.disconnect();
   });
 
+  // Cmd/Ctrl+Return is left to the document's handler above.
   function onTitleKey(e: KeyboardEvent) {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey) {
       e.preventDefault();
       close();
     }

@@ -47,9 +47,11 @@ describe('keyboard bindings (Section 7)', async () => {
     expect(run(key('˙', { altKey: true, code: 'KeyH' }), tab)).toEqual(cmd('new-heading'));
   });
 
-  it('keeps Quick Entry on Ctrl+Space and Cmd+Shift+Space, freeing Cmd+Shift+N', () => {
+  it('keeps Quick Entry on Ctrl+Space only, freeing Cmd+Shift+N and Cmd+Shift+Space', () => {
     expect(run(key(' ', { ctrlKey: true }), { ...app, focus: 'text' })).toEqual(cmd('quick-entry'));
-    expect(run(key(' ', { metaKey: true, shiftKey: true }), tab)).toEqual(cmd('quick-entry'));
+    expect(run(key(' ', { ctrlKey: true }), tab)).toEqual(cmd('quick-entry'));
+    expect(run(key(' ', { metaKey: true, shiftKey: true }), tab)).not.toEqual(cmd('quick-entry'));
+    expect(run(key(' ', { metaKey: true, shiftKey: true }), app)).not.toEqual(cmd('quick-entry'));
   });
 
   it('runs "G then letter" sequences in a tab', () => {

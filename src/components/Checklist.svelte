@@ -132,7 +132,9 @@
 
   async function onKey(e: KeyboardEvent, item: ChecklistRow, index: number) {
     moved = null;
-    if (e.key === 'Enter') {
+    // Return adds the next item; Cmd/Ctrl+Return is left to the card and
+    // Quick Entry, which save and close (FR-1.2, FR-8.1).
+    if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey) {
       e.preventDefault();
       save(item.id);
       [focusId] = await ops.add([''], item.id);

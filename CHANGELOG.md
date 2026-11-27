@@ -4,6 +4,22 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.14.3"></a>
+
+## 1.14.3 — 2026-11-27
+
+### Added
+
+- Cmd+Return (Ctrl+Return off the Mac) saves what you typed in an open task and closes it, from any field: the title, the notes, a checklist item or a field's button. Quick Entry already saved on it.
+
+### Changed
+
+- Quick Entry opens with Ctrl+Space only; Cmd+Shift+Space is no longer a shortcut.
+
+### Fixed
+
+- Cmd+Return in a checklist item no longer adds an empty item before saving.
+
 <a id="v1.14.2"></a>
 
 ## 1.14.2 — 2026-11-27

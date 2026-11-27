@@ -102,6 +102,37 @@ test('Tab opens each picker in order, and a choice keeps the task in place until
   expect(errors).toEqual([]);
 });
 
+test('Cmd/Ctrl+Return saves and closes the card from the notes and a checklist item', async ({ context, page }) => {
+  await fakeGitHub(context);
+  const errors = watchErrors(page);
+  await connect(page);
+  await openList(page, 'Unscheduled');
+  await addTask(page, 'Call the bank');
+  const card = page.getByRole('group', { name: 'Edit task' });
+
+  // From the notes: what was typed is saved, and the card closes.
+  await page.getByText('Call the bank', { exact: true }).dblclick();
+  await card.getByLabel('Notes').click();
+  await page.keyboard.type('Ask about the limit');
+  await page.keyboard.press('ControlOrMeta+Enter');
+  await expect(card).toHaveCount(0);
+
+  // From a checklist item: no new empty item is added on the way.
+  await page.getByText('Call the bank', { exact: true }).dblclick();
+  await expect(card.getByText('Ask about the limit')).toBeVisible();
+  await card.getByRole('button', { name: 'Add checklist' }).click();
+  // The new item is stored first, then focused.
+  await expect(card.getByLabel('Checklist item')).toBeFocused();
+  await page.keyboard.type('Card number');
+  await page.keyboard.press('ControlOrMeta+Enter');
+  await expect(card).toHaveCount(0);
+  await page.getByText('Call the bank', { exact: true }).dblclick();
+  await expect(card.getByLabel('Checklist item')).toHaveCount(1);
+  await expect(card.getByLabel('Checklist item')).toHaveValue('Card number');
+
+  expect(errors).toEqual([]);
+});
+
 test("a field picker is titled with the field's name and points at its button, which is highlighted", async ({ context, page }) => {
   await fakeGitHub(context);
   const errors = watchErrors(page);
