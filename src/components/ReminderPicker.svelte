@@ -1,6 +1,7 @@
 <!--
   Reminder picker contents (FR-3.8), like the Start Date picker: a field for
-  typing a date and time ("tomorrow 9am", "fri 2:30pm", "in 2 hours"), the
+  typing a date and time ("tomorrow 9am", "fri 2:30pm", "in 2 hours"), under
+  the heading "Type a date and time", which stays while typing; the
   line saying what it understood, the presets (Later Today, Tomorrow, On the
   start date), a month calendar, a time field and Clear Reminder. A date
   chosen in the calendar takes the time field's time. On a repeating task's
@@ -65,18 +66,20 @@
   {#if template}
     <p class="note">Reminder on each copy's day</p>
   {:else}
-    <input
-      bind:this={input}
-      bind:value={text}
-      onkeydown={onKey}
-      class="typed"
-      placeholder="Type a date and time: tom 9am"
-      aria-label="Type a date and time"
-      aria-describedby="typed-reminder-result"
-      autocomplete="off"
-      autocapitalize="off"
-      spellcheck="false"
-    />
+    <label class="typed-label">
+      <span class="typed-heading">Type a date and time</span>
+      <input
+        bind:this={input}
+        bind:value={text}
+        onkeydown={onKey}
+        class="typed"
+        placeholder="tom 9am"
+        aria-describedby="typed-reminder-result"
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+      />
+    </label>
     {#if text.trim()}
       <p id="typed-reminder-result" class="result" class:off={!typed} role="status">
         {#if typed}{reminderLabel(typed, ref)} · press Return{:else}Try “tomorrow 9am”, “fri 2:30pm” or “in 2 hours”{/if}
@@ -118,6 +121,16 @@
     padding: 4px 8px 6px;
     font-size: 13px;
     font-weight: 600;
+  }
+  .typed-label {
+    display: block;
+  }
+  .typed-heading {
+    display: block;
+    padding: 0 2px 3px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2);
   }
   .typed {
     width: 100%;

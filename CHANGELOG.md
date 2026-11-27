@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.14.2"></a>
+
+## 1.14.2 — 2026-11-27
+
+### Changed
+
+- The typing field in the Start Date and Deadline pickers has a small heading, "Type a date", and the Reminder picker's has "Type a date and time". The heading stays above the field while you type, where the hint inside it used to disappear; the hint now holds only examples ("tom, next fri, jan 12", "tom 9am").
+
 <a id="v1.14.1"></a>
 
 ## 1.14.1 — 2026-11-27
