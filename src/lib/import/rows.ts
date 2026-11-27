@@ -309,7 +309,8 @@ function readRepeat(
 }
 
 /** `15`, `last`, `2nd tue`, `last fri`. */
-function readDay(d: string, fail: (p: string) => never): RepeatDay {
+/** A repeat_month_day cell ("15", "last", "2nd tue") as a rule's day; also read for repeats typed in titles (FR-1.12). */
+export function readDay(d: string, fail: (p: string) => never): RepeatDay {
   if (/^\d{1,2}$/.test(d) && Number(d) >= 1 && Number(d) <= 31) return { ordinal: Number(d), weekday: null };
   const [o, w] = d.split(/\s+/);
   const ordinal = ORDINALS[o];

@@ -20,6 +20,7 @@ import { TodoDraft, type DraftStart } from './state/draft.svelte';
 import { focusedArea, fullSnapshot, snapshot } from './state/live';
 import { go, hrefFor, route, type Route } from './state/route';
 import { ui } from './state/ui.svelte';
+import { messageFor, readDraftTitle } from './titleEntry';
 
 /**
  * Where a new to-do starts when Quick Entry is opened from a view (FR-10.5):
@@ -136,15 +137,23 @@ export async function saveDraft(): Promise<void> {
   const draft = ui.draft;
   if (!draft) return;
   ui.draft = null;
+  // Dates and details typed in the title become fields (FR-1.12), when this device reads titles.
+  const reading = readDraftTitle(draft);
+  const repeat = reading?.fields.repeat;
   let id: ID;
   try {
-    id = await repo.createTodo(draft.toNewTodo());
+    id = await undoGroup(async () => {
+      const made = await repo.createTodo(draft.toNewTodo());
+      if (repeat) await repo.setRepeat(made, repeat.rule, repeat.first);
+      return made;
+    });
   } catch (e) {
     ui.draft = draft; // keep what was typed; the refusal or failure (main.ts) shows over it
     throw e;
   }
   ui.selectedId = id;
-  await sayWhereAdded(id);
+  if (reading) ui.noteTitleRead(id, messageFor(reading));
+  else await sayWhereAdded(id);
 }
 
 /**

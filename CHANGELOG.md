@@ -4,6 +4,14 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.14.0"></a>
+
+## 1.14.0 — 2026-11-27
+
+### Added
+
+- Dates and details typed in a task's title can set its fields (natural-language entry), once **Settings › Task Titles › Read dates and details from task titles** is switched on; it's off until then, and kept on each device. In Quick Entry, and when a task's title is typed or added to in its card, words such as "tomorrow", "fri", "jan 12" or "in 3 days" set the Start Date; "by fri" or "due jan 12" the deadline; "at 9am", "tomorrow 9am" or "in 30 minutes" a reminder (once reminders are on); "every mon" or "every 15th" a repeat; p1 to p5 the priority; #tag an existing tag and @context an existing context. The words leave the title, and "From the title: …" says what they set, with Undo. Only words just typed are read in a title that's changed, so words already in it stay as they are. Words in quotes are never read, nor short forms that are also everyday words or names ("Tom", "sun", "sat", "wed", "may"), a number alone, or a date in numbers without its year.
+
 <a id="v1.13.7"></a>
 
 ## 1.13.7 — 2026-11-26

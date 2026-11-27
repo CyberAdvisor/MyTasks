@@ -1,6 +1,6 @@
 {
   "name": "mytasks",
-  "version": "1.13.7",
+  "version": "1.14.0",
   "private": true,
   "description": "My Tasks - A free and open source task manager",
   "type": "module",

@@ -32,6 +32,7 @@
   import { checklistFor } from '../lib/model/tags';
   import { storedChecklist } from '../lib/state/checklist.svelte';
   import * as repo from '../lib/db/repo';
+  import { messageFor, readTaskTitle } from '../lib/titleEntry';
   import type { ID, LocalDate, Todo } from '../lib/model/types';
 
   let { todo: listed, ref }: { todo: Todo; ref: LocalDate } = $props();
@@ -46,6 +47,9 @@
   // svelte-ignore state_referenced_locally
   let notes = $state(todo.notes);
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
+  /** The title as last read (FR-1.12): only words typed since are read. */
+  // svelte-ignore state_referenced_locally
+  let titleBase = todo.title;
   /** The card and the project link under it; clicks inside keep the card open. */
   let card: HTMLDivElement;
 
@@ -114,7 +118,30 @@
 
   function close() {
     flush();
+    readTitleWords();
     ui.close();
+  }
+
+  /**
+   * Read the dates and details typed in the title since it was last read
+   * (FR-1.12): on Return, on leaving the title and when the card closes.
+   * The task's title loses the words read, and its fields are set.
+   */
+  function readTitleWords() {
+    const typed = title;
+    const base = titleBase;
+    const task = todo;
+    if (typed === base) return;
+    titleBase = typed;
+    void readTaskTitle(task, base, typed).then((r) => {
+      if (!r) return;
+      titleBase = r.title;
+      if (title === typed) {
+        title = r.title;
+        if (titleInput) fitTitle();
+      }
+      ui.noteTitleRead(task.id, messageFor(r));
+    });
   }
 
   // Focus the title of a new (empty) to-do so the user can type at once, and
@@ -167,7 +194,10 @@
     return () => document.removeEventListener('keydown', onKey);
   });
 
-  onDestroy(flush);
+  onDestroy(() => {
+    flush();
+    readTitleWords();
+  });
   // Leaving the app saves the typed title and notes at once (review C7).
   $effect(() => onHide(flush));
 
@@ -238,6 +268,7 @@
         scheduleSave();
       }}
       onkeydown={onTitleKey}
+      onblur={readTitleWords}
       placeholder="New Task"
       autocomplete="off"
     ></textarea>
