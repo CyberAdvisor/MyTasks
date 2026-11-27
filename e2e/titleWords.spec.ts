@@ -59,10 +59,13 @@ test('A changed title reads only the words just typed', async ({ context, page }
   await title.pressSequentially(' p3');
   await title.press('Enter');
 
-  // "friday" was already there, so it stays text; "p3" sets the priority.
+  // "friday" was already there, so it stays text; "p3" sets the priority and leaves the title.
   const review = row(page, 'Review friday notes');
-  await expect(review).toBeVisible();
+  await expect(review.locator('.title')).toHaveText('Review friday notes');
   await expect(review.getByText('P3', { exact: true })).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: 'From the title: P3' })).toBeVisible();
+  // It stays so: closing the card mustn't save the typed title over the shorter one.
+  await page.waitForTimeout(1000);
+  await expect(review.locator('.title')).toHaveText('Review friday notes');
   expect(errors).toEqual([]);
 });

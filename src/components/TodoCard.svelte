@@ -32,7 +32,7 @@
   import { checklistFor } from '../lib/model/tags';
   import { storedChecklist } from '../lib/state/checklist.svelte';
   import * as repo from '../lib/db/repo';
-  import { messageFor, readTaskTitle } from '../lib/titleEntry';
+  import { applyTaskTitle, messageFor, readTaskTitle } from '../lib/titleEntry';
   import type { ID, LocalDate, Todo } from '../lib/model/types';
 
   let { todo: listed, ref }: { todo: Todo; ref: LocalDate } = $props();
@@ -50,6 +50,9 @@
   /** The title as last read (FR-1.12): only words typed since are read. */
   // svelte-ignore state_referenced_locally
   let titleBase = todo.title;
+  /** Text typed in this card and not saved yet: only that is saved, never a copy another card or a reading has replaced. */
+  let titleTyped = false;
+  let notesTyped = false;
   /** The card and the project link under it; clicks inside keep the card open. */
   let card: HTMLDivElement;
 
@@ -106,9 +109,9 @@
   function flush() {
     clearTimeout(saveTimer);
     saveTimer = undefined;
-    if (title !== todo.title || notes !== todo.notes) {
-      void repo.updateTodoText(todo.id, { title, notes });
-    }
+    const changes = { ...(titleTyped && title !== todo.title ? { title } : {}), ...(notesTyped && notes !== todo.notes ? { notes } : {}) };
+    titleTyped = notesTyped = false;
+    if (Object.keys(changes).length) void repo.updateTodoText(todo.id, changes);
   }
 
   function scheduleSave() {
@@ -117,14 +120,15 @@
   }
 
   function close() {
-    flush();
     readTitleWords();
+    flush();
     ui.close();
   }
 
   /**
    * Read the dates and details typed in the title since it was last read
-   * (FR-1.12): on Return, on leaving the title and when the card closes.
+   * (FR-1.12): on Return, on leaving the title and when the card closes
+   * (not on teardown, whose copy of the title can be stale).
    * The task's title loses the words read, and its fields are set.
    */
   function readTitleWords() {
@@ -132,16 +136,19 @@
     const base = titleBase;
     const task = todo;
     if (typed === base) return;
-    titleBase = typed;
-    void readTaskTitle(task, base, typed).then((r) => {
-      if (!r) return;
-      titleBase = r.title;
-      if (title === typed) {
-        title = r.title;
-        if (titleInput) fitTitle();
-      }
-      ui.noteTitleRead(task.id, messageFor(r));
-    });
+    const r = readTaskTitle(task, base, typed);
+    titleBase = r ? r.title : typed;
+    if (!r) return;
+    // The shorter title is saved with the fields, not by the next flush.
+    clearTimeout(saveTimer);
+    saveTimer = undefined;
+    titleTyped = false;
+    title = r.title;
+    if (titleInput) {
+      titleInput.value = r.title;
+      fitTitle();
+    }
+    void applyTaskTitle(task.id, r).then(() => ui.noteTitleRead(task.id, messageFor(r)));
   }
 
   // Focus the title of a new (empty) to-do so the user can type at once, and
@@ -155,6 +162,7 @@
     if (!typed) return;
     title = titleInput.value = typed;
     fitTitle();
+    titleTyped = true;
     scheduleSave();
   });
 
@@ -194,10 +202,7 @@
     return () => document.removeEventListener('keydown', onKey);
   });
 
-  onDestroy(() => {
-    flush();
-    readTitleWords();
-  });
+  onDestroy(flush);
   // Leaving the app saves the typed title and notes at once (review C7).
   $effect(() => onHide(flush));
 
@@ -265,6 +270,7 @@
       oninput={() => {
         if (/[\r\n]/.test(title)) title = title.replace(/\s*[\r\n]+\s*/g, ' ');
         fitTitle();
+        titleTyped = true;
         scheduleSave();
       }}
       onkeydown={onTitleKey}
@@ -275,7 +281,15 @@
   </div>
 
   <div class="notes-wrap">
-    <NotesField id="notes-{todo.id}" label="Notes" bind:value={notes} oninput={scheduleSave} />
+    <NotesField
+      id="notes-{todo.id}"
+      label="Notes"
+      bind:value={notes}
+      oninput={() => {
+        notesTyped = true;
+        scheduleSave();
+      }}
+    />
   </div>
 
   <Checklist items={checklistItems} ops={checklistOps} bind:focusId={checklistFocus} />

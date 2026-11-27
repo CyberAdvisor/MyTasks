@@ -81,23 +81,20 @@ export function titleSummary(f: TitleFields, ref: LocalDate, s: Snapshot, prefs:
 export const titleMessage = (summary: string) => `From the title: ${summary}`;
 
 /**
- * Read the words typed in an open task's title since `before` and, if any are
- * read, save the shorter title and set the fields, as one undo step. Returns
- * the reading, or null when the setting is off or nothing was read.
+ * Read the words typed in an open task's title since `before` (FR-1.12).
+ * Returns the reading, or null when the setting is off or nothing was read;
+ * `applyTaskTitle` then saves it.
  */
-export async function readTaskTitle(todo: Todo, before: string, title: string): Promise<TitleReading | null> {
+export function readTaskTitle(todo: Todo, before: string, title: string): TitleReading | null {
   if (!get(store)) return null;
-  const s = get(fullSnapshot);
   const part = typedPart(before, title);
   if (part.from >= part.to) return null;
-  const reading = readTitle(title, titleContext(todo, s), part);
-  if (!hasFields(reading.fields)) return null;
-  await applyFields(todo.id, reading);
-  return reading;
+  const reading = readTitle(title, titleContext(todo, get(fullSnapshot)), part);
+  return hasFields(reading.fields) ? reading : null;
 }
 
-/** Save the read title and its fields on a task, as one undo step and one transaction. */
-async function applyFields(id: ID, r: TitleReading): Promise<void> {
+/** Save a reading's shorter title and its fields on a task, as one undo step and one transaction. */
+export async function applyTaskTitle(id: ID, r: TitleReading): Promise<void> {
   const f = r.fields;
   const ref = today();
   await undoGroup(() =>
