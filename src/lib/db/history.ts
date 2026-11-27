@@ -116,6 +116,11 @@ export function onLocalChange(fn: () => void): () => void {
   return () => listeners.delete(fn);
 }
 
+/** Tell the `onLocalChange` listeners of a change saved outside `tx`: a daily note (FR-24.1), kept in its own database. */
+export function noteLocalChange(): void {
+  for (const l of listeners) l();
+}
+
 /**
  * Call `fn` after every committed tracked change with the tasks it touched,
  * as they were before it (tasks it created are left out). Returns a

@@ -4,6 +4,20 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.15.0"></a>
+
+## 1.15.0 — 2026-11-27
+
+### Added
+
+- Daily notes, first part: switch on Settings › Daily Notes on a device, and Today has a Daily Note between its calendar events and its tasks. Each line is a bullet (Return starts the next), shown with bold, italic and links as in a task's notes once you leave it. It saves as you type.
+- Each gist keeps its daily notes in a file of their own, `notes.json`, beside the tasks, encrypted with the gist's passphrase. They sync with the tasks, day by day: when the same day's note was changed on two devices, the later change is kept, and the other device is told. Clearing a note clears it on every device.
+- Settings › Daily Notes shows the notes file's size, and the sidebar warns from 4.5 MB of its 5 MB.
+
+### Notes
+
+- The tasks' file and schema don't change: devices on older versions keep syncing the tasks and leave the notes file alone. Daily notes are off on each device until switched on there.
+
 <a id="v1.14.3"></a>
 
 ## 1.14.3 — 2026-11-27

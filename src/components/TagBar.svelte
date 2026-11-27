@@ -55,9 +55,11 @@
       margin: -24px 0 26px 34px;
     }
   }
-  /* Under Today's calendar events (FR-21.3) the bar isn't pulled up to the
-     title: the events block's own 12 px margin is the gap, on every device. */
-  :global(section.events) + .bar {
+  /* Under Today's calendar events (FR-21.3) or daily note (FR-24.1) the bar
+     isn't pulled up to the title: the block's own 12 px margin is the gap, on
+     every device. */
+  :global(section.events) + .bar,
+  :global(section.daily-note) + .bar {
     margin-top: 0;
   }
   .pill {

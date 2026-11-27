@@ -182,6 +182,9 @@ export async function findGists(token: string): Promise<GistRef[]> {
   return found.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
 }
 
+/** The daily notes (FR-24.1), written by the app beside the tasks. */
+export const NOTES_FILE = 'notes.json';
+
 /** The calendar helper's files in the same gist, written only by the Mac helper: events (FR-21.2) and ticks (FR-21.11). */
 const CALENDAR_FILE = 'calendar.json';
 const TICKS_FILE = 'ticks.json';
@@ -197,6 +200,7 @@ interface GistFile {
 /** The files the app reads from its gist; null when the gist lacks one. */
 export interface GistFiles {
   tasks: string | null;
+  notes: string | null;
   calendar: string | null;
   ticks: string | null;
 }
@@ -217,15 +221,21 @@ async function fullText(file: GistFile | undefined): Promise<string | null> {
 }
 
 /**
- * The My Tasks file and the helper's calendar and ticks files in a gist, from
- * one request (the helper's files cost no extra request unless they're long).
+ * The My Tasks file, the daily notes and the helper's calendar and ticks files
+ * in a gist, from one request (the other files cost no extra request unless
+ * they're long).
  */
 export async function readGistFiles(token: string, id: string): Promise<GistFiles> {
   const gist = await request('GET', `/gists/${id}`, token, json<{ files?: Record<string, GistFile | undefined> }>);
   const tasks = await fullText(gist.files?.[GIST_FILE]);
-  // Only read the helper's files when the tasks file is there: no tasks file is a sync error anyway.
-  if (tasks === null) return { tasks, calendar: null, ticks: null };
-  return { tasks, calendar: await fullText(gist.files?.[CALENDAR_FILE]), ticks: await fullText(gist.files?.[TICKS_FILE]) };
+  // Only read the other files when the tasks file is there: no tasks file is a sync error anyway.
+  if (tasks === null) return { tasks, notes: null, calendar: null, ticks: null };
+  return {
+    tasks,
+    notes: await fullText(gist.files?.[NOTES_FILE]),
+    calendar: await fullText(gist.files?.[CALENDAR_FILE]),
+    ticks: await fullText(gist.files?.[TICKS_FILE]),
+  };
 }
 
 /** The My Tasks file in a gist, or null when the gist no longer has it. */
@@ -242,6 +252,11 @@ export async function createGist(token: string, write: GistWrite): Promise<strin
     files: { [GIST_FILE]: { content: write.content } },
   });
   return created.id;
+}
+
+/** Replace the daily notes file (FR-24.1) in an existing gist; the description and other files are left as they are. */
+export async function writeNotes(token: string, id: string, content: string): Promise<void> {
+  await request('PATCH', `/gists/${id}`, token, async () => undefined, { files: { [NOTES_FILE]: { content } } });
 }
 
 /** Replace the My Tasks file in an existing gist, and its description; other files are left as they are. */

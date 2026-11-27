@@ -18,6 +18,8 @@
   import TagBar from '../components/TagBar.svelte';
   import ListMenu from '../components/ListMenu.svelte';
   import CalendarEvents from '../components/CalendarEvents.svelte';
+  import DailyNote from '../components/DailyNote.svelte';
+  import { dailyNotesOn } from '../lib/notes/setting';
   import ScheduledEvents from '../components/ScheduledEvents.svelte';
   import { calendar } from '../lib/calendar/calendar';
   import { hasEventsIn } from '../lib/calendar/events';
@@ -205,6 +207,7 @@
 
 {#if list === 'today'}
   <CalendarEvents day={ref} label="Today's calendar events" />
+  {#if $dailyNotesOn}<DailyNote date={ref} />{/if}
 {/if}
 
 <TagBar tags={offered} />

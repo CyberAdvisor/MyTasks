@@ -19,6 +19,7 @@
   import { sync } from '../lib/sync/sync.svelte';
   import { changesSince, taskCount } from '../lib/state/live';
   import { roomWarning } from '../lib/model/limits';
+  import { notesChars } from '../lib/notes/sync';
   import { siteUrl } from '../lib/website';
 
   /** Shown at the right of the bottom line. */
@@ -32,8 +33,8 @@
     return changesSince(since).subscribe((n) => (waiting = n));
   });
 
-  /** How near the gist's limits it is, by tasks or by size; null when neither is near. */
-  let room = $derived(roomWarning($taskCount, sync.config?.lastSync?.chars));
+  /** How near the gist's limits it is, by tasks, by size or by its daily notes' size; null when none is near. */
+  let room = $derived(roomWarning($taskCount, sync.config?.lastSync?.chars, $notesChars));
   let line = $derived(syncedLine(sync.status, sync.config?.lastSyncedAt ?? null));
   let message = $derived(syncMessage(sync.status, sync.problem, sync.config?.lastSyncedAt ?? null, waiting));
 
