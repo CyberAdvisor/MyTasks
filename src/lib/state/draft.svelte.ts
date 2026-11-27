@@ -5,6 +5,7 @@
  */
 import type { NewTodo, TodoPlacement, WhenChoice } from '../db/repo';
 import type { ID, LocalDate, Priority, TodoStart } from '../model/types';
+import type { TitleSpan } from '../model/titleWords';
 import { DraftChecklist } from './checklist.svelte';
 
 /** Where and when a new draft starts, from the view it was opened in. */
@@ -18,6 +19,8 @@ export interface DraftStart {
 
 export class TodoDraft {
   title = $state('');
+  /** Parts of the title kept as text (FR-1.12), moved with the text as it changes. */
+  kept = $state<TitleSpan[]>([]);
   notes = $state('');
   placement = $state<TodoPlacement>({});
   start = $state<TodoStart>('inbox');

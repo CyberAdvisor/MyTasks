@@ -4,6 +4,19 @@ What changed in each version of My Tasks. The app shows its version at the botto
 
 Versions follow [Semantic Versioning](https://semver.org). The first change to the app in a milestone raises the middle number and later ones the last number; the first number changes only for a major release. Each pull request that changes the app adds its section here and sets the version in `package.json`. The format follows [Keep a Changelog](https://keepachangelog.com).
 
+<a id="v1.14.1"></a>
+
+## 1.14.1 — 2026-11-27
+
+### Added
+
+- With Settings › Task Titles on, the words a title will set are highlighted as you type, in Quick Entry and in a task's card, and the line under the title says what they'll set ("Tomorrow · P1 · Errand — set on Return"), or why a word will stay as text ("#utilities isn't one of your tags"). A click or tap on a highlighted word keeps it as text, shown with a dotted underline; another click reads it again.
+- Return on a field's button (Start Date, Tags, Deadline, Reminder, Priority, Context, or Quick Entry's Where) finishes, as in Things: Quick Entry saves the task and a task's card closes. Space, or a click, still opens the field's picker.
+
+### Changed
+
+- "From the title: …" says "Tomorrow" for tomorrow, as the Start Date does, not the weekday.
+
 <a id="v1.14.0"></a>
 
 ## 1.14.0 — 2026-11-27

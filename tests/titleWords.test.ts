@@ -3,7 +3,7 @@
  * it leaves as text, and the part of a changed title that is new.
  */
 import { describe, expect, it } from 'vitest';
-import { readTitle, typedPart, type TitleContext } from '../src/lib/model/titleWords';
+import { readTitle, shiftKept, typedPart, type TitleContext } from '../src/lib/model/titleWords';
 
 // Friday, November 27, 2026, 8:00 AM.
 const ctx = (over: Partial<TitleContext> = {}): TitleContext => ({
@@ -130,7 +130,7 @@ describe('readTitle', () => {
   });
 
   it('skips words kept as text, and words outside the part read', () => {
-    expect(readTitle('Review the notes from friday', ctx(), { kept: new Set([22]) }).fields).toEqual({});
+    expect(readTitle('Review the notes from friday', ctx(), { kept: [{ from: 22, to: 28 }] }).fields).toEqual({});
     const title = 'Review friday notes tomorrow';
     expect(readTitle(title, ctx(), { from: 20 }).fields).toEqual({ startDate: '2026-11-28' });
   });
@@ -146,5 +146,36 @@ describe('typedPart', () => {
     ['Call Sam', 'Call Sam', 8, 8],
   ])('%j → %j', (before, now, from, to) => {
     expect(typedPart(before, now)).toEqual({ from, to });
+  });
+});
+
+describe('kept words', () => {
+  it('leaves every word of a kept phrase as text', () => {
+    const title = 'Call Sam tomorrow at 9am';
+    const r = readTitle(title, ctx(), { kept: [{ from: 9, to: 17 }] });
+    expect(r.fields).toEqual({ reminder: '2026-11-27T09:00' });
+    expect(r.title).toBe('Call Sam tomorrow');
+  });
+
+  it('moves with text typed before them and stays put for text typed after', () => {
+    const kept = [{ from: 9, to: 15 }];
+    expect(shiftKept(kept, 'Pay rent friday', 'Pay the rent friday')).toEqual([{ from: 13, to: 19 }]);
+    expect(shiftKept(kept, 'Pay rent friday', 'Pay rent friday p1')).toEqual(kept);
+  });
+
+  it('is dropped when the change runs into it', () => {
+    expect(shiftKept([{ from: 9, to: 15 }], 'Pay rent friday', 'Pay rent fry')).toEqual([]);
+  });
+});
+
+describe('words recognised but not used', () => {
+  it('says why an unknown #tag or @context stays as text', () => {
+    const r = readTitle('Pay bill #utilities @office', ctx());
+    expect(r.fields).toEqual({});
+    expect(r.unused.map((u) => u.why)).toEqual(['#utilities isn’t one of your tags', '@office isn’t one of your contexts']);
+  });
+
+  it('says nothing for a number after #', () => {
+    expect(readTitle('Fix issue #4521', ctx()).unused).toEqual([]);
   });
 });
