@@ -15,7 +15,9 @@ const focused = (page: Page) =>
     const el = document.activeElement as HTMLElement;
     if (el.matches('input.title, textarea.title')) return 'Title';
     const picker = el.closest('[data-popover]')?.getAttribute('data-popover');
-    const name = el.getAttribute('aria-label') ?? el.getAttribute('placeholder') ?? el.textContent?.trim() ?? '';
+    // A typing field is named by its visible heading, the label around it.
+    const label = (el as HTMLInputElement).labels?.[0]?.textContent?.trim() || null;
+    const name = el.getAttribute('aria-label') ?? label ?? el.getAttribute('placeholder') ?? el.textContent?.trim() ?? '';
     return picker ? `${picker}: ${name}` : name;
   });
 
@@ -119,6 +121,13 @@ test("a field picker is titled with the field's name and points at its button, w
     // The arrow's tip sits under the middle of the button.
     const [b, a] = [await button.boundingBox(), await panel.locator('.arrow').boundingBox()];
     expect(Math.abs(a!.x + a!.width / 2 - (b!.x + b!.width / 2))).toBeLessThan(4);
+    if (field !== 'Priority') {
+      // The typing field's heading shows, and stays once something is typed.
+      const heading = panel.getByText('Type a date', { exact: true });
+      await expect(heading).toBeVisible();
+      await panel.getByLabel('Type a date', { exact: true }).fill('fri');
+      await expect(heading).toBeVisible();
+    }
     await page.keyboard.press('Escape');
     await expect(button).toHaveAttribute('aria-expanded', 'false');
   }

@@ -97,6 +97,8 @@ test('Quick Entry sets a reminder once the helper writes reminders, saved with t
   }
   await expect(page.getByLabel('Type a date and time')).toBeFocused();
   await page.getByLabel('Type a date and time').fill('tomorrow 9am');
+  // The field's heading stays above it once something is typed.
+  await expect(page.getByText('Type a date and time', { exact: true })).toBeVisible();
   await page.getByLabel('Type a date and time').press('Enter');
   await expect(quick.getByRole('button', { name: 'Tomorrow, 9:00 AM' })).toBeVisible();
   await quick.getByRole('button', { name: 'Save' }).click();

@@ -1,6 +1,7 @@
 <!--
   The typing field at the top of the Start Date and Deadline pickers
-  (FR-3.2). The line under it shows the date it understood ("Thu, Nov 19"),
+  (FR-3.2), with its heading, "Type a date", which stays while typing
+  (the placeholder holds only examples). The line under it shows the date it understood ("Thu, Nov 19"),
   a reason the date can't be used, or examples; Return chooses the date.
   With a mouse or keyboard it has focus when the picker opens; on touch
   screens it waits for a tap, so the keyboard doesn't cover the sheet.
@@ -46,18 +47,20 @@
   }
 </script>
 
-<input
-  bind:this={input}
-  bind:value={text}
-  onkeydown={onKey}
-  class="typed"
-  placeholder="Type a date: tom, next fri, jan 12"
-  aria-label="Type a date"
-  aria-describedby="typed-date-result"
-  autocomplete="off"
-  autocapitalize="off"
-  spellcheck="false"
-/>
+<label class="typed-label">
+  <span class="typed-heading">Type a date</span>
+  <input
+    bind:this={input}
+    bind:value={text}
+    onkeydown={onKey}
+    class="typed"
+    placeholder="tom, next fri, jan 12"
+    aria-describedby="typed-date-result"
+    autocomplete="off"
+    autocapitalize="off"
+    spellcheck="false"
+  />
+</label>
 {#if text.trim()}
   <p id="typed-date-result" class="result" class:off={!date || reason} role="status">
     {#if !date}
@@ -71,6 +74,16 @@
 {/if}
 
 <style>
+  .typed-label {
+    display: block;
+  }
+  .typed-heading {
+    display: block;
+    padding: 0 2px 3px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-2);
+  }
   .typed {
     width: 100%;
     border: 1px solid var(--line);
