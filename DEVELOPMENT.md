@@ -218,6 +218,6 @@ v1 is built in milestones, each a pull request.
 | 19 | Several gists (1.11.0 to 1.11.3): several gists on a device, each with its own task database, passphrase, name and colour (1.11.0); the gist band and switcher, Add Gist…, Rename… and Disconnect This Gist (1.11.1); the calendar helper writing to every gist, and the gist's name in its description (1.11.2); calendars chosen per gist (1.11.3); the Guide, Limitations and Privacy pages | Done |
 | 20 | Import from Todoist (from 1.12.0): Import… reads Todoist's export files (1.12.0); the Guide's "Importing from Todoist" | Done |
 | 21 | Reminders through Apple Reminders (from 1.13.0): a reminder on a task, shown once the Mac helper writes reminders (1.13.0); the helper writing them to Apple Reminders (1.13.1); ticks in Reminders completing tasks (1.13.2); importing reminders from Things and Todoist (1.13.3) | Done |
-| 22 | Natural-language entry (from 1.14.0): dates and details typed in a task's title set its fields, with a setting per device (1.14.0); highlights while typing, click to keep a word, and Return on a field button finishes (1.14.1) | In progress |
+| 22 | Natural-language entry (from 1.14.0): dates and details typed in a task's title set its fields, with a setting per device (1.14.0); highlights while typing, click to keep a word, and Return on a field button finishes (1.14.1); Compare's row (website) | Done |
 
 The backlog is on the website's [Roadmap](https://mytasks.fyi/roadmap/) page.
