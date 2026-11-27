@@ -39,11 +39,17 @@ const TOAST_MS = 5000;
 export type CardCommand = 'when' | 'deadline' | 'reminder' | 'tags' | 'checklist';
 
 const SIDEBAR_KEY = 'mytasks.sidebarHidden';
+/** How long after a title was read its own change stays without a "where it went" message. */
+const TITLE_QUIET_MS = 2000;
 
 class UiState {
   private openId = $state<ID | null>(null);
   /** Changes made while a card was open, kept to say where the task went when it closes. */
   private whereWaiting = new Map<ID, Todo>();
+  /** What an open card's title set (FR-1.12), said when the card closes in place of where it went. */
+  private titleSaid = new Map<ID, string>();
+  /** Tasks whose last change came from their title, and when: their "where it went" message is left out. */
+  private titleQuiet = new Map<ID, number>();
 
   /**
    * The to-do whose card is open, if any. While it's open the task is held
@@ -68,8 +74,16 @@ class UiState {
       });
     }
     const waiting = was ? this.whereWaiting.get(was) : undefined;
-    if (was) this.whereWaiting.delete(was);
-    if (waiting) void this.announceOne(waiting);
+    const said = was ? this.titleSaid.get(was) : undefined;
+    if (was) {
+      this.whereWaiting.delete(was);
+      this.titleSaid.delete(was);
+    }
+    if (said) {
+      // Hold it in the Inbox if it left the Inbox on screen, then say what the title set.
+      if (waiting) void this.whereOne(waiting);
+      this.offerUndoEverywhere(said);
+    } else if (waiting) void this.announceOne(waiting);
   }
   /** The selected rows (FR-10.1); see model/selection.ts. */
   selection = $state<Selection>(NO_SELECTION);
@@ -286,6 +300,16 @@ class UiState {
   }
 
   /**
+   * Say what a task's title set (FR-1.12), with Undo on every device: now,
+   * or when its card closes. That change's "where it went" message is left out.
+   */
+  noteTitleRead(id: ID, message: string): void {
+    this.titleQuiet.set(id, Date.now());
+    if (id === untrack(() => this.openId)) this.titleSaid.set(id, message);
+    else this.offerUndoEverywhere(message);
+  }
+
+  /**
    * After a change, find the tasks that left the Inbox and say where they
    * went (FR-1.10): one message, for several tasks too (FR-10.1).
    */
@@ -298,6 +322,9 @@ class UiState {
         continue;
       }
       const w = await this.whereOne(b);
+      // A change read from the title says so itself (noteTitleRead); it is only held in the Inbox.
+      const quiet = this.titleQuiet.get(b.id);
+      if (quiet !== undefined && Date.now() - quiet < TITLE_QUIET_MS) continue;
       if (w) went.push(w);
     }
     const message = combineWhere(went);

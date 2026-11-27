@@ -15,6 +15,8 @@
   - Import From Other Apps (FR-12.6): Import… adds a CSV file's tasks
     (ImportButton).
   - Appearance (FR-V.3): System, Light or Dark.
+  - Task Titles (FR-1.12): whether this device reads dates and details typed
+    in a task's title; off until switched on.
   - Completed Items: when completed items move to Completed (FR-12.2) and
     the two "move to the bottom" switches (FR-12.7, FR-7.5).
   - Priority Settings: P1–P5 labels and the two automatic-rule switches.
@@ -35,6 +37,7 @@
   import Segmented from '../components/Segmented.svelte';
   import { settings, snapshot } from '../lib/state/live';
   import { setTheme, theme } from '../lib/state/theme';
+  import { readTitles, setReadTitles } from '../lib/titleEntry';
   import { bySortKey } from '../lib/model/order';
   import { descendantIds } from '../lib/model/tags';
   import {
@@ -466,6 +469,20 @@
     />
   </div>
   <p class="help">System follows your device's light or dark setting.</p>
+</section>
+
+<section aria-labelledby="titles-heading">
+  <h2 id="titles-heading">Task Titles</h2>
+  <label class="switch-row">
+    <input type="checkbox" role="switch" checked={$readTitles} onchange={(e) => setReadTitles(e.currentTarget.checked)} />
+    <span>Read dates and details from task titles</span>
+  </label>
+  <p class="help">
+    When you type a new task's title, or add to one, words such as “tomorrow 9am”, “by fri”, “every mon”, p1,
+    #tag and @context set the task's Start Date, deadline, reminder, repeat, priority, tags and context. Words in
+    quotes stay in the title. This device only.
+    <SiteLink page="guide" hash="title-words">How it reads titles</SiteLink>
+  </p>
 </section>
 
 <section aria-labelledby="completed-heading">

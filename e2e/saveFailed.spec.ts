@@ -11,6 +11,20 @@ async function failWrites(page: Page, name: string | null): Promise<void> {
   await page.evaluate((n) => ((window as unknown as { __failWrites: string | null }).__failWrites = n), name);
 }
 
+/** The titles of the tasks stored on the device, read from its database. */
+function storedTitles(): Promise<string[]> {
+  return new Promise((resolve) => {
+    const open = indexedDB.open('mytasks');
+    open.onsuccess = () => {
+      const all = open.result.transaction('todos').objectStore('todos').getAll();
+      all.onsuccess = () => {
+        resolve((all.result as { title: string; deletedAt: string | null }[]).filter((t) => !t.deletedAt).map((t) => t.title));
+        open.result.close();
+      };
+    };
+  });
+}
+
 /** Try to add a task through Quick Entry, which stays open when the save fails. */
 async function tryAdd(page: Page, title: string): Promise<void> {
   await page.getByRole('toolbar', { name: 'Actions' }).getByRole('button', { name: 'New Task' }).click();
@@ -35,6 +49,8 @@ test('a failed save says so, once, and changes nothing', async ({ context }) => 
   const errors = watchErrors(page);
   await connect(page);
   await addTask(page, 'Saved before');
+  // Quick Entry closes before its save ends: wait for the task to be stored before writes start failing.
+  await expect.poll(() => page.evaluate(storedTitles)).toEqual(['Saved before']);
 
   // Storage full: its own message, and the typed task is kept in Quick Entry.
   await failWrites(page, 'QuotaExceededError');
