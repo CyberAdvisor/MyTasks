@@ -16,13 +16,25 @@ const SHOTS = 'book/shots';
 const shot = (page: Page, name: string) => page.screenshot({ path: `${SHOTS}/${name}.png` });
 
 test('Mac', async ({ browser }) => {
-  // Sixteen pictures take longer than one test's usual 30 seconds.
-  test.setTimeout(120_000);
+  // Eighteen pictures take longer than one test's usual 30 seconds.
+  test.setTimeout(180_000);
   const page = await marcus(browser);
 
   // Chapter 2: the Inbox on a Monday morning.
   await go(page, '#/inbox', 'Sign Leo');
   await shot(page, 'ch02-inbox');
+
+  // Chapter 2: Quick Entry reading a title's dates and details (Settings › Task
+  // Titles on), the words highlighted and the line under the title.
+  await page.evaluate(() => localStorage.setItem('mytasks.readTitles', '1'));
+  await page.reload();
+  await go(page, '#/inbox', 'Sign Leo');
+  await page.getByRole('toolbar', { name: 'Actions' }).getByRole('button', { name: 'New Task' }).click();
+  await page.keyboard.type('Call Nimbus about the ad read tomorrow 9am p1 #Sponsor');
+  await expect(page.getByText('set on Return')).toBeVisible();
+  await settle(page);
+  await shot(page, 'ch02-quick-entry-title');
+  await page.keyboard.press('Escape');
 
   // Chapter 3: his areas in the sidebar, and a project with headings and a checklist.
   await go(page, '#/project/ces', 'Book flights to Las Vegas');
@@ -93,6 +105,14 @@ test('Mac', async ({ browser }) => {
   await events.last().click();
   await settle(page);
   await shot(page, 'ch10-event-details');
+  await page.keyboard.press('Escape');
+  // Chapter 10: the heartworm pill's card, with its reminder on each copy's day.
+  await go(page, '#/scheduled', 'Give Biscuit his heartworm pill');
+  await page.getByText('Give Biscuit his heartworm pill', { exact: true }).first().dblclick();
+  await expect(page.getByRole('group', { name: 'Edit task' }).getByText(/8:00 AM on each copy/)).toBeVisible();
+  await page.getByRole('group', { name: 'Edit task' }).evaluate((card) => card.scrollIntoView({ block: 'center' }));
+  await settle(page);
+  await shot(page, 'ch10-reminder');
   await page.keyboard.press('Escape');
 
   // Chapter 11: the Friday Review's checklist.
