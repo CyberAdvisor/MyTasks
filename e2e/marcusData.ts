@@ -287,6 +287,8 @@ export function marcusBackup(today = new Date()): string {
       startDate: day(daysToNextMonth(today, 5)),
       contextId: 'home',
       repeat: rule({ unit: 'month', days: [{ ordinal: 5, weekday: null }] }),
+      // A repeating task's reminder is a time only, on each copy's day (the book's chapter 10).
+      reminder: '08:00',
     }),
     todo('fa-5', 'Plan date night', {
       ...family,
@@ -518,5 +520,7 @@ export function marcusCalendar(today = new Date()) {
       { id: 'personal', title: 'Personal', color: '#e0453a' },
     ],
     events,
+    // His helper has a Reminders list, so the Reminder field shows and reminders in titles are read.
+    reminders: true,
   };
 }
