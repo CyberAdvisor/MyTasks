@@ -89,7 +89,7 @@ export const BINDINGS: Binding[] = [
   { command: 'new-todo', label: 'New Task', app: ['Mod+N'], tab: ['N'], both: ['Space'] },
   { command: 'new-project', label: 'New Project', both: ['Mod+Alt+N'] },
   { command: 'new-heading', label: 'New Heading', app: ['Mod+Shift+N'], tab: ['Alt+H'] },
-  { command: 'quick-entry', label: 'Quick Entry', both: ['Ctrl+Space', 'Mod+Shift+Space'] },
+  { command: 'quick-entry', label: 'Quick Entry', both: ['Ctrl+Space'] },
   { command: 'open', label: 'Open selected task', both: ['Enter'] },
   { command: 'select-prev', label: 'Select previous task', both: ['Up'] },
   { command: 'select-next', label: 'Select next task', both: ['Down'] },

@@ -5,7 +5,7 @@
   context), led by where it goes
   (the Inbox unless opened from another view, FR-10.5).
   Nothing is stored until Save (Return in the title or on a field's button,
-  or Cmd/Ctrl+Enter); Cancel or Escape discards the draft.
+  or Cmd/Ctrl+Return from any field); Cancel or Escape discards the draft.
   With Settings › Task Titles on, the words the title will set are
   highlighted as you type, with what they set underneath (FR-1.12).
 -->
