@@ -32,11 +32,12 @@ export const MAX_FILE_CHARS = 5 * 1024 * 1024;
 export const MIN_PASSPHRASE = 12;
 
 /**
- * Which file an envelope is: the task list (mytasks.json), or a file the Mac
- * helper writes, sealed the same way: the calendar (calendar.json, FR-21.2)
- * or the reminders ticked in Reminders (ticks.json, FR-21.11).
+ * Which file an envelope is: the task list (mytasks.json), the daily notes
+ * (notes.json, FR-24.1), or a file the Mac helper writes, sealed the same way:
+ * the calendar (calendar.json, FR-21.2) or the reminders ticked in Reminders
+ * (ticks.json, FR-21.11).
  */
-export type EnvelopeApp = 'mytasks' | 'mytasks-calendar' | 'mytasks-ticks';
+export type EnvelopeApp = 'mytasks' | 'mytasks-notes' | 'mytasks-calendar' | 'mytasks-ticks';
 
 /** A gist file's contents: plain metadata around the encrypted list or calendar. */
 export interface Envelope {
@@ -114,17 +115,18 @@ export async function deriveKey(passphrase: string, salt: string, iterations = K
   );
 }
 
-/** Encrypt `plaintext` into an envelope. */
+/** Encrypt `plaintext` into an envelope for `app`'s file (the task list unless asked for another). */
 export async function seal(
   key: CryptoKey,
   kdf: { salt: string; iterations: number },
   plaintext: string,
   updatedAt: string,
+  app: EnvelopeApp = 'mytasks',
 ): Promise<Envelope> {
   const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
   const data = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, text.encode(plaintext)));
   return {
-    app: 'mytasks',
+    app,
     format: 1,
     updatedAt,
     kdf: { name: 'PBKDF2', hash: 'SHA-256', iterations: kdf.iterations, salt: kdf.salt },
@@ -149,7 +151,7 @@ export async function unseal(key: CryptoKey, env: Envelope): Promise<string> {
 
 /**
  * Parse a gist file into an envelope, or null when it is not the `app` file
- * (the task list unless asked for the calendar) or fails a check: larger than MAX_FILE_CHARS, an iteration count other than
+ * (the task list unless asked for another) or fails a check: larger than MAX_FILE_CHARS, an iteration count other than
  * KDF_ITERATIONS, a salt or IV of the wrong length, or data that isn't base64.
  */
 export function parseEnvelope(content: string, app: EnvelopeApp = 'mytasks'): Envelope | null {

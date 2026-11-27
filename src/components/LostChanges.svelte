@@ -1,7 +1,8 @@
 <!--
-  The lost-change notice (FR-19.12): after a sync, the tasks and projects
-  whose changes on this device were replaced by later ones from another
-  device, each with what it lost. A title opens it; OK closes the notice.
+  The lost-change notice (FR-19.12): after a sync, the tasks, projects and
+  daily notes whose changes on this device were replaced by later ones from
+  another device, each with what it lost. A title opens it (a daily note:
+  today's, in Today); OK closes the notice.
 -->
 <script lang="ts">
   import { db } from '../lib/db/database';
@@ -23,6 +24,7 @@
   async function open(change: LostChange): Promise<void> {
     sync.dismissLost();
     if (change.kind === 'project') return go({ kind: 'project', id: change.id });
+    if (change.kind === 'note') return go({ kind: 'list', list: 'today' });
     const todo = await db.todos.get(change.id);
     if (todo && !todo.deletedAt) revealTodo(todo, $route, $todayDate);
   }
@@ -40,7 +42,7 @@
   <ul>
     {#each shown as change (change.kind + change.id)}
       <li>
-        {#if change.deleted}
+        {#if change.deleted || (change.kind === 'note' && change.id !== $todayDate)}
           <span class="title">{change.title || 'Untitled'}</span>
         {:else}
           <button type="button" class="title link" onclick={() => void open(change)}>{change.title || 'Untitled'}</button>

@@ -28,13 +28,15 @@ import { clearConfig, listGists, loadConfig, otherGistsWithToken, replaceToken, 
 import { FIRST_DB, activeDbName, setActiveDbName } from '../gists/active';
 import { saveAllNow } from '../state/onHide';
 import { SYNCED_TABLES, idsOf, replacement, type Payload } from './payload';
-import { GistError, checkToken, createGist, gistOwner, readGist, writeGist, type GistErrorCode } from './github';
+import { GistError, checkToken, createGist, gistOwner, readGist, readGistFiles, writeGist, type GistErrorCode } from './github';
 import { adoptRemote, readLocal, replaceLocal } from './local';
 import { clearUndo } from '../db/history';
 import { exclusive } from './lock';
 import { onReturn } from '../pwa/onReturn';
 import { receiveCalendar, showSavedCalendar } from '../calendar/calendar';
 import { receiveTicks } from '../reminders/ticks';
+import { adoptNotes, rewriteNotes } from '../notes/sync';
+import { deleteNotesDb } from '../notes/store';
 import type { LostChange } from './lost';
 
 /** Delay between a local change and the sync that pushes it. */
@@ -355,6 +357,8 @@ export class SyncEngine {
       const salt = newSalt();
       const updated: DeviceConfig = { ...config, salt, iterations: KDF_ITERATIONS, key: await deriveKey(next, salt) };
       await writeGist(config.token, config.gistId, await sealPayload(updated, await readLocal()));
+      // The daily notes too, so other devices read them with the new passphrase (FR-24.1).
+      await rewriteNotes(updated);
       await this.saved({ ...updated, lastSyncedAt: nowIso(), lastSync: undefined });
     });
   }
@@ -378,8 +382,10 @@ export class SyncEngine {
    */
   async replaceWithGist(): Promise<void> {
     await this.exclusive(async (config) => {
-      const env = envelopeOf(await readGist(config.token, config.gistId));
-      await adoptRemote(await openPayload(config.key, env, 'malformed'));
+      const files = await readGistFiles(config.token, config.gistId);
+      await adoptRemote(await openPayload(config.key, envelopeOf(files.tasks), 'malformed'));
+      // Notes deleted elsewhere may have lost their tombstones too (FR-24.1).
+      await adoptNotes(config, files.notes);
       clearUndo();
       await this.saved({ ...config, lastSyncedAt: nowIso(), lastSync: undefined });
     });
@@ -451,6 +457,7 @@ export class SyncEngine {
     await exclusive(async () => {
       await clearConfig();
       await db.delete();
+      await deleteNotesDb(activeDbName());
       // Another gist on this device becomes active. With none left, Setup
       // shows, on the first database name, so the next gist set up here never
       // keeps the name of the gist just disconnected.

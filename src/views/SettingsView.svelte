@@ -17,6 +17,9 @@
   - Appearance (FR-V.3): System, Light or Dark.
   - Task Titles (FR-1.12): whether this device reads dates and details typed
     in a task's title; off until switched on.
+  - Daily Notes (FR-24.1): whether this device shows a daily note in Today;
+    off until switched on. The gist's notes file's size, and any problem
+    with it.
   - Completed Items: when completed items move to Completed (FR-12.2) and
     the two "move to the bottom" switches (FR-12.7, FR-7.5).
   - Priority Settings: P1–P5 labels and the two automatic-rule switches.
@@ -38,6 +41,8 @@
   import { settings, snapshot } from '../lib/state/live';
   import { setTheme, theme } from '../lib/state/theme';
   import { readTitles, setReadTitles } from '../lib/titleEntry';
+  import { dailyNotesOn, setDailyNotes } from '../lib/notes/setting';
+  import { notesChars, notesProblem } from '../lib/notes/sync';
   import { bySortKey } from '../lib/model/order';
   import { descendantIds } from '../lib/model/tags';
   import {
@@ -484,6 +489,31 @@
     device only.
     <SiteLink page="guide" hash="title-words">How it reads titles</SiteLink>
   </p>
+</section>
+
+<section aria-labelledby="notes-heading">
+  <h2 id="notes-heading">Daily Notes</h2>
+  <label class="switch-row">
+    <input type="checkbox" role="switch" checked={$dailyNotesOn} onchange={(e) => setDailyNotes(e.currentTarget.checked)} />
+    <span>Show a daily note in Today</span>
+  </label>
+  <p class="help">
+    A few lines about the day, one bullet per line, with bold, italic and links as in a task's notes. Each gist keeps
+    its own notes, encrypted, in a file of their own beside the tasks. This device only: other devices keep syncing
+    the notes, shown once switched on there.
+  </p>
+  {#if $notesProblem === 'unreadable'}
+    <p class="sync-problem" role="alert">
+      <Icon name="alert" size={15} color="var(--danger)" /> The gist's daily notes can't be read. They're left as they
+      are, and this device's notes aren't written over them.
+    </p>
+  {:else if $notesProblem === 'toolarge'}
+    <p class="sync-problem" role="alert">
+      <Icon name="alert" size={15} color="var(--danger)" /> The daily notes are over 5 MB, so changes to them aren't
+      synced. Shorten or clear some notes.
+    </p>
+  {/if}
+  {#if $notesChars !== null}<p class="help">Notes file: {fileSizeText($notesChars)}.</p>{/if}
 </section>
 
 <section aria-labelledby="completed-heading">

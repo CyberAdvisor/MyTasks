@@ -70,9 +70,18 @@ function sizeOfLimit(chars: number): string {
 /**
  * The sidebar's warning line (NFR-7): from 4,500 tasks or 4.5 MB, whichever
  * comes first, or both; null when neither is near. `chars` is the gist
- * file's size from the last sync.
+ * file's size from the last sync. The daily notes file (FR-24.1), `notesChars`,
+ * has its own 5 MB and is warned of from 4.5 MB too.
  */
-export function roomWarning(count: number, chars: number | undefined): string | null {
+export function roomWarning(count: number, chars: number | undefined, notesChars?: number | null): string | null {
+  const base = tasksWarning(count, chars);
+  if (!nearFileLimit(notesChars ?? undefined)) return base;
+  const notes = sizeOfLimit(notesChars!);
+  return base ? `${base.slice(0, -1)} · daily notes ${notes}.` : `Your daily notes are ${notes}.`;
+}
+
+/** The warning for the tasks alone: their count, their file's size, or both. */
+function tasksWarning(count: number, chars: number | undefined): string | null {
   const tasks = nearLimit(count);
   const size = nearFileLimit(chars);
   if (tasks && size) return `${formatCount(count)} of ${formatCount(MAX_TASKS)} tasks · ${sizeOfLimit(chars!)}.`;

@@ -8,17 +8,23 @@
   - Editing: a plain text box, growing with its text; leaving it shows the note again.
   - An empty note is always the text box, so its placeholder shows.
   The note itself stays plain text: what's typed is what's saved.
+
+  With `bullets` (a daily note, FR-24.1) every line is a bullet: the box starts
+  with "- ", Return starts the next bullet, and lines typed without "- " are
+  shown as bullets too.
 -->
 <script lang="ts">
   import { tick } from 'svelte';
   import NoteText from './NoteText.svelte';
   import { linkPress } from '../lib/linkPress';
+  import { asBullets, cleanNote } from '../lib/notes/model';
 
   let {
     value = $bindable(''),
     id,
     label,
     placeholder = 'Notes',
+    bullets = false,
     oninput,
     onfocus,
     onblur,
@@ -27,6 +33,8 @@
     id?: string;
     label: string;
     placeholder?: string;
+    /** One bullet per line (a daily note). */
+    bullets?: boolean;
     oninput?: () => void;
     onfocus?: () => void;
     onblur?: () => void;
@@ -34,7 +42,7 @@
 
   let editing = $state(false);
   let box = $state<HTMLTextAreaElement>();
-  let showing = $derived(!editing && value.trim() !== '');
+  let showing = $derived(!editing && (bullets ? cleanNote(value) !== '' : value.trim() !== ''));
 
   /** Make the box as tall as its text, at least its two rows. */
   function fit() {
@@ -56,6 +64,18 @@
 
   const press = linkPress(() => void edit());
 
+  /** In a bulleted note, Return starts the next bullet; typed through the browser, so its own Undo keeps it. */
+  function bulletKey(e: KeyboardEvent) {
+    if (!bullets || !box || e.key !== 'Enter' || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
+    e.preventDefault();
+    if (!document.execCommand?.('insertText', false, '\n- ')) {
+      box.setRangeText('\n- ', box.selectionStart, box.selectionEnd, 'end');
+      value = box.value;
+      fit();
+      oninput?.();
+    }
+  }
+
   $effect(() => {
     // Fit again whenever the text changes while the box shows (typing, or a save from elsewhere).
     void value;
@@ -74,7 +94,7 @@
     tabindex="0"
     {...press}
   >
-    <NoteText note={value} />
+    <NoteText note={bullets ? asBullets(value) : value} />
   </div>
 {:else}
   <textarea
@@ -85,16 +105,19 @@
     bind:value
     {placeholder}
     rows="2"
+    onkeydown={bulletKey}
     oninput={() => {
       fit();
       oninput?.();
     }}
     onfocus={() => {
       editing = true;
+      if (bullets && value.trim() === '') value = '- ';
       onfocus?.();
     }}
     onblur={() => {
       editing = false;
+      if (bullets && cleanNote(value) === '') value = '';
       onblur?.();
     }}
   ></textarea>

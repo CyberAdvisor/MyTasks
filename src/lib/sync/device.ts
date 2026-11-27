@@ -55,6 +55,15 @@ export interface SyncMark {
    * only changes made after it. Missing on older marks.
    */
   readAt?: string;
+  /** The daily notes file's mark (FR-24.1), like the tasks' own; missing while the gist has no notes. */
+  notes?: NotesMark;
+}
+
+/** What a sync left of the gist's notes.json: its IV, this device's notes' fingerprint (`notesStamp`) and the file's length. */
+export interface NotesMark {
+  iv: string;
+  stamp: string;
+  chars: number;
 }
 
 /** Setup's "I have read and understand the risks and limitations" checkbox, as ticked. */

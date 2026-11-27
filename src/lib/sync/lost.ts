@@ -19,9 +19,10 @@ import { partsOf, sameFields, toSeconds } from '../model/parts';
 import type { BaseRecord, ChecklistItem, Project, Todo } from '../model/types';
 import type { Payload } from './payload';
 
-/** One task or project whose change was replaced. */
+/** One task, project or daily note whose change was replaced. */
 export interface LostChange {
-  kind: 'todo' | 'project';
+  /** A daily note's id is its day (notes/sync.ts, `lostNote`). */
+  kind: 'todo' | 'project' | 'note';
   id: string;
   /** Its title now, as the user will find it. */
   title: string;
