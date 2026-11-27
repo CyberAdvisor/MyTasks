@@ -32,6 +32,12 @@ export interface TitleWord {
   text: string;
 }
 
+/** A part of a title, by character offsets (`to` excluded). */
+export interface TitleSpan {
+  from: number;
+  to: number;
+}
+
 /** The fields read from a title. Absent: not read. */
 export interface TitleFields {
   startDate?: LocalDate;
@@ -79,8 +85,8 @@ export interface ReadOptions {
   /** Read only the words within this part of the title (the text just typed); default the whole title. */
   from?: number;
   to?: number;
-  /** Start offsets of words the user chose to keep as text. */
-  kept?: ReadonlySet<number>;
+  /** Parts of the title the user chose to keep as text (a click on a highlighted word). */
+  kept?: readonly TitleSpan[];
 }
 
 interface Token {
@@ -182,7 +188,7 @@ export function readTitle(title: string, ctx: TitleContext, opts: ReadOptions = 
   const all = tokens(title);
   const from = opts.from ?? 0;
   const to = opts.to ?? title.length;
-  const usable = (t: Token) => !t.quoted && t.from >= from && t.to <= to && !opts.kept?.has(t.from);
+  const usable = (t: Token) => !t.quoted && t.from >= from && t.to <= to && !opts.kept?.some((k) => t.from < k.to && t.to > k.from);
   const words: TitleWord[] = [];
   const fields: TitleFields = {};
   const unused: TitleReading['unused'] = [];
@@ -227,7 +233,7 @@ export function readTitle(title: string, ctx: TitleContext, opts: ReadOptions = 
       if (tag && !fields.tagIds?.includes(tag.id)) {
         fields.tagIds = [...(fields.tagIds ?? []), tag.id];
         add('tag', [t]);
-      }
+      } else if (!tag && /\p{L}/u.test(w)) unused.push({ text: t.text, why: `${t.text} isn’t one of your tags` });
       i++;
       continue;
     }
@@ -238,7 +244,7 @@ export function readTitle(title: string, ctx: TitleContext, opts: ReadOptions = 
       if (context && fields.contextId === undefined) {
         fields.contextId = context.id;
         add('context', [t]);
-      }
+      } else if (!context && /\p{L}/u.test(w)) unused.push({ text: t.text, why: `${t.text} isn’t one of your contexts` });
       i++;
       continue;
     }
@@ -371,6 +377,26 @@ export function typedPart(before: string, now: string): { from: number; to: numb
   let to = Math.max(from, now.length - end);
   if (/\S/.test(now[to - 1] ?? '')) while (to < now.length && /\S/.test(now[to])) to++;
   return { from, to };
+}
+
+/**
+ * The kept parts of a title after it changed from `before` to `now`: parts
+ * before or after the change move with the text; a part the change runs
+ * into is dropped, so its words are read again.
+ */
+export function shiftKept(kept: readonly TitleSpan[], before: string, now: string): TitleSpan[] {
+  let start = 0;
+  while (start < before.length && start < now.length && before[start] === now[start]) start++;
+  let end = 0;
+  while (end < before.length - start && end < now.length - start && before[before.length - 1 - end] === now[now.length - 1 - end]) end++;
+  const changedTo = before.length - end;
+  const delta = now.length - before.length;
+  const out: TitleSpan[] = [];
+  for (const k of kept) {
+    if (k.to <= start) out.push(k);
+    else if (k.from >= changedTo) out.push({ from: k.from + delta, to: k.to + delta });
+  }
+  return out;
 }
 
 /** Whether anything was read. */

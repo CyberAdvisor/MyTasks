@@ -4,8 +4,10 @@
   (FieldBar: tags, When, deadline, reminder while reminders are on, priority,
   context), led by where it goes
   (the Inbox unless opened from another view, FR-10.5).
-  Nothing is stored until Save (Enter in the title, or Cmd/Ctrl+Enter);
-  Cancel or Escape discards the draft.
+  Nothing is stored until Save (Return in the title or on a field's button,
+  or Cmd/Ctrl+Enter); Cancel or Escape discards the draft.
+  With Settings › Task Titles on, the words the title will set are
+  highlighted as you type, with what they set underneath (FR-1.12).
 -->
 <script lang="ts">
   import Icon from './Icon.svelte';
@@ -14,6 +16,10 @@
   import FieldBar from './FieldBar.svelte';
   import Checklist from './Checklist.svelte';
   import DestinationList from './DestinationList.svelte';
+  import TitleHighlights from './TitleHighlights.svelte';
+  import TitleHint from './TitleHint.svelte';
+  import { previewDraftTitle, readTitles } from '../lib/titleEntry';
+  import { shiftKept, type TitleSpan } from '../lib/model/titleWords';
   import { ui } from '../lib/state/ui.svelte';
   import { snapshot, todayDate } from '../lib/state/live';
   import { saveDraft } from '../lib/actions';
@@ -33,7 +39,25 @@
     dialog.addEventListener('keydown', onTab);
     return () => dialog.removeEventListener('keydown', onTab);
   });
-  let titleInput: HTMLInputElement;
+  let titleInput = $state<HTMLInputElement>();
+
+  /** What the title will set (FR-1.12), for the highlights and the line under it. */
+  let reading = $derived($readTitles ? previewDraftTitle(draft) : null);
+
+  // Kept words move with the text typed before them (FR-1.12).
+  // svelte-ignore state_referenced_locally
+  let lastTitle = draft.title;
+  $effect(() => {
+    const now = draft.title;
+    if (now === lastTitle) return;
+    if (draft.kept.length) draft.kept = shiftKept(draft.kept, lastTitle, now);
+    lastTitle = now;
+  });
+
+  /** A highlighted word clicked: keep it as text, or read a kept one again. */
+  function toggleKept(span: TitleSpan, keep: boolean) {
+    draft.kept = keep ? [...draft.kept, span] : draft.kept.filter((k) => k.from !== span.from);
+  }
 
   let whereOpen = $state(false);
   let checklistFocus = $state<ID | null>(null);
@@ -48,7 +72,7 @@
 
   $effect(() => {
     dialog.showModal();
-    titleInput.focus();
+    titleInput?.focus();
   });
 
   /** Name of the destination shown on the bottom-left chip. */
@@ -131,7 +155,11 @@
       placeholder="New Task"
       autocomplete="off"
     />
+    {#if reading}
+      <TitleHighlights field={titleInput} value={draft.title} words={reading.words} kept={draft.kept} ontoggle={toggleKept} />
+    {/if}
   </div>
+  <TitleHint {reading} />
 
   <label class="visually-hidden" for="qe-notes">Notes</label>
   <textarea id="qe-notes" class="notes" bind:value={draft.notes} placeholder="Notes" rows="2"></textarea>
@@ -159,6 +187,7 @@
     oncontext={(contextId) => (draft.contextId = contextId)}
     ontoggletag={(tagId, on) => draft.toggleTag(tagId, on)}
     onchecklist={addChecklist}
+    onfinish={save}
   >
     {#snippet leading()}
       <Popover bind:open={whereOpen} label="Where" align="left">
@@ -197,6 +226,7 @@
     background: var(--overlay);
   }
   .top {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 12px;

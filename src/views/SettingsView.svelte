@@ -480,7 +480,8 @@
   <p class="help">
     When you type a new task's title, or add to one, words such as “tomorrow 9am”, “by fri”, “every mon”, p1,
     #tag and @context set the task's Start Date, deadline, reminder, repeat, priority, tags and context. Words in
-    quotes stay in the title. This device only.
+    quotes stay in the title. The words to be read are highlighted as you type: click one to keep it as text. This
+    device only.
     <SiteLink page="guide" hash="title-words">How it reads titles</SiteLink>
   </p>
 </section>

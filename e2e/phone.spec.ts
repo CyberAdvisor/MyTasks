@@ -506,3 +506,19 @@ test('with several gists: the band on the Home screen, the gist’s name under e
   const title = (await page.getByRole('heading', { name: 'Inbox', level: 1 }).boundingBox())!;
   expect((await label.boundingBox())!.y).toBeGreaterThan(title.y);
 });
+
+test('A tap on a highlighted title word keeps it as text', async ({ page, context }) => {
+  await fakeGitHub(context);
+  await page.addInitScript(() => localStorage.setItem('mytasks.readTitles', '1'));
+  await connect(page);
+  await page.getByRole('navigation', { name: 'Lists' }).getByRole('link', { name: 'Inbox' }).click();
+  await page.getByRole('button', { name: 'New Task' }).click();
+  const entry = page.getByRole('dialog', { name: 'Quick Entry' });
+  const field = entry.getByPlaceholder('New Task');
+  await field.pressSequentially('Call Sam tomorrow p2');
+  await entry.locator('.layer .read', { hasText: 'tomorrow' }).tap();
+  await expect(entry.locator('.layer .kept')).toHaveText('tomorrow');
+  await expect(entry.locator('.hint')).toHaveText('P2 — set on Return');
+  await field.press('Enter');
+  await expect(page.getByText('Call Sam tomorrow', { exact: true })).toBeVisible();
+});

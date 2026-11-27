@@ -16,6 +16,8 @@
   - `leading`: drawn first among the chips (Quick Entry's Where).
   - `between`: drawn between the tag pills and the bar (the card's repeat line).
   - `trailing`: drawn after the buttons (the card's Move and ⋯).
+  - `onfinish`: Return on a closed picker's button finishes (Quick Entry
+    saves, the card closes); Space or a click still opens the picker.
   The open states are bindable, so a keyboard command can open a picker.
 -->
 <script lang="ts">
@@ -63,6 +65,7 @@
     oncontext,
     ontoggletag,
     onchecklist,
+    onfinish,
     leading,
     between,
     trailing,
@@ -83,6 +86,7 @@
     oncontext: (contextId: ID | null) => void;
     ontoggletag: (tagId: ID, on: boolean) => void;
     onchecklist: () => void;
+    onfinish?: () => void;
     leading?: Snippet;
     between?: Snippet;
     trailing?: Snippet;
@@ -101,6 +105,21 @@
   );
   let tagNames = $derived(tagTitles(fields.tagIds, $snapshot));
   let contextName = $derived(contextTitle(fields.contextId, $snapshot));
+
+  /**
+   * Return on a closed picker's button finishes, as in Things: the owner
+   * saves or closes. Return inside an open picker, or on its open button, keeps
+   * its own meaning, as does Space.
+   */
+  function finishKey(e: KeyboardEvent) {
+    if (!onfinish || e.key !== 'Enter' || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || e.isComposing) return;
+    const target = e.target;
+    if (!(target instanceof HTMLButtonElement) || target.getAttribute('aria-expanded') !== 'false') return;
+    // Only a picker's own button: not Checklist, Move or ⋯, nor a control inside an open picker.
+    if (!target.closest('[data-popover]') || target.closest('[data-popover-panel]')) return;
+    e.preventDefault();
+    onfinish();
+  }
 
   // Each choice closes its picker, then goes to the owner.
   function chooseWhen(choice: WhenChoice) {
@@ -145,7 +164,8 @@
 {/snippet}
 
 {#if tagNames.length}
-  <div class="tags">
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="tags" onkeydown={finishKey}>
     <Popover titled bind:open={tagsOpen} label="Tags" align="left">
       {#snippet trigger(toggle, open)}
         <button type="button" class="tag-list" aria-label="Edit tags" aria-expanded={open} onclick={toggle}>
@@ -159,7 +179,8 @@
 
 {@render between?.()}
 
-<div class="bar">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="bar" onkeydown={finishKey}>
   <div class="left">
     {@render leading?.()}
     {#if hasWhen}

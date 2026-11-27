@@ -5,7 +5,10 @@
   Below the card, a blue link names the to-do's project or
   area, with Go to Project and Change Project (the Move dialog).
   Edits save as you type, debounced 300 ms; there is no Save button.
-  Escape or a click outside closes it.
+  Escape, Return in the title or on a field's button, or a click outside
+  closes it. With Settings › Task Titles on, the words just typed in the
+  title that it will read are highlighted, with what they set underneath
+  (FR-1.12).
   A repeating task's template (FR-4.3, FR-4.4) shows its rule and next dates
   in place of its start date and deadline, which its copies carry; a click
   edits the rule. A copy says so, with Show Repeating Task.
@@ -32,7 +35,10 @@
   import { checklistFor } from '../lib/model/tags';
   import { storedChecklist } from '../lib/state/checklist.svelte';
   import * as repo from '../lib/db/repo';
-  import { applyTaskTitle, messageFor, readTaskTitle } from '../lib/titleEntry';
+  import TitleHighlights from './TitleHighlights.svelte';
+  import TitleHint from './TitleHint.svelte';
+  import { applyTaskTitle, messageFor, previewTaskTitle, readTaskTitle, readTitles } from '../lib/titleEntry';
+  import { shiftKept, type TitleSpan } from '../lib/model/titleWords';
   import type { ID, LocalDate, Todo } from '../lib/model/types';
 
   let { todo: listed, ref }: { todo: Todo; ref: LocalDate } = $props();
@@ -49,7 +55,9 @@
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   /** The title as last read (FR-1.12): only words typed since are read. */
   // svelte-ignore state_referenced_locally
-  let titleBase = todo.title;
+  let titleBase = $state(todo.title);
+  /** Parts of the title kept as text with a click (FR-1.12). */
+  let kept = $state<TitleSpan[]>([]);
   /** Text typed in this card and not saved yet: only that is saved, never a copy another card or a reading has replaced. */
   let titleTyped = false;
   let notesTyped = false;
@@ -62,7 +70,25 @@
     card.addEventListener('keydown', onTab);
     return () => card.removeEventListener('keydown', onTab);
   });
-  let titleInput: HTMLTextAreaElement;
+  let titleInput = $state<HTMLTextAreaElement>(null!);
+
+  /** What the words typed since the title was last read will set, for the highlights. */
+  let reading = $derived($readTitles ? previewTaskTitle(todo, titleBase, title, kept) : null);
+
+  // Kept words move with the text typed before them.
+  // svelte-ignore state_referenced_locally
+  let lastTitle = title;
+  $effect(() => {
+    const now = title;
+    if (now === lastTitle) return;
+    if (untrack(() => kept.length)) kept = shiftKept(untrack(() => kept), lastTitle, now);
+    lastTitle = now;
+  });
+
+  /** A highlighted word clicked: keep it as text, or read a kept one again. */
+  function toggleKept(span: TitleSpan, keep: boolean) {
+    kept = keep ? [...kept, span] : kept.filter((k) => k.from !== span.from);
+  }
 
   // Which popover is open.
   let whenOpen = $state(false);
@@ -136,8 +162,9 @@
     const base = titleBase;
     const task = todo;
     if (typed === base) return;
-    const r = readTaskTitle(task, base, typed);
+    const r = readTaskTitle(task, base, typed, kept);
     titleBase = r ? r.title : typed;
+    kept = [];
     if (!r) return;
     // The shorter title is saved with the fields, not by the next flush.
     clearTimeout(saveTimer);
@@ -278,7 +305,11 @@
       placeholder="New Task"
       autocomplete="off"
     ></textarea>
+    {#if reading}
+      <TitleHighlights field={titleInput} value={title} words={reading.words} {kept} ontoggle={toggleKept} />
+    {/if}
   </div>
+  <TitleHint {reading} />
 
   <div class="notes-wrap">
     <NotesField
@@ -316,6 +347,7 @@
     oncontext={(contextId) => void repo.setContext(todo.id, contextId)}
     ontoggletag={(tagId, on) => repo.toggleTag('todos', todo.id, tagId, on)}
     onchecklist={addChecklist}
+    onfinish={close}
     bind:whenOpen
     bind:deadlineOpen
     bind:reminderOpen
@@ -421,6 +453,7 @@
     gap: 6px;
   }
   .top {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 12px;
